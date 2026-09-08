@@ -76,16 +76,15 @@ function combineSignals(signal: AbortSignal | undefined, timeoutMs: number): Abo
 }
 
 /**
- * Performs the request and validates the response with `parse`.
+ * Performs the request and returns the body as it came, without interpreting its shape.
  *
- * Returning the already-validated type (rather than `unknown` or an `as`) is what lets the rest of
- * the application trust its data.
+ * It exists because the cache stores the API's own response and not the translated model, so the
+ * raw payload has to be available to whoever caches it. See `readCached` in `products.ts`.
  */
-export async function requestJson<T>(
+export async function requestRawJson(
   url: string,
-  parse: Parser<T>,
   options: RequestOptions = {},
-): Promise<T> {
+): Promise<unknown> {
   const { method = 'GET', body, signal, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
 
   let response: Response;
@@ -115,18 +114,28 @@ export async function requestJson<T>(
     );
   }
 
-  let payload: unknown;
   try {
-    payload = await response.json();
+    return await response.json();
   } catch {
     throw new ApiError('malformed', 'La API respondió con un cuerpo que no es JSON válido');
   }
+}
 
-  const parsed = parse(payload);
+/**
+ * Performs the request and validates the response with `parse`.
+ *
+ * Returning the already-validated type (rather than `unknown` or an `as`) is what lets the rest of
+ * the application trust its data.
+ */
+export async function requestJson<T>(
+  url: string,
+  parse: Parser<T>,
+  options: RequestOptions = {},
+): Promise<T> {
+  const parsed = parse(await requestRawJson(url, options));
   if (parsed === undefined) {
     throw new ApiError('malformed', 'La respuesta de la API no tiene la forma esperada');
   }
-
   return parsed;
 }
 

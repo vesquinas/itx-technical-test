@@ -172,3 +172,46 @@ describe('product data layer', () => {
     });
   });
 });
+
+describe('cache round-trip', () => {
+  let fetchMock: Mock<FetchStub>;
+  let clock: number;
+
+  beforeEach(() => {
+    clock = 1_700_000_000_000;
+    vi.spyOn(Date, 'now').mockImplementation(() => clock);
+    fetchMock = vi.fn<FetchStub>(() => Promise.resolve(jsonResponse(productListFixture)));
+    vi.stubGlobal('fetch', fetchMock);
+    clearProductCache();
+  });
+
+  afterEach(() => {
+    clearProductCache();
+    vi.unstubAllGlobals();
+  });
+
+  it('returns from the cache exactly what it returned from the network', async () => {
+    const fromNetwork = await fetchProductList();
+    // A second module-level read: the cache is the only source now.
+    const fromCache = await fetchProductList();
+
+    expect(fromCache).toEqual(fromNetwork);
+  });
+
+  it('keeps the image addresses across a cache round-trip', async () => {
+    const fromNetwork = await fetchProductList();
+    const fromCache = await fetchProductList();
+
+    expect(fromNetwork.every((p) => p.imageUrl.length > 0)).toBe(true);
+    expect(fromCache.map((p) => p.imageUrl)).toEqual(fromNetwork.map((p) => p.imageUrl));
+  });
+
+  it('keeps the technical specs of a detail across a cache round-trip', async () => {
+    fetchMock.mockImplementation(() => Promise.resolve(jsonResponse(productDetailFixture)));
+
+    const fromNetwork = await fetchProductDetail('abc');
+    const fromCache = await fetchProductDetail('abc');
+
+    expect(fromCache).toEqual(fromNetwork);
+  });
+});

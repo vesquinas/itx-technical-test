@@ -101,12 +101,23 @@ Four design decisions:
 1. **Validation happens on read, not only on write.** `get()` demands a parser. What comes out of
    `localStorage` is text the user can edit from the browser console, or that an earlier version of
    the application wrote: treating it as trusted data is what turns a cache into a security problem.
+
+   A corollary that cost a real defect to learn: **what gets cached is the API's own response, not
+   the translated model.** Validating on read means the parser runs on whatever was stored, and the
+   parser reads the API's field names (`imgUrl`, `cpu`, `displaySize`). While the cache stored the
+   translated model, that validation silently stripped every field whose name differs — the images
+   and the entire spec sheet — so a product revisited within the hour came back gutted. Caching the
+   raw response means there is one parser and one translation point, applied identically whether
+   the data comes from the network or from the cache.
 2. **On expiry the entry is discarded and revalidated** against the API, which is literally what
    the brief asks for. Serving the stale value while revalidating in the background
    (*stale-while-revalidate*) was considered, but that shows out-of-date information.
 3. **Keys carry a namespace and a version.** Bumping the version invalidates everything cached in
    every browser at once, which is what you need to be able to do when the shape of the data
-   changes: without it, anyone who already had data stored would keep reading the old format.
+   changes: without it, anyone who already had data stored would keep reading the old format. It
+   has already earned its keep: the fix described above needed a version bump, because otherwise
+   every browser that had loaded the application before it would have kept serving the broken
+   entries for up to an hour.
 4. **No storage failure ever propagates.** The cache is an optimisation. When the quota runs out it
    frees its own entries and retries once; if `localStorage` is unavailable — Safari private
    browsing, third-party cookies blocked — it degrades to memory and the application keeps working.

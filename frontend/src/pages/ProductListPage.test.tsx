@@ -202,6 +202,29 @@ describe('ProductListPage', () => {
     expect(screen.queryByText(/despertando el servidor/)).not.toBeInTheDocument();
   });
 
+  it('still shows the images after leaving the view and coming back', async () => {
+    // This is the exact journey that surfaced a real defect on the deployed demo: open a
+    // product, press back, and the images were gone. The list came from the cache, and the
+    // cache was validating what it stored with the API's parser while storing the translated
+    // model, so every field whose name differs — the images among them — was silently dropped.
+    const [firstProduct] = productListFixture;
+    if (firstProduct === undefined) throw new Error('the fixture needs at least one product');
+
+    const { unmount } = renderWithProviders(<ProductListPage />);
+    const firstVisit = await screen.findByRole('img', { name: 'Acer Iconia Talk S' });
+    expect(firstVisit).toHaveAttribute('src', firstProduct.imgUrl);
+
+    // Unmounting and mounting again is what going back to the list does: the second render is
+    // served from the cache, with no network involved.
+    unmount();
+    renderWithProviders(<ProductListPage />);
+
+    const secondVisit = await screen.findByRole('img', { name: 'Acer Iconia Talk S' });
+    expect(secondVisit).toHaveAttribute('src', firstProduct.imgUrl);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Sin imagen')).not.toBeInTheDocument();
+  });
+
   it('shows an empty cart on start-up', async () => {
     renderWithProviders(<ProductListPage />);
     await screen.findByRole('heading', { name: 'Iconia Talk S' });
