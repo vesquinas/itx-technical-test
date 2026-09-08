@@ -1,0 +1,55 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  border-bottom: 1px solid var(--color-hairline);
+  /* Fondo opaco: la cabecera se queda fija y el contenido pasa por debajo. */
+  background-color: var(--color-paper);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  max-width: var(--measure-page);
+  min-height: 4rem;
+  margin: 0 auto;
+  padding: var(--space-3) var(--space-5);
+  gap: var(--space-5);
+}
+
+.brand {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.375rem;
+  font-size: var(--text-sm);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.brandMark {
+  font-weight: 600;
+}
+
+.brandThin {
+  color: var(--color-ink-muted);
+  font-weight: 300;
+}
+
+/* Las migas ocupan el hueco central y ceden espacio antes que los extremos. */
+.inner > :global(nav) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+@media (max-width: 40rem) {
+  .inner {
+    flex-wrap: wrap;
+    padding: var(--space-3) var(--space-4);
+    gap: var(--space-3) var(--space-4);
+  }
+
+  .inner > :global(nav) {
+    order: 3;
+    flex-basis: 100%;
+  }
+}

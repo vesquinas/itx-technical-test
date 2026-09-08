@@ -1,111 +1,202 @@
+/*
+ * Sistema de diseno.
+ *
+ * La propuesta visual es deliberadamente editorial y sobria: fondo claro,
+ * tipografia fina, esquinas rectas, bordes de un pixel y mucho espacio en
+ * blanco. Es el lenguaje visual del comercio textil al que pertenece la prueba,
+ * y encaja con un catalogo donde el protagonista tiene que ser la fotografia del
+ * producto y no la interfaz.
+ *
+ * Todo el color y el espaciado viven aqui como variables. Los componentes usan
+ * CSS Modules y consumen estas variables, de modo que no hay ni un valor de
+ * color repetido por los ficheros.
+ *
+ * No se cargan tipografias externas: la pila del sistema evita una peticion a un
+ * tercero, no bloquea el primer renderizado y no filtra la visita del usuario a
+ * un dominio ajeno.
+ */
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  /* Escala de grises, del papel a la tinta. */
+  --color-paper: #fff;
+  --color-surface: #fafafa;
+  --color-surface-strong: #f2f2f2;
+  --color-hairline: #e3e3e3;
+  --color-hairline-strong: #c9c9c9;
+  --color-ink-faint: #8c8c8c;
+  --color-ink-muted: #5c5c5c;
+  --color-ink: #1a1a1a;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  --color-accent: #1a1a1a;
+  --color-accent-contrast: #fff;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
+  --color-danger: #a3231f;
+  --color-danger-surface: #fdf3f2;
+  --color-success: #1f6b3f;
+  --color-success-surface: #f1f8f3;
+
+  --color-focus: #0b57d0;
+
+  /* Espaciado en una escala de 4 px. */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4rem;
+
+  --measure-page: 82rem;
+
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+
+  --font-sans:
+    system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --tracking-label: 0.09em;
+
+  --duration-fast: 120ms;
+  --duration-base: 220ms;
+
+  --z-header: 10;
+
   color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
+/*
+ * Modo oscuro por preferencia del sistema. Se invierte la escala de grises
+ * manteniendo los mismos nombres, asi que ningun componente necesita saber en
+ * que modo esta.
+ */
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+    --color-paper: #121212;
+    --color-surface: #191919;
+    --color-surface-strong: #232323;
+    --color-hairline: #2e2e2e;
+    --color-hairline-strong: #454545;
+    --color-ink-faint: #8a8a8a;
+    --color-ink-muted: #b0b0b0;
+    --color-ink: #f2f2f2;
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+    --color-accent: #f2f2f2;
+    --color-accent-contrast: #121212;
+
+    --color-danger: #f08a86;
+    --color-danger-surface: #2a1615;
+    --color-success: #7fc79b;
+    --color-success-surface: #14231a;
+
+    --color-focus: #9cc0ff;
   }
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+html {
+  /* Compensa el salto horizontal al aparecer la barra de desplazamiento. */
+  scrollbar-gutter: stable;
 }
 
 body {
   margin: 0;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+h2,
+h3 {
+  margin: 0;
+  font-weight: 400;
+  line-height: 1.2;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
 p {
   margin: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+ul,
+ol,
+dl,
+dd {
+  margin: 0;
+  padding: 0;
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+ul,
+ol {
+  list-style: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+input {
+  font: inherit;
+}
+
+/*
+ * Un unico anillo de foco para toda la aplicacion, visible en ambos modos.
+ * Se usa `:focus-visible` para que aparezca al navegar con teclado y no al
+ * pulsar con el raton.
+ */
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/*
+ * Respeta a quien ha pedido menos animacion en su sistema operativo. No es
+ * cosmetico: el movimiento puede provocar mareo y migrana a personas con
+ * trastornos vestibulares.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Contenido disponible para lectores de pantalla y oculto visualmente. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }

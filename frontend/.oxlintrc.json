@@ -17,33 +17,25 @@
   },
   "rules": {
     "react/rules-of-hooks": "error",
-    "react/only-export-components": [
-      "warn",
-      {
-        "allowConstantExport": true
-      }
-    ],
+    "react/only-export-components": ["warn", { "allowConstantExport": true }],
+
+    // Innecesaria con el JSX transform moderno (`jsx: "react-jsx"`).
     "react/react-in-jsx-scope": "off",
+
+    // Seguridad: React escapa el texto por defecto y el riesgo aparece justo
+    // cuando se sale de ese camino, asi que se cierra por configuracion.
     "react/no-danger": "error",
     "react/jsx-no-script-url": "error",
     "react/jsx-no-target-blank": "error",
     "no-eval": "error",
     "no-script-url": "error",
-    "eqeqeq": [
-      "error",
-      "always"
-    ],
-    "no-console": [
-      "error",
-      {
-        "allow": [
-          "warn",
-          "error"
-        ]
-      }
-    ],
+
+    "eqeqeq": ["error", "always"],
+    "no-console": ["error", { "allow": ["warn", "error"] }],
     "typescript/no-explicit-any": "error",
     "typescript/consistent-type-imports": "error",
+
+    // Accesibilidad. Vienen incluidas en oxlint, sin dependencias adicionales.
     "jsx-a11y/alt-text": "error",
     "jsx-a11y/anchor-has-content": "error",
     "jsx-a11y/anchor-is-valid": "error",
@@ -54,21 +46,22 @@
     "jsx-a11y/label-has-associated-control": "error",
     "jsx-a11y/no-autofocus": "warn",
     "jsx-a11y/role-has-required-aria-props": "error",
+
+    // Desactivadas a proposito: solo tienen efecto cuando la prop llega a un
+    // componente memoizado con React.memo. Pasar una funcion en linea a un
+    // elemento del DOM (<input onChange>) no provoca ningun renderizado extra.
+    // Aplicadas a todo obligan a envolver cada manejador en useCallback, lo que
+    // anade ruido y asignaciones sin mejorar nada medible.
+    "react-perf/jsx-no-new-function-as-prop": "off",
+    "react-perf/jsx-no-new-object-as-prop": "off",
+    "react-perf/jsx-no-new-array-as-prop": "off",
+
+    // React Router exige pasar el elemento por prop (`<Route element={...}>`),
+    // asi que esta regla no tiene forma de cumplirse en la definicion de rutas.
+    "react-perf/jsx-no-jsx-as-prop": "off",
+
+    // Reglas de estilo de unicorn que chocan con el idioma habitual de React.
     "unicorn/no-array-for-each": "off",
     "unicorn/prefer-query-selector": "off"
-  },
-  "overrides": [
-    {
-      "files": [
-        "**/*.test.ts",
-        "**/*.test.tsx",
-        "src/test/**"
-      ],
-      "rules": {
-        "react-perf/jsx-no-new-object-as-prop": "off",
-        "react-perf/jsx-no-new-array-as-prop": "off",
-        "react-perf/jsx-no-new-function-as-prop": "off"
-      }
-    }
-  ]
+  }
 }

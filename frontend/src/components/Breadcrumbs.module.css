@@ -1,0 +1,45 @@
+.nav {
+  min-width: 0;
+}
+
+.list {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: var(--space-2);
+}
+
+.link {
+  color: var(--color-ink-muted);
+  border-bottom: 1px solid transparent;
+  transition: color var(--duration-fast) ease, border-color var(--duration-fast) ease;
+}
+
+.link:hover {
+  color: var(--color-ink);
+  border-bottom-color: var(--color-hairline-strong);
+}
+
+.current {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-ink);
+  /* El nombre del producto puede ser largo: se recorta en lugar de romper la
+     cabecera en dos lineas. */
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.separator {
+  color: var(--color-ink-faint);
+}

@@ -1,0 +1,86 @@
+.card {
+  display: flex;
+  height: 100%;
+}
+
+.link {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  gap: var(--space-3);
+}
+
+.media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Reserva el espacio antes de que llegue la imagen: sin esto la rejilla salta
+     a medida que se van cargando. */
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  background-color: var(--color-surface);
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  /* `contain` porque las fotos del catalogo tienen proporciones distintas y
+     recortarlas cortaria el dispositivo. */
+  object-fit: contain;
+  mix-blend-mode: multiply;
+  transition: transform var(--duration-base) ease;
+}
+
+/* En modo oscuro `multiply` apagaria las fotos, que vienen con fondo blanco. */
+@media (prefers-color-scheme: dark) {
+  .image {
+    mix-blend-mode: normal;
+  }
+}
+
+.link:hover .image {
+  transform: scale(1.03);
+}
+
+.imageFallback {
+  color: var(--color-ink-faint);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.brand {
+  color: var(--color-ink-faint);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.model {
+  font-size: var(--text-base);
+  font-weight: 400;
+}
+
+.link:hover .model {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.price {
+  color: var(--color-ink);
+  font-size: var(--text-base);
+  font-variant-numeric: tabular-nums;
+}
+
+.priceMissing {
+  color: var(--color-ink-faint);
+  font-size: var(--text-sm);
+  font-style: italic;
+}

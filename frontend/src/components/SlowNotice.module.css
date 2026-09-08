@@ -1,0 +1,9 @@
+.notice {
+  max-width: 44rem;
+  margin-bottom: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border-left: 2px solid var(--color-hairline-strong);
+  background-color: var(--color-surface);
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+}

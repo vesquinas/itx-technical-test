@@ -1,0 +1,62 @@
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6) var(--space-5);
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.media {
+  aspect-ratio: 3 / 4;
+  margin-bottom: var(--space-1);
+}
+
+.lineShort {
+  width: 40%;
+  height: 0.75rem;
+}
+
+.lineLong {
+  width: 70%;
+  height: 0.75rem;
+}
+
+.media,
+.lineShort,
+.lineLong {
+  background-color: var(--color-surface-strong);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (min-width: 30rem) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 48rem) {
+  .grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 64rem) {
+  .grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
