@@ -2,7 +2,7 @@ import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 
-import { clearProductCache } from '../api/products.ts';
+import { resetProductCacheForTests } from '../api/products.ts';
 import { abortAwareJson } from '../test/fetchStub.ts';
 import productListFixture from '../test/fixtures/productList.json' with { type: 'json' };
 import { renderWithProviders } from '../test/render.tsx';
@@ -23,7 +23,7 @@ describe('under strict mode', () => {
   let fetchMock: Mock<FetchStub>;
 
   beforeEach(() => {
-    clearProductCache();
+    resetProductCacheForTests();
     fetchMock = vi.fn<FetchStub>(abortAwareJson(productListFixture));
     vi.stubGlobal('fetch', fetchMock);
   });

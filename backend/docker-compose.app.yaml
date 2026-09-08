@@ -1,0 +1,23 @@
+# The service itself, alongside the mocks it talks to.
+#
+# It lives in its own file because `docker-compose.yaml` comes from the repository the brief points
+# to and is deliberately kept unmodified — it is part of the test bench. Compose merges both files,
+# so this adds the service without touching theirs.
+#
+# It exists because the image was not usable as it stood: the default `existing-api.base-url` is
+# `http://localhost:3001`, which is correct when the service runs on the host and means "this same
+# container" when it runs inside one. Anyone building the Dockerfile and running it got a 502 with
+# nothing explaining why. Fixing that with a line of documentation was the alternative; a file that
+# just works is better, and the documentation is here anyway.
+services:
+  app:
+    build: .
+    ports:
+      - "5000:5000"
+      # The management port, on purpose: it is what makes the separation checkable from outside.
+      - "5001:5001"
+    environment:
+      # Within the compose network the mock answers to the name `simulado`.
+      EXISTING_API_BASE_URL: http://simulado
+    depends_on:
+      - simulado

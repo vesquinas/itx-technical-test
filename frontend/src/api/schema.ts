@@ -31,7 +31,7 @@ import type { Parser } from '../lib/parse.ts';
 import {
   asArrayOf,
   asHttpUrl,
-  asPositiveInteger,
+  asNonNegativeInteger,
   asPrice,
   asText,
   asTextList,
@@ -78,7 +78,7 @@ export const parseProductList: Parser<ProductSummary[]> = (input) => {
 const parseOption: Parser<ProductOption> = (input) => {
   if (!isRecord(input)) return undefined;
 
-  const code = asPositiveInteger(input['code']);
+  const code = asNonNegativeInteger(input['code']);
   if (code === undefined) return undefined;
 
   return { code, name: asText(input['name']) };
@@ -147,5 +147,5 @@ export const parseProductDetail: Parser<ProductDetail> = (input) => {
  */
 export const parseCartCount: Parser<number> = (input) => {
   if (!isRecord(input)) return undefined;
-  return asPositiveInteger(input['count']);
+  return asNonNegativeInteger(input['count']);
 };

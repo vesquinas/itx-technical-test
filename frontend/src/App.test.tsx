@@ -4,7 +4,7 @@ import { screen } from '@testing-library/react';
 import { render } from '@testing-library/react';
 import { StrictMode } from 'react';
 
-import { clearProductCache } from './api/products.ts';
+import { resetProductCacheForTests } from './api/products.ts';
 import { App } from './App.tsx';
 import productDetailFixture from './test/fixtures/productDetail.json' with { type: 'json' };
 import productListFixture from './test/fixtures/productList.json' with { type: 'json' };
@@ -27,7 +27,7 @@ describe('App', () => {
   let fetchMock: Mock<FetchStub>;
 
   beforeEach(() => {
-    clearProductCache();
+    resetProductCacheForTests();
     fetchMock = vi.fn<FetchStub>((url) =>
       Promise.resolve(
         jsonResponse(url.includes('/api/product/') ? productDetailFixture : productListFixture),

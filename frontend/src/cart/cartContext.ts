@@ -1,9 +1,8 @@
 import { createContext } from 'react';
 
 export interface CartContextValue {
-  /** Number of items in the cart, as reported by the API. */
+  /** Number of items, as last reported by the API. */
   count: number;
-  /** Sets the counter to the value returned by the API and persists it. */
   setCount: (count: number) => void;
 }
 

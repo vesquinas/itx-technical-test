@@ -5,6 +5,12 @@ option selection and add-to-cart.
 
 Single-page application with client-side routing, no server rendering and no document navigation.
 
+> **How to read this.** The demo link below and [How to run it](#how-to-run-it) are all you need to
+> try it. The rest is why things are the way they are, and it is long on purpose: the decisions are
+> the interesting part of this exercise. If you read one section, read
+> [The API and its surprises](#the-api-and-its-surprises) — the data has real defects and they are
+> corrected in one place.
+
 **Live demo: https://victor-esquinas-itx.netlify.app/** — published from this repository on every
 push to `main`, so it can be tried without installing anything. It is **fully functional, cart
 included**.
@@ -364,6 +370,19 @@ dependency, break the browser's find-in-page and complicate accessibility, all t
 that does not exist at this scale. Past a few thousand items the right answer is not virtualisation,
 it is server-side pagination.
 
+## On the comments, since there are many
+
+Comments here carry the **non-obvious why**: why the cache stores the API's response and not the
+translated model, why a shared request takes no caller's abort signal, why the context lives in its
+own module, why `auto-fill` is not used for the grid. What none of them do is restate what the code
+says — a rule that a review found was not being applied evenly, so the paragraphs that described the
+code were removed and one hook's comment stopped apologising for its own name.
+
+The density is **34% of the lines of `src`** outside the tests. That number is worth reading with
+care rather than as a target: several of the densest files are fifteen lines long, where a single
+paragraph of rationale dominates the ratio. The test of a comment is not the ratio but whether it
+survives the question *does this say something the code does not?*
+
 ## Accessibility
 
 - "Skip to content" link as the first focusable element of the document.
@@ -521,7 +540,8 @@ reason: cancelling throws away work that was about to make the next read instant
 
 ## What I would do with more time
 
-- End-to-end tests with Playwright over both complete journeys.
+- End-to-end tests with Playwright over both complete journeys. That is also the only way to check
+  the layout itself — that a wide screen really shows four cards per row — which jsdom cannot see.
 - Internationalisation: the copy is embedded in the components.
 - Move the cache to IndexedDB if the catalogue grew, because `localStorage` is synchronous and
   serialising blocks the main thread.

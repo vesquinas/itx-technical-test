@@ -73,7 +73,15 @@ export function asHttpUrl(value: unknown): string {
   }
 }
 
-export function asPositiveInteger(value: unknown): number | undefined {
+/**
+ * A whole number of zero or more, or nothing.
+ *
+ * It was called `asNonNegativeInteger`, and it accepted zero: the name was simply false, and a test
+ * even asserted the behaviour the name denied. Zero is the right answer to keep — an empty cart is
+ * a count of zero, and rejecting it would turn a legitimate value into "malformed" — so the name is
+ * what had to change.
+ */
+export function asNonNegativeInteger(value: unknown): number | undefined {
   if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) return undefined;
   return value;
 }

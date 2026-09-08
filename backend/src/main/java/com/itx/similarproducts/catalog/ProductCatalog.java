@@ -22,10 +22,6 @@ import com.itx.similarproducts.domain.ProductDetail;
 /**
  * Access to the existing API, with caching.
  *
- * <p>The cache does two jobs: it avoids repeating calls that are already resolved and, above all,
- * it <b>deduplicates</b>, because it stores the in-flight call and not just its result. Two hundred
- * simultaneous requests for the same product produce a single call to the source.
- *
  * <p><b>It has to be an {@link AsyncCache} and not the synchronous variant.</b> The synchronous one
  * runs its loading function inside a {@code synchronized} block of {@code ConcurrentHashMap}, and in
  * Java 21 a virtual thread blocked inside a monitor pins its carrier thread. With network calls
@@ -33,16 +29,13 @@ import com.itx.similarproducts.domain.ProductDetail;
  * completing <b>1 request in 90 seconds</b> to 16,400 at 272/s with this change alone. Do not go
  * back to the synchronous cache.
  *
- * <p>Failures are remembered with a short expiry ({@link Lookup.Unavailable}), which works as a
- * circuit breaker with per-product granularity. The full reasoning, and why no circuit-breaker
- * library is used, is in the README.
+ * <p><b>Both lookups cache their outcome, failures included.</b> A loader that throws leaves nothing
+ * behind — Caffeine discards a failed future — so an exception escaping this class from inside a
+ * loader costs one call to the source per request received, which is what the similar-ids lookup
+ * used to do. Deduplication does not save it: it only covers requests that overlap.
  *
- * <p><b>Both lookups cache their failures, not just the detail.</b> The similar-ids lookup used to
- * let its exceptions escape the loader, and a loader that throws leaves nothing behind: Caffeine
- * discards a failed future. Measured, that meant five sequential requests for a made-up product
- * produced five calls to the source — in-flight deduplication does nothing for requests that do not
- * overlap. It also contradicted the policy the detail already followed. Now both go through
- * {@link Lookup}.
+ * <p>Why the cache carries the resilience rather than a circuit-breaker library, and how the
+ * expiries were chosen, is in the README.
  */
 @Component
 public class ProductCatalog {

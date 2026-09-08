@@ -3,7 +3,7 @@ import { beforeEach, describe, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { clearProductCache } from '../api/products.ts';
+import { resetProductCacheForTests } from '../api/products.ts';
 import { expectNoAccessibilityViolations } from '../test/a11y.ts';
 import productDetailFixture from '../test/fixtures/productDetail.json' with { type: 'json' };
 import productListFixture from '../test/fixtures/productList.json' with { type: 'json' };
@@ -30,7 +30,7 @@ describe('accessibility', () => {
   let fetchMock: Mock<FetchStub>;
 
   beforeEach(() => {
-    clearProductCache();
+    resetProductCacheForTests();
     fetchMock = vi.fn<FetchStub>(() => Promise.resolve(jsonResponse(productListFixture)));
     vi.stubGlobal('fetch', fetchMock);
   });

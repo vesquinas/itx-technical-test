@@ -1,6 +1,6 @@
 import type { KeyValueStorage } from '../lib/cache/index.ts';
 import { resolveStorage } from '../lib/cache/index.ts';
-import { asPositiveInteger } from '../lib/parse.ts';
+import { asNonNegativeInteger } from '../lib/parse.ts';
 
 const STORAGE_KEY = 'itx-cart-count';
 
@@ -34,7 +34,7 @@ export function readCartCount(): number {
   if (raw === null) return 0;
 
   const parsed = Number(raw);
-  return asPositiveInteger(parsed) ?? 0;
+  return asNonNegativeInteger(parsed) ?? 0;
 }
 
 export function writeCartCount(count: number): void {

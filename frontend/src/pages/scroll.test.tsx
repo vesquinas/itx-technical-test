@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { clearProductCache } from '../api/products.ts';
+import { resetProductCacheForTests } from '../api/products.ts';
 import { forgetScrollPositions } from '../hooks/useScroll.ts';
 import productDetailFixture from '../test/fixtures/productDetail.json' with { type: 'json' };
 import productListFixture from '../test/fixtures/productList.json' with { type: 'json' };
@@ -38,7 +38,7 @@ describe('scroll behaviour across views', () => {
   let scrollTo: Mock<(x: number, y: number) => void>;
 
   beforeEach(() => {
-    clearProductCache();
+    resetProductCacheForTests();
     forgetScrollPositions();
     fetchMock = vi.fn<FetchStub>((url) =>
       Promise.resolve(

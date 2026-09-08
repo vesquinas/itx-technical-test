@@ -37,8 +37,11 @@ const cache = new TtlCache({
   version: CACHE_VERSION,
 });
 
+/** The requests already under way, by cache key. */
+const inFlight = new Map<string, Promise<unknown>>();
+
 /**
- * Registry of in-flight requests, so the same one is not started twice.
+ * Runs the task, or joins the one already running under the same key.
  *
  * The type is recovered with an assertion, confined to this single point: the key uniquely
  * determines the type of the result (`products` always resolves to `ProductSummary[]`,
@@ -48,26 +51,16 @@ const cache = new TtlCache({
  * conceptual error: the parser translates the API's shape and the promise already holds the domain
  * model, with different field names.
  */
-class InFlightRegistry {
-  private readonly pending = new Map<string, Promise<unknown>>();
+function shared<T>(key: string, task: () => Promise<T>): Promise<T> {
+  const existing = inFlight.get(key);
+  if (existing !== undefined) return existing as Promise<T>;
 
-  run<T>(key: string, task: () => Promise<T>): Promise<T> {
-    const existing = this.pending.get(key);
-    if (existing !== undefined) return existing as Promise<T>;
-
-    const promise = task().finally(() => {
-      this.pending.delete(key);
-    });
-    this.pending.set(key, promise);
-    return promise;
-  }
-
-  clear(): void {
-    this.pending.clear();
-  }
+  const promise = task().finally(() => {
+    inFlight.delete(key);
+  });
+  inFlight.set(key, promise);
+  return promise;
 }
-
-const inFlight = new InFlightRegistry();
 
 /**
  * A cached read, deduplicating concurrent requests.
@@ -101,7 +94,7 @@ async function readCached<T>(
   const cached = cache.get(key, parse);
   if (cached !== undefined) return cached;
 
-  return inFlight.run(key, async () => {
+  return shared(key, async () => {
     const raw = await fetchRaw();
     const parsed = parse(raw);
     if (parsed === undefined) {
@@ -175,8 +168,18 @@ export function addToCart(selection: CartSelection): Promise<number> {
   });
 }
 
-/** Empties the product cache. Exposed so a manual refresh can be offered. */
-export function clearProductCache(): void {
+/**
+ * Empties the cache and forgets the requests under way. **For the tests.**
+ *
+ * The name says so because it was called `resetProductCacheForTests` and documented as being there "so a
+ * manual refresh can be offered" — a feature that does not exist. Every one of its callers is a
+ * test, and a comment describing an intention rather than the code is how a reader ends up looking
+ * for the refresh button.
+ *
+ * The tests need it because both of these live for the lifetime of the module, so without it one
+ * test would serve the data another one left behind.
+ */
+export function resetProductCacheForTests(): void {
   cache.clear();
   inFlight.clear();
 }

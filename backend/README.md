@@ -6,6 +6,12 @@ provides a product's detail.
 
 It exposes [the agreed contract](./similarProducts.yaml) on port 5000.
 
+> **How to read this.** [How to run it](#how-to-run-it) is the whole of what you need to try it. The
+> rest is why things are the way they are, and it is long on purpose: the interesting part of this
+> exercise is not the code but the decisions — the three that determine the performance, each with
+> the measurement that chose it, are in [one section](#the-three-decisions-that-determine-the-performance).
+> Everything else is skippable.
+
 ## How to run it
 
 Requires Java 21 and Docker. Maven does not need installing: the project ships the wrapper.
@@ -23,6 +29,28 @@ curl http://localhost:5000/product/1/similar
 
 The API listens on **5000**. The management endpoints live on **5001**
 (`http://localhost:5001/actuator/health`), separated on purpose: see [Security](#security).
+
+### In a container
+
+```bash
+docker compose -f docker-compose.yaml -f docker-compose.app.yaml up -d --build app
+```
+
+Same ports, same checks. It is a second compose file rather than an edit to
+[`docker-compose.yaml`](./docker-compose.yaml), which comes from the exercise's repository and is
+kept unmodified.
+
+**Why it needs a file of its own and not just `docker run`.** The default
+`existing-api.base-url` is `http://localhost:3001`, which is right when the service runs on the host
+and means *this same container* when it runs inside one. Built and run as it stood, the image
+answered 502 with nothing saying why — a review found that, and it is worth being blunt about the
+lesson: the Dockerfile had been written and tested, and the image it produces had not. To run it by
+hand the override is one variable:
+
+```bash
+docker run -p 5000:5000 -p 5001:5001 -e EXISTING_API_BASE_URL=http://simulado \
+  --network backend_default $(docker build -q .)
+```
 
 ### Tests
 
@@ -386,6 +414,24 @@ comparison.
 They are under the Apache License 2.0. Which file belongs to whom is detailed in
 [`NOTICE.md`](./NOTICE.md), and the licence text is in
 [`LICENSE-APACHE-2.0`](./LICENSE-APACHE-2.0).
+
+## On the comments, since there are many
+
+Comments here carry the **non-obvious why**: the pinning of carrier threads, the semantics of
+`ExecutorService.close()`, why the resilience lives in the cache instead of in a circuit-breaker
+library, why a 404 and a 502 are cached for different lengths of time. What none of them do is
+restate what the code says.
+
+That rule was applied properly only after a review pointed at the cost of not applying it: the
+javadoc of `ProductCatalog` had grown into a near-copy of this README's section on the asynchronous
+cache — the same reasoning written in three places, which is three places to update and two that
+will quietly go stale. The class now keeps the warning not to go back to the synchronous cache, and
+the reasoning lives here, once.
+
+The density is **45% of the lines of `src/main`**, and that figure is worth reading with care rather
+than as a target: on a four-line record a single paragraph of rationale is 75% of the file. The test
+of a comment is not the ratio but whether it survives the question *does this say something the code
+does not?* Some did not, and they are gone.
 
 ## How the code is organised
 

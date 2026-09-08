@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   asArrayOf,
   asHttpUrl,
-  asPositiveInteger,
+  asNonNegativeInteger,
   asPrice,
   asText,
   asTextList,
@@ -107,17 +107,20 @@ describe('asHttpUrl', () => {
   });
 });
 
-describe('asPositiveInteger', () => {
+describe('asNonNegativeInteger', () => {
   it('accepts the colour and capacity codes of the API', () => {
-    expect(asPositiveInteger(1000)).toBe(1000);
-    expect(asPositiveInteger(0)).toBe(0);
+    expect(asNonNegativeInteger(1000)).toBe(1000);
+  });
+
+  it('accepts zero, because an empty cart is a count of zero', () => {
+    expect(asNonNegativeInteger(0)).toBe(0);
   });
 
   it('rejects anything that is not a non-negative integer', () => {
-    expect(asPositiveInteger('1000')).toBeUndefined();
-    expect(asPositiveInteger(-1)).toBeUndefined();
-    expect(asPositiveInteger(10.5)).toBeUndefined();
-    expect(asPositiveInteger(undefined)).toBeUndefined();
+    expect(asNonNegativeInteger('1000')).toBeUndefined();
+    expect(asNonNegativeInteger(-1)).toBeUndefined();
+    expect(asNonNegativeInteger(10.5)).toBeUndefined();
+    expect(asNonNegativeInteger(undefined)).toBeUndefined();
   });
 });
 

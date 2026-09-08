@@ -5,7 +5,7 @@ import productDetailFixture from '../test/fixtures/productDetail.json' with { ty
 import productListFixture from '../test/fixtures/productList.json' with { type: 'json' };
 import { ONE_HOUR_MS } from '../lib/cache/index.ts';
 import { ApiError } from './client.ts';
-import { addToCart, clearProductCache, fetchProductDetail, fetchProductList } from './products.ts';
+import { addToCart, resetProductCacheForTests, fetchProductDetail, fetchProductList } from './products.ts';
 
 /** A narrowed signature of `fetch`: only what the application actually uses. */
 type FetchStub = (url: string, init?: RequestInit) => Promise<Response>;
@@ -28,11 +28,11 @@ describe('product data layer', () => {
     fetchMock = vi.fn<FetchStub>(() => Promise.resolve(jsonResponse(productListFixture)));
     vi.stubGlobal('fetch', fetchMock);
 
-    clearProductCache();
+    resetProductCacheForTests();
   });
 
   afterEach(() => {
-    clearProductCache();
+    resetProductCacheForTests();
     vi.unstubAllGlobals();
   });
 
@@ -103,7 +103,7 @@ describe('product data layer', () => {
 
     it('asks the API again after clearing the cache', async () => {
       await fetchProductList();
-      clearProductCache();
+      resetProductCacheForTests();
       await fetchProductList();
 
       expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -198,13 +198,13 @@ describe('a product that does not exist', () => {
   let fetchMock: Mock<FetchStub>;
 
   beforeEach(() => {
-    clearProductCache();
+    resetProductCacheForTests();
     fetchMock = vi.fn<FetchStub>(() => Promise.resolve(jsonResponse(productListFixture)));
     vi.stubGlobal('fetch', fetchMock);
   });
 
   afterEach(() => {
-    clearProductCache();
+    resetProductCacheForTests();
     vi.unstubAllGlobals();
   });
 
@@ -257,11 +257,11 @@ describe('cache round-trip', () => {
     vi.spyOn(Date, 'now').mockImplementation(() => clock);
     fetchMock = vi.fn<FetchStub>(() => Promise.resolve(jsonResponse(productListFixture)));
     vi.stubGlobal('fetch', fetchMock);
-    clearProductCache();
+    resetProductCacheForTests();
   });
 
   afterEach(() => {
-    clearProductCache();
+    resetProductCacheForTests();
     vi.unstubAllGlobals();
   });
 

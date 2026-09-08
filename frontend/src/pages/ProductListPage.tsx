@@ -24,7 +24,13 @@ const TRAIL: Crumb[] = [{ label: 'Productos' }];
  */
 const NO_PRODUCTS: readonly ProductSummary[] = [];
 
-/** Delay with which the search term is written into the URL. */
+/**
+ * Delay with which the search term is written into the URL.
+ *
+ * The delay is on the **URL write only**, and that is the whole of it: the products are already in
+ * memory, so filtering them is instantaneous and delaying it would only make the experience worse.
+ * What is worth not doing on every keystroke is pushing a navigation.
+ */
 const URL_SYNC_DELAY_MS = 350;
 
 function describeResults(total: number, visible: number, query: string): string {

@@ -7,10 +7,8 @@ package com.itx.similarproducts.catalog;
  * a dependency. Returning a 500 would suggest the error is ours, and a 200 with an empty list would
  * lie by claiming the product has no similar products.
  *
- * <p>It carries no cause, and that is a consequence of caching the outcome: the failure is recorded
- * as a value ({@link Lookup.Unavailable}) so it can be remembered, and a value carries no stack
- * trace. The original exception is logged where it happens, in {@link ProductCatalog}, which is also
- * the only place where it is of any use.
+ * <p>It carries no cause: the failure travels as a value so the cache can remember it, and the
+ * original exception is logged where it happens, in {@link ProductCatalog}.
  */
 public class ExistingApiUnavailableException extends RuntimeException {
 

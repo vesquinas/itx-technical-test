@@ -1,15 +1,9 @@
 /**
  * Formatting of values for the interface.
  *
- * The `Intl` formatters are created once at module level: building an `Intl.NumberFormat` is
- * expensive, and doing it inside the render of every card is noticeable on a grid of a hundred
- * products.
- */
-
-/**
- * The API delivers the price as a number with no unit. The euro is assumed, since that is the
- * currency of the test's market; if the API ever reported the currency, this is the only place
- * that would need changing.
+ * The formatter is built once at module level, not per render: `Intl.NumberFormat` is expensive
+ * and it shows on a grid of a hundred cards. The euro is assumed because the API sends an amount
+ * with no currency; this is the one place that would change if it ever sent one.
  */
 const priceFormatter = new Intl.NumberFormat('es-ES', {
   style: 'currency',
@@ -20,10 +14,8 @@ const priceFormatter = new Intl.NumberFormat('es-ES', {
 export const PRICE_UNAVAILABLE = 'Precio no disponible';
 
 /**
- * Formats the price, or returns explicit copy when there is none.
- *
- * Six of the hundred products in the API arrive with no price. Returning text instead of an empty
- * gap keeps it from looking like a loading failure.
+ * Formats the price, or says so when there is none — 6 of the API's 100 products have no price,
+ * and an empty gap there reads as a loading failure.
  */
 export function formatPrice(price: number | null): string {
   return price === null ? PRICE_UNAVAILABLE : priceFormatter.format(price);
