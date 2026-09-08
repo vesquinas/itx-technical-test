@@ -22,6 +22,10 @@ that is the language of the market and of the specification, which names the con
 ("botón de Añadir", "añadir a la cesta"). In a real project that copy would live behind an i18n
 layer instead of being embedded in the components.
 
+One consequence of that is visible in the spec sheet, where Spanish labels sit next to English
+values that come straight from the API. It is deliberate and the reasoning is spelled out in
+[its own section](#spanish-labels-english-values-a-deliberate-mix).
+
 ## How to run it
 
 Requires **Node `^20.19.0` or `>=22.12.0`**, which is what Vite 8 demands. Node 20.0–20.18 and the
@@ -190,6 +194,45 @@ So the eleven required rows are always rendered, and when there is no data they 
 That informs more than making the row disappear, which leaves the user unsure whether the data does
 not exist or the page is incomplete. The **additional** attributes are dropped when empty: `nfc`,
 for instance, arrives empty in all 100 products, and a label with nothing next to it adds nothing.
+
+### Spanish labels, English values: a deliberate mix
+
+In the spec sheet the labels are in Spanish and the values arrive in English —
+`Batería: Removable Li-Po 3400 mAh battery`. It does look odd, and it is worth explaining why it
+stays that way.
+
+**The labels come from the brief.** It lists the attributes that have to be shown by name, in
+Spanish: Marca, Modelo, Precio, CPU, RAM, Sistema Operativo, Resolución de pantalla, Batería,
+Cámaras, Dimensiones, Peso. Renaming them would be drifting away from the requirement for a
+cosmetic reason.
+
+**The values come from the API, and they are English free-form text.** Measured across the 100
+products of the catalogue:
+
+| Attribute | Values containing English prose | Example |
+| --- | --- | --- |
+| Batería | **99 of 99** | `Removable Li-Po 1530 mAh battery` |
+| Resolución de pantalla | **100 of 100** | `480 x 640 pixels (~286 ppi pixel density)` |
+| Memoria RAM | **97 of 97** | `128 MB RAM` |
+| Cámara principal | 70 of 100 | `3.15 MP autofocus LED flash` |
+| Procesador | 68 of 99 | `533 MHz Samsung S3C 6410` |
+
+Dimensions, weight and operating system are either language-neutral or proper nouns.
+
+**Translating those values is not on the table.** They are unstructured technical strings, not
+enumerated terms: there is no dictionary to map `Non-removable Li-Ion 3400 mAh battery (12.92 Wh)`
+through. Machine-translating product data is how a catalogue ends up claiming a phone has a
+"batería de iones de litio no desmontable de 3400 mAh (12,92 Wh)" in one product and something
+subtly different in the next, and how technical figures get mangled. The safe thing with data you
+do not own is to show it as it came.
+
+So the mix is the consequence of two decisions that are individually right: honour the attribute
+names the brief specifies, and do not touch the source's data. **In a real project this is solved
+upstream**, not in the interface: the catalogue delivers the values already localised for the
+market, and the interface copy goes through i18n. Neither of those is available here.
+
+The same situation applies, more mildly, to the option pickers: the legends are in Spanish
+("Almacenamiento", "Color") and the values come from the API in English ("Black", "16 GB").
 
 ### The order of the second column comes from the wireframe
 
