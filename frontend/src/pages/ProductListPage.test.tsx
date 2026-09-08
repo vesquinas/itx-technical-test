@@ -47,7 +47,7 @@ describe('ProductListPage', () => {
     expect(precio).toBeInTheDocument();
   });
 
-  it('avisa cuando la API no da precio, en lugar de dejar el hueco vacio', async () => {
+  it('avisa cuando la API no da precio, en lugar de dejar el hueco vacío', async () => {
     renderWithProviders(<ProductListPage />);
     await screen.findByRole('heading', { name: 'Iconia Talk S' });
 
@@ -63,7 +63,7 @@ describe('ProductListPage', () => {
     expect(enlace).toHaveAttribute('href', '/product/ZmGrkLRPXOTpxsU4jjAcv');
   });
 
-  describe('busqueda', () => {
+  describe('búsqueda', () => {
     it('filtra por modelo mientras se escribe', async () => {
       const user = userEvent.setup();
       renderWithProviders(<ProductListPage />);
@@ -85,7 +85,7 @@ describe('ProductListPage', () => {
       expect(productItems()).toHaveLength(productListFixture.length);
     });
 
-    it('informa del numero de resultados', async () => {
+    it('informa del número de resultados', async () => {
       const user = userEvent.setup();
       renderWithProviders(<ProductListPage />);
       await screen.findByRole('heading', { name: 'Iconia Talk S' });
@@ -106,7 +106,7 @@ describe('ProductListPage', () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
-    it('ofrece salida cuando la busqueda no encuentra nada', async () => {
+    it('ofrece salida cuando la búsqueda no encuentra nada', async () => {
       const user = userEvent.setup();
       renderWithProviders(<ProductListPage />);
       await screen.findByRole('heading', { name: 'Iconia Talk S' });
@@ -129,7 +129,7 @@ describe('ProductListPage', () => {
       expect(screen.queryByRole('heading', { name: 'Liquid Z6' })).not.toBeInTheDocument();
     });
 
-    it('borra la busqueda con el boton del campo', async () => {
+    it('borra la búsqueda con el boton del campo', async () => {
       const user = userEvent.setup();
       renderWithProviders(<ProductListPage />, { route: '/?q=iconia' });
       await screen.findByRole('heading', { name: 'Iconia Talk S' });
@@ -165,7 +165,7 @@ describe('ProductListPage', () => {
       );
     });
 
-    it('esconde el buscador mientras no hay catalogo que filtrar', async () => {
+    it('esconde el buscador mientras no hay catálogo que filtrar', async () => {
       fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({}, 500)));
 
       renderWithProviders(<ProductListPage />);
@@ -202,7 +202,7 @@ describe('ProductListPage', () => {
     expect(screen.queryByText(/despertando el servidor/)).not.toBeInTheDocument();
   });
 
-  it('muestra la cesta vacia al arrancar', async () => {
+  it('muestra la cesta vacía al arrancar', async () => {
     renderWithProviders(<ProductListPage />);
     await screen.findByRole('heading', { name: 'Iconia Talk S' });
 

@@ -25,7 +25,7 @@ describe('asText', () => {
     expect(asText('  Iconia   Talk  S ')).toBe('Iconia Talk S');
   });
 
-  it('devuelve cadena vacia para lo que no es texto', () => {
+  it('devuelve cadena vacía para lo que no es texto', () => {
     expect(asText(undefined)).toBe('');
     expect(asText(null)).toBe('');
     expect(asText(42)).toBe('');
@@ -42,11 +42,11 @@ describe('asTextList', () => {
     expect(asTextList(['13 MP', 'autofocus'])).toEqual(['13 MP', 'autofocus']);
   });
 
-  it('descarta los elementos vacios o que no son texto', () => {
+  it('descarta los elementos vacíos o que no son texto', () => {
     expect(asTextList(['13 MP', '', '  ', null, 7, 'autofocus'])).toEqual(['13 MP', 'autofocus']);
   });
 
-  it('devuelve lista vacia cuando no hay valor', () => {
+  it('devuelve lista vacía cuando no hay valor', () => {
     expect(asTextList(undefined)).toEqual([]);
     expect(asTextList('')).toEqual([]);
     expect(asTextList([])).toEqual([]);
@@ -60,7 +60,7 @@ describe('asPrice', () => {
     expect(asPrice(' 170 ')).toBe(170);
   });
 
-  it('devuelve null cuando el precio viene vacio', () => {
+  it('devuelve null cuando el precio viene vacío', () => {
     // 6 de los 100 productos de la API llegan así.
     expect(asPrice('')).toBeNull();
     expect(asPrice('   ')).toBeNull();
@@ -74,7 +74,7 @@ describe('asPrice', () => {
     expect(asPrice(Number.POSITIVE_INFINITY)).toBeNull();
   });
 
-  it('acepta un numero ya tipado', () => {
+  it('acepta un número ya tipado', () => {
     expect(asPrice(170)).toBe(170);
     expect(asPrice(0)).toBe(0);
   });
@@ -108,7 +108,7 @@ describe('asHttpUrl', () => {
 });
 
 describe('asPositiveInteger', () => {
-  it('acepta los codigos de color y capacidad de la API', () => {
+  it('acepta los códigos de color y capacidad de la API', () => {
     expect(asPositiveInteger(1000)).toBe(1000);
     expect(asPositiveInteger(0)).toBe(0);
   });
@@ -128,7 +128,7 @@ describe('asArrayOf', () => {
     expect(asArrayOf([1, 'dos', 3, null], parseNumber)).toEqual([1, 3]);
   });
 
-  it('devuelve lista vacia cuando la entrada no es un array', () => {
+  it('devuelve lista vacía cuando la entrada no es un array', () => {
     expect(asArrayOf('no es array', parseNumber)).toEqual([]);
   });
 });

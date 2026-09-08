@@ -55,7 +55,7 @@ describe('ProductDetailPage', () => {
     expect(screen.getAllByText(/270,00/).length).toBeGreaterThan(0);
   });
 
-  it('muestra la imagen con un texto alternativo util', async () => {
+  it('muestra la imagen con un texto alternativo útil', async () => {
     renderDetail();
 
     const imagen = await screen.findByRole('img', { name: 'Acer X960' });
@@ -86,7 +86,7 @@ describe('ProductDetailPage', () => {
       }
     });
 
-    it('muestra la resolucion en pixeles, deshaciendo el intercambio de la API', async () => {
+    it('muestra la resolución en píxeles, deshaciendo el intercambio de la API', async () => {
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
 
@@ -95,7 +95,7 @@ describe('ProductDetailPage', () => {
       expect(screen.getByText(productDetailFixture.displaySize)).toBeInTheDocument();
     });
 
-    it('anade la unidad al peso', async () => {
+    it('añade la unidad al peso', async () => {
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
 
@@ -128,19 +128,19 @@ describe('ProductDetailPage', () => {
       expect(screen.getAllByText('No disponible')).toHaveLength(4);
     });
 
-    it('coloca la descripcion sobre las acciones, como el wireframe del enunciado', async () => {
+    it('coloca la descripción sobre las acciones, como el wireframe del enunciado', async () => {
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
 
-      const descripcion = screen.getByRole('heading', { name: 'Características' });
+      const descripción = screen.getByRole('heading', { name: 'Características' });
       const acciones = screen.getByRole('group', { name: 'Color' });
 
       expect(
-        descripcion.compareDocumentPosition(acciones) & Node.DOCUMENT_POSITION_FOLLOWING,
+        descripción.compareDocumentPosition(acciones) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
     });
 
-    it('omite las filas sin valor en lugar de dejarlas vacias', async () => {
+    it('omite las filas sin valor en lugar de dejarlas vacías', async () => {
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
 
@@ -151,7 +151,7 @@ describe('ProductDetailPage', () => {
   });
 
   describe('selectores', () => {
-    it('preselecciona la opcion cuando solo hay una', async () => {
+    it('preselecciona la opción cuando solo hay una', async () => {
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
 
@@ -160,7 +160,7 @@ describe('ProductDetailPage', () => {
       expect(screen.getByRole('button', { name: 'Añadir a la cesta' })).toBeEnabled();
     });
 
-    it('muestra el selector aunque haya una sola opcion', async () => {
+    it('muestra el selector aunque haya una sola opción', async () => {
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
 
@@ -186,7 +186,7 @@ describe('ProductDetailPage', () => {
     });
   });
 
-  describe('anadir a la cesta', () => {
+  describe('añadir a la cesta', () => {
     it('envia identificador, color y capacidad seleccionados', async () => {
       const user = userEvent.setup();
       renderDetail('/product/abc123');
@@ -217,7 +217,7 @@ describe('ProductDetailPage', () => {
       expect(await screen.findByText('3 artículos')).toBeInTheDocument();
     });
 
-    it('confirma la accion al usuario', async () => {
+    it('confirma la acción al usuario', async () => {
       const user = userEvent.setup();
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
@@ -228,7 +228,7 @@ describe('ProductDetailPage', () => {
       expect(await screen.findByText('Producto añadido a la cesta.')).toBeInTheDocument();
     });
 
-    it('bloquea los selectores mientras la peticion esta en vuelo', async () => {
+    it('bloquea los selectores mientras la petición está en vuelo', async () => {
       // Sin esto, cambiar de color con la petición en curso hacia que al llegar la respuesta
       // se anunciara "producto añadido" para una selección distinta de la que se envio.
       const user = userEvent.setup();
@@ -257,7 +257,7 @@ describe('ProductDetailPage', () => {
       expect(screen.getByRole('radio', { name: 'Black' })).toBeEnabled();
     });
 
-    it('avisa si la peticion falla y no toca el contador', async () => {
+    it('avisa si la petición falla y no toca el contador', async () => {
       const user = userEvent.setup();
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
@@ -270,7 +270,7 @@ describe('ProductDetailPage', () => {
     });
   });
 
-  describe('navegacion', () => {
+  describe('navegación', () => {
     it('ofrece un enlace de vuelta al listado', async () => {
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
@@ -281,7 +281,7 @@ describe('ProductDetailPage', () => {
       );
     });
 
-    it('conserva la busqueda al volver al listado', async () => {
+    it('conserva la búsqueda al volver al listado', async () => {
       renderDetail('/product/abc123?q=iconia');
       await screen.findByRole('heading', { level: 1, name: 'X960' });
 

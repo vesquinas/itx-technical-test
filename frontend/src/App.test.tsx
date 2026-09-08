@@ -51,7 +51,7 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'X960' })).toBeInTheDocument();
   });
 
-  it('muestra una pagina de error ante una URL desconocida', async () => {
+  it('muestra una página de error ante una URL desconocida', async () => {
     window.history.pushState({}, '', '/una/ruta/inventada');
 
     render(<App />);

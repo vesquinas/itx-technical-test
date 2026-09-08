@@ -27,12 +27,12 @@ describe('normalizeForSearch', () => {
 });
 
 describe('filterProducts', () => {
-  it('devuelve el catalogo completo sin termino de busqueda', () => {
+  it('devuelve el catálogo completo sin termino de búsqueda', () => {
     expect(filterProducts(catalogo, '')).toHaveLength(catalogo.length);
     expect(filterProducts(catalogo, '   ')).toHaveLength(catalogo.length);
   });
 
-  it('devuelve la misma referencia sin termino, para no renderizar de mas', () => {
+  it('devuelve la misma referencia sin termino, para no renderizar de más', () => {
     expect(filterProducts(catalogo, '')).toBe(catalogo);
   });
 
@@ -51,7 +51,7 @@ describe('filterProducts', () => {
     expect(filterProducts(catalogo, 'Alcatel')).toHaveLength(1);
   });
 
-  it('ignora los acentos, en los datos y en la busqueda', () => {
+  it('ignora los acentos, en los datos y en la búsqueda', () => {
     expect(filterProducts(catalogo, 'telefono')).toHaveLength(1);
     expect(filterProducts(catalogo, 'teléfono')).toHaveLength(1);
   });
@@ -62,14 +62,14 @@ describe('filterProducts', () => {
     expect(filterProducts(catalogo, 'acer nokia')).toHaveLength(0);
   });
 
-  it('combina marca y modelo en la misma busqueda', () => {
+  it('combina marca y modelo en la misma búsqueda', () => {
     const resultado = filterProducts(catalogo, 'acer plus');
 
     expect(resultado).toHaveLength(1);
     expect(resultado[0]?.model).toBe('Liquid Z6 Plus');
   });
 
-  it('devuelve lista vacia cuando nada encaja', () => {
+  it('devuelve lista vacía cuando nada encaja', () => {
     expect(filterProducts(catalogo, 'iphone')).toHaveLength(0);
   });
 

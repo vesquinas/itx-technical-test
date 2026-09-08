@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createMemoryStorage, resolveStorage } from './storage.ts';
 
 describe('createMemoryStorage', () => {
-  it('se comporta como un almacen clave-valor', () => {
+  it('se comporta como un almacén clave-valor', () => {
     const storage = createMemoryStorage();
 
     expect(storage.getItem('a')).toBeNull();
@@ -21,7 +21,7 @@ describe('createMemoryStorage', () => {
 });
 
 describe('resolveStorage', () => {
-  it('usa localStorage cuando esta disponible', () => {
+  it('usa localStorage cuando está disponible', () => {
     const storage = resolveStorage();
 
     storage.setItem('clave', 'valor');
@@ -50,7 +50,7 @@ describe('resolveStorage', () => {
     expect(storage.getItem('clave')).toBe('valor');
   });
 
-  it('no deja la clave de sondeo en el almacen', () => {
+  it('no deja la clave de sondeo en el almacén', () => {
     resolveStorage();
 
     expect(localStorage.length).toBe(0);

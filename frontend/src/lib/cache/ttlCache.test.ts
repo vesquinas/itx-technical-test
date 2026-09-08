@@ -36,7 +36,7 @@ describe('TtlCache', () => {
     expect(cache.get('producto', parseNamed)).toEqual({ name: 'Iconia' });
   });
 
-  describe('expiracion', () => {
+  describe('expiración', () => {
     it('sigue sirviendo el valor justo antes de la hora', () => {
       const cache = createCache();
       cache.set('producto', { name: 'Iconia' });
@@ -75,7 +75,7 @@ describe('TtlCache', () => {
       expect(cache.get('producto', parseNamed)).toBeUndefined();
     });
 
-    it('elimina del almacen la entrada caducada, para no acumular basura', () => {
+    it('elimina del almacén la entrada caducada, para no acumular basura', () => {
       const cache = createCache();
       cache.set('producto', { name: 'Iconia' });
       clock += ONE_HOUR_MS;
@@ -85,7 +85,7 @@ describe('TtlCache', () => {
       expect(storage.keys()).toEqual([]);
     });
 
-    it('vuelve a cachear con una expiracion nueva tras revalidar', () => {
+    it('vuelve a cachear con una expiración nueva tras revalidar', () => {
       const cache = createCache();
       cache.set('producto', { name: 'Iconia' });
       clock += ONE_HOUR_MS;
@@ -107,7 +107,7 @@ describe('TtlCache', () => {
       expect(storage.keys()).toEqual([]);
     });
 
-    it('descarta una entrada cuya carga util no supera la validacion', () => {
+    it('descarta una entrada cuya carga útil no supera la validación', () => {
       const cache = createCache();
       cache.set('producto', { nombre: 'campo equivocado' });
 
@@ -122,7 +122,7 @@ describe('TtlCache', () => {
       expect(cache.get('producto', parseNamed)).toBeUndefined();
     });
 
-    it('ignora lo escrito por una version anterior del formato', () => {
+    it('ignora lo escrito por una versión anterior del formato', () => {
       createCache({ version: 1 }).set('producto', { name: 'Iconia' });
 
       expect(createCache({ version: 2 }).get('producto', parseNamed)).toBeUndefined();
@@ -157,7 +157,7 @@ describe('TtlCache', () => {
     });
   });
 
-  describe('resiliencia del almacen', () => {
+  describe('resiliencia del almacén', () => {
     it('no propaga el error cuando se agota la cuota, y reintenta tras liberar', () => {
       const failing = createMemoryStorage();
       let rejectWrites = true;

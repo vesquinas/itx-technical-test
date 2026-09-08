@@ -27,14 +27,14 @@ describe('parseProductSummary', () => {
     });
   });
 
-  it('convierte a null el precio vacio que llega en 6 de los 100 productos', () => {
+  it('convierte a null el precio vacío que llega en 6 de los 100 productos', () => {
     const sinPrecio = productListFixture.find((product) => product.price === '');
 
     expect(sinPrecio).toBeDefined();
     expect(parseProductSummary(sinPrecio)?.price).toBeNull();
   });
 
-  it('descarta una direccion de imagen con un esquema peligroso', () => {
+  it('descarta una dirección de imagen con un esquema peligroso', () => {
     const parsed = parseProductSummary({
       ...productListFixture[0],
       imgUrl: 'javascript:alert(document.domain)',
@@ -57,7 +57,7 @@ describe('parseProductSummary', () => {
     expect(parseProductSummary([])).toBeUndefined();
   });
 
-  it('tolera los campos ausentes dejandolos vacios', () => {
+  it('tolera los campos ausentes dejandolos vacíos', () => {
     expect(parseProductSummary({ id: 'abc' })).toEqual({
       id: 'abc',
       brand: '',
@@ -73,7 +73,7 @@ describe('parseProductList', () => {
     expect(parseProductList(productListFixture)).toHaveLength(productListFixture.length);
   });
 
-  it('descarta los elementos invalidos sin dejar al usuario sin catalogo', () => {
+  it('descarta los elementos invalidos sin dejar al usuario sin catálogo', () => {
     const conBasura = [productListFixture[0], null, { sinId: true }, productListFixture[1]];
 
     expect(parseProductList(conBasura)).toHaveLength(2);
@@ -83,7 +83,7 @@ describe('parseProductList', () => {
     expect(parseProductList({ products: [] })).toBeUndefined();
   });
 
-  it('acepta un catalogo vacio', () => {
+  it('acepta un catálogo vacío', () => {
     expect(parseProductList([])).toEqual([]);
   });
 });
@@ -123,12 +123,12 @@ describe('parseProductDetail', () => {
     expect(conListas?.specs.cpu.every((item) => typeof item === 'string')).toBe(true);
   });
 
-  it('traduce las opciones de color y capacidad conservando sus codigos', () => {
+  it('traduce las opciones de color y capacidad conservando sus códigos', () => {
     expect(detail?.options.colors).toEqual([{ code: 1000, name: 'Black' }]);
     expect(detail?.options.storages).toEqual([{ code: 2000, name: '256 MB ROM' }]);
   });
 
-  it('descarta una opcion sin codigo, que no se podria enviar a la cesta', () => {
+  it('descarta una opción sin código, que no se podría enviar a la cesta', () => {
     const parsed = parseProductDetail({
       ...productDetailFixture,
       options: {
@@ -141,7 +141,7 @@ describe('parseProductDetail', () => {
     expect(parsed?.options.storages).toEqual([]);
   });
 
-  it('devuelve opciones vacias cuando la API no las trae', () => {
+  it('devuelve opciones vacías cuando la API no las trae', () => {
     const parsed = parseProductDetail({ id: 'abc' });
 
     expect(parsed?.options).toEqual({ colors: [], storages: [] });
@@ -149,7 +149,7 @@ describe('parseProductDetail', () => {
 });
 
 describe('parseCartCount', () => {
-  it('lee la respuesta de anadir a la cesta', () => {
+  it('lee la respuesta de añadir a la cesta', () => {
     expect(parseCartCount({ count: 3 })).toBe(3);
     expect(parseCartCount({ count: 0 })).toBe(0);
   });

@@ -3,13 +3,13 @@ import { describe, expect, it } from 'vitest';
 import { formatPrice, formatWeight, joinSpecs, PRICE_UNAVAILABLE } from './format.ts';
 
 describe('formatPrice', () => {
-  it('formatea el precio en euros con la convencion espanola', () => {
+  it('formatea el precio en euros con la convención española', () => {
     // Se normaliza el espacio: Intl usa un espacio duro antes del simbolo.
     expect(formatPrice(170).replace(/ /g, ' ')).toBe('170,00 €');
     expect(formatPrice(1099.5).replace(/ /g, ' ')).toBe('1099,50 €');
   });
 
-  it('devuelve un texto explicito cuando la API no da precio', () => {
+  it('devuelve un texto explícito cuando la API no da precio', () => {
     expect(formatPrice(null)).toBe(PRICE_UNAVAILABLE);
   });
 
@@ -19,7 +19,7 @@ describe('formatPrice', () => {
 });
 
 describe('formatWeight', () => {
-  it('anade la unidad al peso en gramos', () => {
+  it('añade la unidad al peso en gramos', () => {
     expect(formatWeight('260')).toBe('260 g');
   });
 
@@ -29,11 +29,11 @@ describe('formatWeight', () => {
 });
 
 describe('joinSpecs', () => {
-  it('une los valores multiples con un separador visible', () => {
+  it('une los valores múltiples con un separador visible', () => {
     expect(joinSpecs(['13 MP', 'autofocus'])).toBe('13 MP · autofocus');
   });
 
-  it('devuelve cadena vacia sin valores', () => {
+  it('devuelve cadena vacía sin valores', () => {
     expect(joinSpecs([])).toBe('');
   });
 });

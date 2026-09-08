@@ -48,7 +48,7 @@ describe('capa de datos de producto', () => {
       );
     });
 
-    it('sirve de cache la segunda vez, sin volver a la red', async () => {
+    it('sirve de caché la segunda vez, sin volver a la red', async () => {
       await fetchProductList();
       await fetchProductList();
 
@@ -64,7 +64,7 @@ describe('capa de datos de producto', () => {
       expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
-    it('sigue usando la cache justo antes de la hora', async () => {
+    it('sigue usando la caché justo antes de la hora', async () => {
       await fetchProductList();
 
       clock += ONE_HOUR_MS - 1;
@@ -73,14 +73,14 @@ describe('capa de datos de producto', () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
-    it('lanza una sola peticion cuando dos llamadas coinciden en el tiempo', async () => {
+    it('lanza una sola petición cuando dos llamadas coinciden en el tiempo', async () => {
       const [primera, segunda] = await Promise.all([fetchProductList(), fetchProductList()]);
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(primera).toEqual(segunda);
     });
 
-    it('vuelve a pedir a la API despues de vaciar la cache', async () => {
+    it('vuelve a pedir a la API después de vaciar la caché', async () => {
       await fetchProductList();
       clearProductCache();
       await fetchProductList();
