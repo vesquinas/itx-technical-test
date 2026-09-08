@@ -58,7 +58,7 @@ docker run -p 5000:5000 -p 5001:5001 -e EXISTING_API_BASE_URL=http://simulado \
 ./mvnw test
 ```
 
-54 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
+61 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
 the same cases as the mock service, with its delays, its 404s and its 500s.
 
 To check that the tests are worth something — and not merely that they execute lines — nine
@@ -432,6 +432,39 @@ is never worth waiting for.
   The setting stays as a deliberate pin — Jetty and Undertow do announce themselves — and what
   guards the behaviour is not the line of configuration but a test asserting the header is absent.
 - **Minimal dependencies**: web, cache, actuator and validation. Less supply-chain surface.
+
+## Every claim here has a command that proves it
+
+This section is the answer to the most uncomfortable thing a review said about this project, and it
+is worth quoting rather than paraphrasing: the first version **documented as done three things that
+were not** — that the cart worked, that error responses did not repeat the request back, that the
+API URL was configurable — and all three sat in its most extensively written sections. *The
+confidence of the documentation was inversely correlated with its verification.* They were corrected
+because a person read them, not because anything would have caught them.
+
+So the rule is now: **no claim in this README without a command that proves it.**
+
+| Claim | Proof |
+| --- | --- |
+| 61 tests pass, with no Docker needed | `./mvnw test` |
+| Only a 404 means "does not exist"; a 429 or a 403 do not | `./mvnw test` — ProductCatalogTest |
+| 25 sequential requests for a made-up product cost **one** call to the source | `./mvnw test` — the negative-caching tests |
+| Error responses repeat nothing the caller sent, and carry no exception or trace | `./mvnw test` — ErrorResponsesTest, UnexpectedErrorTest |
+| No response announces the server it runs on | `./mvnw test` — ErrorResponsesTest |
+| An identifier of 128 characters is accepted and 129 is rejected | `./mvnw test` |
+| The ports, the three expiries, the budget and the cap are the numbers stated here | `./mvnw test` — ConfigurationTest |
+| Every endpoint the service maps is documented above | `./mvnw test` — ReadmeClaimsTest |
+| Every number in this README is the current one | `./mvnw test` — ReadmeClaimsTest |
+| The five scenarios of the mock behave as the table says | `docker compose up -d simulado`, then the five `curl`s |
+| The asynchronous cache is what the throughput figures say | `docker compose run --rm k6 run scripts/test.js` |
+
+**Two limits of this, stated rather than papered over.** The last row is a *measurement* and not a
+test, because what separates the asynchronous cache from the synchronous one only appears under load
+— that is [explained above](#what-these-tests-cannot-cover-and-what-covers-it-instead) and it is why
+the numbers are published with the command that reproduces them. And no script can tell prose from a
+claim: `ReadmeClaimsTest` catches a number that has rotted and an endpoint that has drifted, but a
+new sentence asserting something unverified would pass it. The table is what closes that gap, by
+making the pairing explicit enough that an empty right-hand column is visible.
 
 ## Third-party files
 

@@ -59,6 +59,15 @@ jobs:
         env:
           VITE_API_BASE_URL: https://api.example.test
 
+      # Every number the README states, checked against reality. It is here because the pattern
+      # this project had to be told about was documenting as done what had not been verified, and
+      # the fix for that is not care: it is a command. See "Every claim here has a command that
+      # proves it" in the README.
+      #
+      # It runs after the build because one of the claims it verifies is about the built HTML.
+      - name: README claims
+        run: npm run check:claims
+
       # Known vulnerabilities in the dependencies. Limited to production ones: a warning in a
       # development tool never reaches the user.
       - name: Dependency audit

@@ -67,6 +67,8 @@ npm start          # development mode, on http://localhost:5173
 | `npm run typecheck` | Type checking only |
 | `npm run check:csp` | Verifies the Content-Security-Policy of the built HTML |
 | `npm run check:api` | Validates the parsers against the real API, all 100 products (needs network) |
+| `npm run check:claims` | Verifies that what this README claims is true — see [below](#every-claim-here-has-a-command-that-proves-it) |
+| `npm run preview` | Serves the production build |
 | `npm run preview:deployed` | Builds and serves the production build from one origin that also proxies the API — the topology of a real deployment |
 
 The API URL can be changed with `VITE_API_BASE_URL`; see [`.env.example`](./.env.example).
@@ -530,7 +532,7 @@ API with no authentication, no sessions and no personal data. What does apply:
 
 ## Tests
 
-175 tests. 98% statement coverage and 100% function coverage.
+177 tests. 97% statement coverage and 100% function coverage.
 
 **Coverage tells you which lines run, not whether the tests would notice a break.** To check that,
 ten realistic defects were injected into the code — expiring the cache one millisecond late, no
@@ -618,6 +620,38 @@ is gone rather than left lying around.
 
 It is the same decision the backend makes about the calls it stops waiting for, and for the same
 reason: cancelling throws away work that was about to make the next read instant.
+
+## Every claim here has a command that proves it
+
+This section is the answer to the most uncomfortable thing a review said about this project, and it
+is worth quoting rather than paraphrasing: the first version **documented as done three things that
+were not** — that the cart worked, that error responses did not repeat the request back, that the
+API URL was configurable — and all three sat in its most extensively written sections. *The
+confidence of the documentation was inversely correlated with its verification.* They were corrected
+because a person read them, not because anything would have caught them.
+
+So the rule is now: **no claim in this README without a command that proves it.**
+
+| Claim | Proof |
+| --- | --- |
+| 177 tests pass; 97% of statements, 100% of functions | `npm test`, `npm run test:coverage` |
+| The API's defects are handled — swapped fields, ten fields that change type, empty prices | `npm run check:api`, which walks all 100 products of the live catalogue |
+| The Content-Security-Policy covers everything the page loads and needs no `unsafe-inline` | `npm run check:csp` — 18 checks, in continuous integration |
+| Configuring `VITE_API_BASE_URL` does not break the build | continuous integration builds twice, with the default origin and with a configured one |
+| The cart accumulates when the application is served from one origin | `npm run preview:deployed`, then four adds |
+| The catalogue grid is capped at four columns, and the skeleton matches it | `npm test` — ProductGrid.columns.test.ts |
+| The cache expires at one hour, to the millisecond | `npm test` — ttlCache.test.ts |
+| No accessibility violations on either view | `npm test` — accessibility.test.tsx, which runs axe |
+| The types are strict and the linter passes with no warnings | `npm run typecheck`, `npm run lint` |
+| Every number in this README is the current one | `npm run check:claims` |
+
+**Two limits of this, stated rather than papered over.** The layout itself — that a wide screen
+really shows four cards per row — is not proved by any of these: jsdom lays nothing out, so the test
+reads the stylesheet instead, and only a real browser could close that gap. It is on the list below.
+And no script can tell prose from a claim: `check:claims` catches a number that has rotted, a script
+that has drifted out of the table and an endpoint the code no longer calls, but a new sentence
+asserting something unverified would pass it. The table is what closes that gap, by making the
+pairing explicit enough that an empty right-hand column is visible.
 
 ## What I would do with more time
 
