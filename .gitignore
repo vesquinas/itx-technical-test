@@ -1,0 +1,27 @@
+# Dependencias
+node_modules/
+
+# Builds
+dist/
+target/
+*.class
+
+# Cobertura y reportes
+coverage/
+.nyc_output/
+
+# Entorno
+.env
+.env.local
+.env.*.local
+
+# Editores / SO
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
