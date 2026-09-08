@@ -61,6 +61,7 @@ npm start          # development mode, on http://localhost:5173
 | `npm run typecheck` | Type checking only |
 | `npm run check:csp` | Verifies the Content-Security-Policy of the built HTML |
 | `npm run check:api` | Validates the parsers against the real API, all 100 products (needs network) |
+| `npm run preview:deployed` | Builds and serves the production build from one origin that also proxies the API — the topology of a real deployment |
 
 The API URL can be changed with `VITE_API_BASE_URL`; see [`.env.example`](./.env.example).
 
@@ -200,9 +201,43 @@ So `npm start` gives a fully working cart. See `server.proxy` in [`vite.config.t
 **The public demo cannot do this**, and it is worth being explicit about it: GitHub Pages serves
 static files and cannot proxy anything, so there the counter stays at 1. That is not a defect of
 the application, and it is not a defect of the API either — it is what happens when a
-session-cookie API is called from another origin. A real deployment would sit behind the same
-reverse proxy or gateway as its API, which is exactly the arrangement the development server
-reproduces.
+session-cookie API is called from another origin.
+
+#### How we know a real deployment works
+
+Not by assuming it. Run it yourself:
+
+```bash
+npm run preview:deployed
+```
+
+That builds with a relative API base and serves the result from a single origin that also forwards
+`/api` — which is what a deployment behind a gateway looks like. Measured against it:
+
+| Checked | Result |
+| --- | --- |
+| The application is served | 200 |
+| The API answers through the same origin | 200, 16.6 kB |
+| Five consecutive add-to-cart requests on one session | **1, 2, 3, 4, 5** |
+| A deep link such as `/product/<id>` | **200** — on GitHub Pages the same build answers 404 |
+| The production build configured this way | contains no absolute API URL: it calls its own origin |
+| The Content-Security-Policy | its 18 checks pass in this configuration too |
+
+The cookie the client ends up holding is scoped exactly as expected: host-only to the deployment's
+own host, `Path=/`, no `Secure`, session-scoped.
+
+**What that does not cover** is a real browser attaching the cookie on its own, because those
+checks were made with an HTTP client. That last step is specified rather than measured, and all
+four conditions for it hold:
+
+1. The cookie has no `Domain`, so it is host-only and the browser scopes it to the deployment.
+2. It has no `SameSite`, so it is treated as `Lax` — which blocks cross-site requests and allows
+   same-site ones.
+3. The request to `/api` is same-origin.
+4. `fetch` defaults to `credentials: 'same-origin'`, which sends cookies on same-origin requests.
+
+Worth saying plainly: the reason the counter works here and not on the demo is **not** a code
+difference. It is the same build. Only the origin changes.
 
 ### The search term lives in the URL
 

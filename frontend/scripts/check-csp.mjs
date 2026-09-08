@@ -22,6 +22,24 @@ import { join } from 'node:path';
 const DIST = 'dist';
 const DEFAULT_API_BASE_URL = 'https://itx-frontend-test.onrender.com';
 
+/**
+ * The origin the policy has to allow.
+ *
+ * `VITE_API_BASE_URL` may be relative — that is how a deployment sitting behind a reverse proxy
+ * configures it, so the requests are same-origin and the API's session cookie works. A relative
+ * value says nothing about where the API lives, so the default applies, exactly as in
+ * vite.config.ts. Feeding it straight to `new URL` is what this script used to do, and it crashed
+ * on precisely the configuration a real deployment would use.
+ */
+function apiOriginToAllow() {
+  const configured = process.env['VITE_API_BASE_URL'];
+  const absolute =
+    configured !== undefined && /^https?:\/\//i.test(configured)
+      ? configured
+      : DEFAULT_API_BASE_URL;
+  return new URL(absolute).origin;
+}
+
 const problems = [];
 const passed = [];
 
@@ -75,7 +93,7 @@ if (meta !== null) {
   );
 
   // 4. The API origin has to be allowed, or the application loads no data at all.
-  const apiOrigin = new URL(process.env['VITE_API_BASE_URL'] ?? DEFAULT_API_BASE_URL).origin;
+  const apiOrigin = apiOriginToAllow();
   for (const directive of ['connect-src', 'img-src']) {
     check(
       `${directive} allows the API origin (${apiOrigin})`,
@@ -102,9 +120,7 @@ check('no element uses the style attribute', !/\sstyle="/i.test(html));
 // The API origin does appear, in the `preconnect` and `dns-prefetch` tags, and that is correct:
 // they are connection hints, not resource loads, and that origin is allowed by the policy. What we
 // are looking for here is a third origin that slipped in undeclared.
-const allowedApiOrigin = new URL(
-  process.env['VITE_API_BASE_URL'] ?? DEFAULT_API_BASE_URL,
-).origin;
+const allowedApiOrigin = apiOriginToAllow();
 const references = [...html.matchAll(/\s(?:src|href)="([^"]+)"/gi)].map((match) => match[1]);
 const undeclaredExternal = references.filter((reference) => {
   if (!/^[a-z]+:/i.test(reference) || reference.startsWith('data:')) return false;

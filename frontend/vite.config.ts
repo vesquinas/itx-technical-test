@@ -19,6 +19,19 @@ function originOf(baseUrl: string): string {
 }
 
 /**
+ * Forwards `/api` to the API from the application's own origin.
+ *
+ * No cookie rewriting is needed, and it is worth saying why: the API sends
+ * `session_id=…; Path=/; HttpOnly` with **no `Domain` attribute**, so the cookie is host-only and
+ * the browser scopes it to whoever answered the request — the proxy. Measured both ways: the
+ * session accumulates identically with and without `cookieDomainRewrite`. It would only be needed
+ * if the API started pinning the cookie to its own domain.
+ */
+function apiProxy(apiOrigin: string) {
+  return { '/api': { target: apiOrigin, changeOrigin: true } };
+}
+
+/**
  * Injects the Content-Security-Policy into the built HTML.
  *
  * It is the second line of defence against XSS: the first is that React escapes text by default
@@ -108,19 +121,25 @@ export default defineConfig(({ mode }) => {
      * session, the API answers `{"count": 1}` for ever.
      *
      * Proxying through the development server makes the requests same-origin, so the browser sends
-     * the cookie, the session persists and the counter climbs. `cookieDomainRewrite` is the piece
-     * that matters: without it the cookie stays scoped to the API's domain and the browser will
-     * not send it back to localhost.
+     * the cookie, the session persists and the counter climbs.
+     *
+     * No cookie rewriting is needed, and it is worth saying why: the API sends
+     * `session_id=…; Path=/; HttpOnly` with **no `Domain` attribute**, so the cookie is host-only
+     * and the browser scopes it to whoever answered the request — the proxy. Measured both ways:
+     * the session accumulates identically with and without `cookieDomainRewrite`. It would only
+     * be needed if the API started pinning the cookie to its own domain.
      */
-    server: {
-      proxy: {
-        '/api': {
-          target: apiOrigin,
-          changeOrigin: true,
-          cookieDomainRewrite: '',
-        },
-      },
-    },
+    server: { proxy: apiProxy(apiOrigin) },
+
+    /**
+     * The same proxy for `vite preview`, which serves the production build.
+     *
+     * That combination — the real build, served from one origin that also forwards `/api` — is the
+     * topology of a deployment sitting behind a gateway, and it is what `npm run preview:deployed`
+     * puts together. It exists so the claim that a real deployment has a working cart is something
+     * anyone can reproduce in one command instead of taking on trust.
+     */
+    preview: { proxy: apiProxy(apiOrigin) },
     build: {
       target: 'es2022',
       // No manual chunking is configured: the routes are loaded with `React.lazy`, so the
