@@ -30,7 +30,7 @@ The API listens on **5000**. The management endpoints live on **5001**
 ./mvnw test
 ```
 
-50 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
+54 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
 the same cases as the mock service, with its delays, its 404s and its 500s.
 
 To check that the tests are worth something — and not merely that they execute lines — nine
@@ -39,6 +39,32 @@ details serially instead of in parallel, treating any 4xx as "not found", removi
 similar products, reporting a dependency failure as our own error. Eight out of nine. The one that
 slipped through was **cancelling the abandoned call again**, which is precisely the decision that
 holds up the performance, so it now has a test of its own.
+
+An external review then ran its own set of mutations and found three more the suite did not catch —
+the cache's hour turned into ten, the catalogue's four columns into six, and this service's port
+5000 into 8080 — and the three of them were the same kind of thing. **The behaviour was tested; the
+figures the brief spells out were not.** A test written around behaviour does not notice a number
+changing, because the behaviour is the same at any number. Worse, the tests that looked like they
+covered the hour advanced the clock by the same constant the production code uses, so they verified
+that the cache agreed with itself. Those figures now have tests that write the numbers out —
+[`ConfigurationTest`](./src/test/java/com/itx/similarproducts/ConfigurationTest.java) here, and the
+equivalent for the hour and the columns in the frontend — and each was confirmed to fail when the
+number is changed.
+
+#### What these tests cannot cover, and what covers it instead
+
+The decision this service's performance depends on the most — an **asynchronous** cache instead of
+the synchronous one — is not covered by any test here, and it cannot be. What separates the two is
+whether a virtual thread blocks inside a monitor and pins its carrier, which needs load, real
+latency and a thread scheduler under pressure to show up at all: with two requests both versions
+behave identically. A unit test that swaps the executor for a single-threaded one measures the
+parallelism, which is a different property.
+
+So what guards it is not a test but a **reproducible measurement**: the load test of the brief, the
+two columns of the table further down, and the note in
+[`ProductCatalog`](./src/main/java/com/itx/similarproducts/catalog/ProductCatalog.java) saying not
+to go back. That is the honest answer for this class of decision, and it is worth being explicit
+that a green suite says nothing about it.
 
 ### Load test
 
@@ -116,7 +142,7 @@ Two budgets were measured with the load test:
 | Median latency | **6.1 ms** | 7.7 ms |
 | 90th percentile | **65 ms** | 602 ms |
 | 95th percentile | 1.51 s | **609 ms** |
-| Worst case | 1.53 s | **649 ms** |
+| Worst case | 1.53 s | **649 ms** (see the note below) |
 
 The 95th percentile improves and the 90th gets worse. That is not a contradiction, and the
 explanation matters:
@@ -132,10 +158,21 @@ is determined by how long the window in which the slow product is uncached lasts
 each response takes. In that model the short budget wins unambiguously: the same proportion of users
 waits less than half as long.
 
-What does not depend on the load model is the **worst case**: 649 ms versus 1.53 s. And completeness
-does not suffer, because the abandoned call keeps running and leaves the product in the cache: once
-it is warm, responses carry every reachable similar product again. This was verified product by
-product.
+What does not depend on the load model is the **worst case**: about 650 ms versus 1.53 s. And
+completeness does not suffer, because the abandoned call keeps running and leaves the product in the
+cache: once it is warm, responses carry every reachable similar product again. This was verified
+product by product.
+
+> **A note on that worst case, because a reproduction of these numbers exceeded it.** An independent
+> run of the same load test measured a maximum of **822 ms** against a 600 ms budget — everything
+> else matching within 5%. That is not a broken budget: the budget bounds **how long the service
+> waits for the source**, not how long a response takes end to end. On top of it sit the queueing
+> and scheduling of 200 concurrent users on a machine that is also running the load generator, the
+> mock and the database it writes to. Across the runs measured so far the maximum has landed between
+> **630 ms and 822 ms** for the same 600 ms budget, and the figure moves with the machine. What holds
+> across all of them is the comparison — one budget produces a worst case near the budget, the other
+> near 1.5 s — and that is what the table is for. The single-figure claim was tighter than the
+> evidence supported.
 
 ### 3. The cache is asynchronous, and that detail changes everything
 

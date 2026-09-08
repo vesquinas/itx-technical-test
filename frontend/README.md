@@ -430,7 +430,7 @@ API with no authentication, no sessions and no personal data. What does apply:
 
 ## Tests
 
-172 tests. 98% statement coverage and 100% function coverage.
+175 tests. 98% statement coverage and 100% function coverage.
 
 **Coverage tells you which lines run, not whether the tests would notice a break.** To check that,
 ten realistic defects were injected into the code — expiring the cache one millisecond late, no
@@ -440,6 +440,31 @@ measured which of them broke the suite. Nine out of ten. The one that slipped th
 the persistence of the cart counter**: nothing checked it, and persisting it is a requirement of the
 brief, so it could have been lost in a refactor without anyone noticing. With the missing test, ten
 out of ten.
+
+An external review then ran its own mutations and found two the suite did not catch: **the cache's
+hour turned into ten hours**, and **the grid's four columns into six**. Both are the same kind of
+gap, and the same one a third mutation found in the backend with its port — the requirements the
+brief states as a *number*. The behaviour was tested; the arithmetic was not, because a test written
+around behaviour does not notice a figure changing.
+
+The cache one was worse than a gap, and it is worth saying plainly: the expiry tests advanced the
+clock by `ONE_HOUR_MS`, **the very constant the production code uses**. A test titled "uses one hour
+as the default time to live" that takes the hour from the same place as the code does not verify an
+hour — it verifies that the code agrees with itself, which it always will. The hour and the columns
+now have tests that write the numbers out in full, and each was confirmed to fail when the number is
+changed.
+
+#### What these tests cannot cover
+
+The four columns are checked by **reading the stylesheet**, not by rendering. jsdom parses CSS but
+lays nothing out and does not apply media queries, so no rendering test can see how many cards a row
+holds; that needs a real browser, and it is on the list of what is left undone. What the test can do
+is check that the stylesheet still declares what the brief asks — and, as a bonus a rendering test
+could not give, that the loading skeleton uses the same ladder as the real grid, which is what stops
+the layout from jumping when the data arrives.
+
+It is worth naming that boundary rather than leaving the impression that a green suite covers the
+layout. It does not.
 
 ```bash
 npm test

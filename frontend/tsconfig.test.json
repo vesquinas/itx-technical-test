@@ -1,0 +1,12 @@
+{
+  /* The tests, type-checked with the same strictness as the application plus the two things they
+     need and it does not: Node's APIs and the test globals. It includes `src` whole so that a test
+     sees the real types of what it is testing. */
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
+    "types": ["vite/client", "node"]
+  },
+  "include": ["src"],
+  "exclude": []
+}

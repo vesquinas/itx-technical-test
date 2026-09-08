@@ -4,7 +4,7 @@ import { formatPrice, formatWeight, joinSpecs, PRICE_UNAVAILABLE } from './forma
 
 describe('formatPrice', () => {
   it('formats the price in euros with the Spanish convention', () => {
-    // Se normaliza el espacio: Intl usa un espacio duro antes del simbolo.
+    // The space is normalised: Intl uses a hard space before the symbol.
     expect(formatPrice(170).replace(/ /g, ' ')).toBe('170,00 €');
     expect(formatPrice(1099.5).replace(/ /g, ' ')).toBe('1099,50 €');
   });

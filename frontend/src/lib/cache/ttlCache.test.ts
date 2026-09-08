@@ -55,13 +55,28 @@ describe('TtlCache', () => {
       expect(cache.get('producto', parseNamed)).toBeUndefined();
     });
 
-    it('uses one hour as the default time to live', () => {
+    /**
+     * The one test in this file that may not use `ONE_HOUR_MS`.
+     *
+     * Every other expiry test advances the clock by that constant, which checks that the cache is
+     * consistent with itself — worth having, but it is not the requirement. The brief asks for one
+     * hour, and a test written against the same constant as the production code passes just as
+     * happily if the constant becomes ten hours. It did: changing it was the one mutation of the
+     * cache that the whole suite failed to notice, found by an external review.
+     *
+     * So the numbers here are written out in full, on purpose. If someone changes the time to live,
+     * this test has to be changed too — deliberately, which is the point — and the comment says
+     * why.
+     */
+    it('uses one hour, meaning 3,600,000 milliseconds, as the default time to live', () => {
       const cache = new TtlCache({ namespace: 'test', storage, now });
       cache.set('producto', { name: 'Iconia' });
 
-      clock += ONE_HOUR_MS - 1;
+      // 59 minutes, 59 seconds and 999 milliseconds: still within the hour.
+      clock += 3_599_999;
       expect(cache.get('producto', parseNamed)).toEqual({ name: 'Iconia' });
 
+      // The hour, to the millisecond.
       clock += 1;
       expect(cache.get('producto', parseNamed)).toBeUndefined();
     });

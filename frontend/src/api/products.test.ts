@@ -73,6 +73,27 @@ describe('product data layer', () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
+    /**
+     * The literal hour, this time on the cache the application actually configures.
+     *
+     * The two tests above use `ONE_HOUR_MS`, the same constant the production code passes to the
+     * cache, so they hold whatever that constant says. This one writes the number out, because the
+     * requirement is a number: an hour, the brief's most specific figure. The equivalent test for
+     * the cache itself is in `ttlCache.test.ts`; this one guards the wiring here, which is a
+     * separate place where the hour could quietly become ten.
+     */
+    it('revalidates at 3,600,000 milliseconds exactly, not at whatever the constant says', async () => {
+      await fetchProductList();
+
+      clock += 3_599_999;
+      await fetchProductList();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      clock += 1;
+      await fetchProductList();
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
     it('fires a single request when two calls overlap in time', async () => {
       const [primera, segunda] = await Promise.all([fetchProductList(), fetchProductList()]);
 

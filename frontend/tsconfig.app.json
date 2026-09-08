@@ -17,9 +17,9 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Type safety: el template de Vite no activa `strict`, lo hacemos aqui.
-       Estas opciones son la primera linea de defensa contra datos inesperados
-       venidos del API (ver src/api/schema.ts). */
+    /* Type safety: the Vite template does not enable `strict`, so it is enabled here.
+       These options are the first line of defence against unexpected data coming
+       from the API (see src/api/schema.ts). */
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
@@ -32,5 +32,9 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  /* Only the application. The tests are a separate project (tsconfig.test.json) because they are
+     allowed things the application is not — reading a file from disk, for one — and the boundary is
+     worth keeping: an accidental `node:fs` in a component should not type-check. */
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test"]
 }
