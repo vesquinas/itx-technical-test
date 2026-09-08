@@ -33,6 +33,10 @@ import com.itx.similarproducts.domain.ProductDetail;
  * leaves the product in the cache, so subsequent requests do include it. Cancelling it — the first
  * version did — throws away exactly the work that was about to speed everything else up.
  *
+ * <p>Whatever gets left out is reported back: see {@link SimilarProducts}. A caller that receives
+ * two products has no way of telling from the body whether that is all of them, and the agreed
+ * contract leaves no room in the body to say so.
+ *
  * <p>The full reasoning, with the measurements that led to the chosen budget, is in the README.
  */
 @Service
@@ -54,14 +58,14 @@ public class SimilarProductsService {
      *
      * @throws com.itx.similarproducts.catalog.ProductNotFoundException if the product does not exist
      */
-    public List<ProductDetail> findSimilarProducts(String productId) {
+    public SimilarProducts findSimilarProducts(String productId) {
         // The list arrives already sanitised from the catalogue: no nulls, no blanks, no duplicates,
         // in order of similarity and bounded in size. It is normalised there and not here so that
         // what gets cached is the sanitised version, and so that the cap also bounds what is held in
         // memory.
         List<String> ids = catalog.similarIds(productId);
         if (ids.isEmpty()) {
-            return List.of();
+            return new SimilarProducts(List.of(), true);
         }
 
         // Ask for every detail at once: starting the load does not block, each one returns its
@@ -85,11 +89,14 @@ public class SimilarProductsService {
      * budget. The requests that reach it are the ones landing in the window where a slow product is
      * not cached yet.
      */
-    private List<ProductDetail> collectWithinBudget(
+    private SimilarProducts collectWithinBudget(
             String productId, List<String> ids, List<CompletableFuture<ProductLookup>> pending) {
 
         Instant deadline = Instant.now().plus(fanOutTimeout);
         List<ProductDetail> products = new ArrayList<>(pending.size());
+        // Set when a similar product is left out because it could not be fetched. A 404 does not
+        // count: that product is gone from the catalogue and there is nothing more to get.
+        boolean missingSomething = false;
 
         for (int index = 0; index < pending.size(); index++) {
             CompletableFuture<ProductLookup> future = pending.get(index);
@@ -97,24 +104,31 @@ public class SimilarProductsService {
 
             try {
                 ProductLookup lookup = future.get(Math.max(remainingMillis, 0), TimeUnit.MILLISECONDS);
-                if (lookup instanceof ProductLookup.Found found) {
-                    products.add(found.product());
+                switch (lookup) {
+                    case ProductLookup.Found found -> products.add(found.product());
+                    case ProductLookup.Unavailable ignored -> missingSomething = true;
+                    case ProductLookup.Missing ignored -> {
+                        // Gone from the catalogue: the list is complete without it.
+                    }
                 }
             } catch (TimeoutException e) {
                 // Deliberately NOT cancelled: let it finish and leave the product in the cache. This
                 // response goes without it, but the next ones will have it.
+                missingSomething = true;
                 log.debug("The budget of {} ran out waiting for the detail of {}",
                         productId, ids.get(index));
             } catch (InterruptedException e) {
                 // Restore the interrupt flag and return what was gathered: swallowing the interrupt
                 // would prevent the server from shutting the request down on close.
                 Thread.currentThread().interrupt();
+                missingSomething = true;
                 break;
             } catch (Exception e) {
+                missingSomething = true;
                 log.debug("The detail of {} failed: {}", ids.get(index), e.toString());
             }
         }
 
-        return List.copyOf(products);
+        return new SimilarProducts(List.copyOf(products), !missingSomething);
     }
 }

@@ -75,7 +75,7 @@ class SimilarProductsResilienceTest {
         stubProduct("p4", "Tres", 300);
 
         long startedAt = System.nanoTime();
-        List<ProductDetail> products = service.findSimilarProducts("p1");
+        List<ProductDetail> products = service.findSimilarProducts("p1").products();
         Duration elapsed = Duration.ofNanos(System.nanoTime() - startedAt);
 
         assertThat(products).hasSize(3);
@@ -89,7 +89,7 @@ class SimilarProductsResilienceTest {
         stubProduct("q3", "Lentisimo", 5_000);
 
         long startedAt = System.nanoTime();
-        List<ProductDetail> products = service.findSimilarProducts("q1");
+        List<ProductDetail> products = service.findSimilarProducts("q1").products();
         Duration elapsed = Duration.ofNanos(System.nanoTime() - startedAt);
 
         // It returns the one that arrived and does not wait for the one taking five seconds.
@@ -129,7 +129,7 @@ class SimilarProductsResilienceTest {
         }
         stubSimilarIds("z1000", ids.append(']').toString());
 
-        List<ProductDetail> products = service.findSimilarProducts("z1000");
+        List<ProductDetail> products = service.findSimilarProducts("z1000").products();
 
         assertThat(products).hasSize(3);
         assertThat(existingApi.findAll(WireMock.getRequestedFor(
@@ -144,7 +144,7 @@ class SimilarProductsResilienceTest {
         stubProduct("t3", "Lentisimo", 5_000);
         stubProduct("t4", "Tambien rapido", 50);
 
-        List<ProductDetail> products = service.findSimilarProducts("t1");
+        List<ProductDetail> products = service.findSimilarProducts("t1").products();
 
         assertThat(products).extracting(ProductDetail::id).containsExactly("t2", "t4");
     }

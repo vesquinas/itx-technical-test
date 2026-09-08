@@ -273,6 +273,73 @@ class SimilarProductsApiTest {
     }
 
     @Test
+    void says_the_list_is_complete_when_every_similar_product_was_resolved() {
+        stubSimilarIds("u1", "[\"u2\",\"u3\"]");
+        stubProduct("u2", "Dress", 19.99);
+        stubProduct("u3", "Blazer", 29.99);
+
+        ResponseEntity<List<ProductDetail>> response = getSimilar("u1");
+
+        assertThat(response.getHeaders().getFirst("Similar-Products-Complete")).isEqualTo("true");
+        assertThat(response.getHeaders().getCacheControl()).isNull();
+    }
+
+    @Test
+    void still_says_complete_when_a_similar_product_no_longer_exists() {
+        // The distinction that makes the header worth having. A 404 means that product is gone from
+        // the catalogue: there is nothing more to fetch, so the list IS all of them. Calling this
+        // incomplete would cry wolf on the most common case in the catalogue.
+        stubSimilarIds("v1", "[\"v2\",\"v3\"]");
+        stubProduct("v2", "Dress", 19.99);
+        existingApi.stubFor(get(urlEqualTo("/product/v3")).willReturn(aResponse().withStatus(404)));
+
+        ResponseEntity<List<ProductDetail>> response = getSimilar("v1");
+
+        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getHeaders().getFirst("Similar-Products-Complete")).isEqualTo("true");
+    }
+
+    @Test
+    void warns_that_the_list_is_incomplete_when_a_similar_product_could_not_be_fetched() {
+        // A 500 is not "it does not exist": that product may well be there and we failed to get
+        // it. Two products with no signal would let the caller believe there are only two.
+        stubSimilarIds("w1", "[\"w2\",\"w3\"]");
+        stubProduct("w2", "Dress", 19.99);
+        existingApi.stubFor(get(urlEqualTo("/product/w3")).willReturn(aResponse().withStatus(500)));
+
+        ResponseEntity<List<ProductDetail>> response = getSimilar("w1");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getHeaders().getFirst("Similar-Products-Complete")).isEqualTo("false");
+    }
+
+    @Test
+    void tells_caches_not_to_keep_an_incomplete_list() {
+        // An incomplete list is provisional: a later request may return more. Letting a cache hold
+        // on to it would freeze the gap for as long as it lived there.
+        stubSimilarIds("x1", "[\"x2\",\"x3\"]");
+        stubProduct("x2", "Dress", 19.99);
+        existingApi.stubFor(get(urlEqualTo("/product/x3")).willReturn(aResponse().withStatus(500)));
+
+        ResponseEntity<List<ProductDetail>> response = getSimilar("x1");
+
+        assertThat(response.getHeaders().getCacheControl()).contains("no-store");
+    }
+
+    @Test
+    void keeps_the_body_a_bare_array_so_the_agreed_contract_is_untouched() {
+        stubSimilarIds("y1", "[\"y2\"]");
+        stubProduct("y2", "Dress", 19.99);
+
+        ResponseEntity<String> raw = getSimilarRaw("y1");
+
+        // The completeness signal travels in a header precisely so the body stays exactly what the
+        // contract declares: an array of product details, with no wrapper.
+        assertThat(raw.getBody()).startsWith("[").endsWith("]");
+    }
+
+    @Test
     void does_not_call_the_api_again_for_an_already_cached_detail() {
         stubSimilarIds("k1", "[\"k2\"]");
         stubProduct("k2", "Dress", 19.99);

@@ -105,7 +105,7 @@ class SimilarProductsServiceTest {
         stubProduct("lento", SLOW_PRODUCT_DELAY_MS);
 
         // First request: the slow one does not fit in the budget and is left out.
-        List<ProductDetail> first = service.findSimilarProducts("base");
+        List<ProductDetail> first = service.findSimilarProducts("base").products();
         assertThat(first).extracting(ProductDetail::id).containsExactly("rapido");
 
         // Had the abandoned call been cancelled, it would have left nothing in the cache and
@@ -128,7 +128,7 @@ class SimilarProductsServiceTest {
         List<ProductDetail> result = List.of();
 
         while (Instant.now().isBefore(deadline)) {
-            result = service.findSimilarProducts("base");
+            result = service.findSimilarProducts("base").products();
             if (result.size() == 2) {
                 return result;
             }

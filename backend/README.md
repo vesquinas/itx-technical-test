@@ -30,7 +30,7 @@ The API listens on **5000**. The management endpoints live on **5001**
 ./mvnw test
 ```
 
-32 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
+37 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
 the same cases as the mock service, with its delays, its 404s and its 500s.
 
 To check that the tests are worth something — and not merely that they execute lines — nine
@@ -210,12 +210,44 @@ are removed while preserving order. The null part is not hypothetical: a `null` 
 arrives as a null list element, and `List.copyOf` rejects nulls with `NullPointerException`, so **a
 single null at the source brought the request down with a 500**.
 
-### Partial results rather than no results
+### Partial results rather than no results — and saying so
 
 A similar product that does not exist, that fails or that takes too long is left out of the response.
 The contract defines a list of similar products, and one of them having disappeared from the
 catalogue does not invalidate the others. The alternative — failing the whole response — would turn
 one product's failure into everybody's.
+
+But a caller that receives two products needs to be able to tell **"this product has two similar
+products"** from **"we could not fetch the third"**, and the body alone cannot say which. So every
+response carries a header:
+
+```
+Similar-Products-Complete: true | false
+```
+
+**And absent is not the same as unavailable**, which is the distinction that makes the header worth
+having. Measured against the mock service:
+
+| Request | Returns | `Complete` | Why |
+| --- | --- | --- | --- |
+| `/product/4/similar` — one similar answers **404** | 2 | **true** | That product is gone from the catalogue. There is nothing more to fetch, so the list really is all of them |
+| `/product/5/similar` — one similar answers **500** | 2 | **false** | That product may well exist and we failed to get it |
+
+Both return two products; only now can the caller tell them apart. Marking the 404 case incomplete
+would cry wolf on the commonest case in the catalogue.
+
+An incomplete response also carries `Cache-Control: no-store`, because it is provisional: a later
+request may return more. Letting a cache keep it would freeze the gap for as long as it lived there.
+And the flag corrects itself — `/product/2/similar` answers `1 product, complete=false` on a cold
+cache and `3 products, complete=true` once the slow one has been fetched.
+
+**Why a header and not the body, and not a 206.** The body stays exactly what the contract
+declares, a bare array with no wrapper: changing the shape of an operation that was *agreed with
+the front-end applications* is not a unilateral decision, and the contract file is part of the test
+bench and kept unmodified. A 206 looks like the obvious answer and is the wrong one — RFC 9110
+defines it as the response to a range request and requires a `Content-Range`; sending it without
+one is a protocol violation that confuses caches. In a real project this header would be the
+proposal to take to that agreement. (No `X-` prefix, per RFC 6648.)
 
 ### Separate timeouts
 
