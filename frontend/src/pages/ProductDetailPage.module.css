@@ -1,0 +1,138 @@
+.back {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: var(--space-5);
+  gap: var(--space-2);
+  color: var(--color-ink-muted);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  transition: color var(--duration-fast) ease;
+}
+
+.back:hover {
+  color: var(--color-ink);
+}
+
+.titleBlock {
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+.brand {
+  color: var(--color-ink-faint);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.model {
+  margin-top: var(--space-1);
+  font-size: var(--text-2xl);
+  font-weight: 300;
+}
+
+.price {
+  margin-top: var(--space-2);
+  font-size: var(--text-xl);
+  font-variant-numeric: tabular-nums;
+}
+
+.priceMissing {
+  margin-top: var(--space-2);
+  color: var(--color-ink-faint);
+  font-size: var(--text-base);
+  font-style: italic;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+.media {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  aspect-ratio: 3 / 4;
+  padding: var(--space-5);
+  background-color: var(--color-surface);
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  mix-blend-mode: multiply;
+}
+
+@media (prefers-color-scheme: dark) {
+  .image {
+    mix-blend-mode: normal;
+  }
+}
+
+.imageFallback {
+  align-self: center;
+  color: var(--color-ink-faint);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.errorArea {
+  padding-top: var(--space-4);
+}
+
+/* Esqueleto de carga, con la misma forma que el contenido real. */
+.mediaSkeleton {
+  aspect-ratio: 3 / 4;
+}
+
+.columnSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.lineSkeleton {
+  height: 2rem;
+}
+
+.blockSkeleton {
+  height: 18rem;
+}
+
+.mediaSkeleton,
+.lineSkeleton,
+.blockSkeleton {
+  background-color: var(--color-surface-strong);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* Dos columnas a partir de tableta, como el wireframe. */
+@media (min-width: 48rem) {
+  .layout {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    gap: var(--space-7);
+  }
+}

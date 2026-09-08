@@ -1,0 +1,69 @@
+.group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  padding: 0;
+  margin-bottom: var(--space-2);
+  color: var(--color-ink-faint);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.option {
+  position: relative;
+  display: flex;
+}
+
+/*
+ * El radio se oculta visualmente pero sigue en el arbol de accesibilidad y sigue
+ * recibiendo el foco: `display: none` lo sacaria del orden de tabulacion y
+ * rompería la navegacion con teclado.
+ */
+.input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-hairline-strong);
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) ease,
+    background-color var(--duration-fast) ease,
+    color var(--duration-fast) ease;
+}
+
+.chip:hover {
+  border-color: var(--color-ink);
+  color: var(--color-ink);
+}
+
+.input:checked + .chip {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+/* El anillo de foco se dibuja sobre la etiqueta, que es lo que se ve. */
+.input:focus-visible + .chip {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}

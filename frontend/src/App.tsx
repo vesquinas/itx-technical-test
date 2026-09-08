@@ -20,6 +20,11 @@ const ProductListPage = lazy(async () => {
   return { default: module.ProductListPage };
 });
 
+const ProductDetailPage = lazy(async () => {
+  const module = await import('./pages/ProductDetailPage.tsx');
+  return { default: module.ProductDetailPage };
+});
+
 const NotFoundPage = lazy(async () => {
   const module = await import('./pages/NotFoundPage.tsx');
   return { default: module.NotFoundPage };
@@ -42,6 +47,7 @@ export function App() {
         <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route element={<ProductListPage />} path="/" />
+            <Route element={<ProductDetailPage />} path="/product/:productId" />
             {/* Comodin: evita la pantalla en blanco ante una URL desconocida. */}
             <Route element={<NotFoundPage />} path="*" />
           </Routes>
