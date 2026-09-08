@@ -1,0 +1,65 @@
+{
+  "id": "Zwyh5cy7MzyIMJpwYcM8b",
+  "brand": "Acer",
+  "model": "X960",
+  "price": "270",
+  "imgUrl": "https://itx-frontend-test.onrender.com/images/Zwyh5cy7MzyIMJpwYcM8b.jpg",
+  "networkTechnology": "GSM / UMTS",
+  "networkSpeed": "HSPA 7.2/2 Mbps",
+  "gprs": "Class 10",
+  "edge": "Class 10",
+  "announced": "2009  February. Released 2009  April",
+  "status": "Discontinued",
+  "dimentions": "106.4 x 59 x 13.7 mm (4.19 x 2.32 x 0.54 in)",
+  "weight": "131.5",
+  "sim": "Mini-SIM",
+  "displayType": "TFT resistive touchscreen  65K colors",
+  "displayResolution": "2.8 inches (~38.7% screen-to-body ratio)",
+  "displaySize": "480 x 640 pixels (~286 ppi pixel density)",
+  "os": "Microsoft Windows Mobile 6.1 Professional",
+  "cpu": "533 MHz Samsung S3C 6410",
+  "chipset": "",
+  "gpu": "",
+  "externalMemory": "microSD  up to 8 GB (dedicated slot)",
+  "internalMemory": [
+    "256 MB ROM"
+  ],
+  "ram": "128 MB RAM",
+  "primaryCamera": [
+    "3.15 MP",
+    "autofocus",
+    "LED flash"
+  ],
+  "secondaryCmera": "VGA",
+  "speaker": "Yes",
+  "audioJack": "No",
+  "wlan": "Wi-Fi 802.11 b/g",
+  "bluetooth": [
+    "2.0",
+    "A2DP",
+    "EDR"
+  ],
+  "gps": "Yes SiRF Star III chipset",
+  "nfc": "",
+  "radio": "No",
+  "usb": "miniUSB",
+  "sensors": "",
+  "battery": "Removable Li-Po 1530 mAh battery",
+  "colors": [
+    "Black"
+  ],
+  "options": {
+    "colors": [
+      {
+        "code": 1000,
+        "name": "Black"
+      }
+    ],
+    "storages": [
+      {
+        "code": 2000,
+        "name": "256 MB ROM"
+      }
+    ]
+  }
+}

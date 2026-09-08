@@ -1,20 +1,14 @@
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   build: {
     target: 'es2022',
-    // Separamos React del codigo de aplicacion: cambia mucho menos a menudo,
-    // asi el navegador reaprovecha su cache entre despliegues.
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          react: ['react', 'react-dom', 'react-router'],
-        },
-      },
-    },
+    // No se configura troceado manual: las rutas se cargan con `React.lazy`,
+    // asi que el bundler ya genera un fragmento por vista.
+    sourcemap: true,
   },
   test: {
     environment: 'jsdom',

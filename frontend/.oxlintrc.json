@@ -24,7 +24,6 @@
       }
     ],
     "react/react-in-jsx-scope": "off",
-    "react/jsx-uses-react": "off",
     "react/no-danger": "error",
     "react/jsx-no-script-url": "error",
     "react/jsx-no-target-blank": "error",

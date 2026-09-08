@@ -1,0 +1,37 @@
+[
+  {
+    "id": "ZmGrkLRPXOTpxsU4jjAcv",
+    "brand": "Acer",
+    "model": "Iconia Talk S",
+    "price": "170",
+    "imgUrl": "https://itx-frontend-test.onrender.com/images/ZmGrkLRPXOTpxsU4jjAcv.jpg"
+  },
+  {
+    "id": "cGjFJlmqNPIwU59AOcY8H",
+    "brand": "Acer",
+    "model": "Liquid Z6 Plus",
+    "price": "250",
+    "imgUrl": "https://itx-frontend-test.onrender.com/images/cGjFJlmqNPIwU59AOcY8H.jpg"
+  },
+  {
+    "id": "8hKbH2UHPM_944nRHYN1n",
+    "brand": "Acer",
+    "model": "Liquid Z6",
+    "price": "120",
+    "imgUrl": "https://itx-frontend-test.onrender.com/images/8hKbH2UHPM_944nRHYN1n.jpg"
+  },
+  {
+    "id": "pMZMhe_ZaAPZoaCCtlDrg",
+    "brand": "Acer",
+    "model": "Liquid Jade 2",
+    "price": "",
+    "imgUrl": "https://itx-frontend-test.onrender.com/images/pMZMhe_ZaAPZoaCCtlDrg.jpg"
+  },
+  {
+    "id": "Cu6y7RudjqPTBIYvW6QXd",
+    "brand": "Acer",
+    "model": "Liquid Z630S",
+    "price": "",
+    "imgUrl": "https://itx-frontend-test.onrender.com/images/Cu6y7RudjqPTBIYvW6QXd.jpg"
+  }
+]
