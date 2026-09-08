@@ -242,6 +242,28 @@ describe('ProductDetailPage', () => {
       expect(await screen.findByText('3 artículos')).toBeInTheDocument();
     });
 
+    it('persiste el contador, de modo que sobrevive a recargar la aplicación', async () => {
+      // El enunciado exige persistir el contador de la cesta. Sin este test, quitar la
+      // escritura en almacenamiento no rompía ninguna prueba: el requisito se podía
+      // perder en un refactor sin que nadie se enterara. Se detectó inyectando ese
+      // bug a proposito y comprobando que la suite no lo cazaba.
+      const user = userEvent.setup();
+      const { unmount } = renderDetail();
+      await screen.findByRole('heading', { level: 1, name: 'X960' });
+
+      fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ count: 4 })));
+      await user.click(screen.getByRole('button', { name: 'Añadir a la cesta' }));
+      await screen.findByText('4 artículos');
+
+      // Desmontar y volver a montar equivale a que el usuario recargue la página: el
+      // estado en memoria se pierde y solo queda lo que se haya persistido.
+      unmount();
+      fetchMock.mockImplementation(() => Promise.resolve(jsonResponse(productDetailFixture)));
+      renderDetail();
+
+      expect(await screen.findByText('4 artículos')).toBeInTheDocument();
+    });
+
     it('confirma la acción al usuario', async () => {
       const user = userEvent.setup();
       renderDetail();

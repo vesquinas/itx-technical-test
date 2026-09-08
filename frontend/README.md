@@ -273,7 +273,16 @@ autenticación, sin sesiones ni datos personales. Lo que sí aplica:
 
 ## Tests
 
-148 tests. 97% de cobertura de sentencias y 100% de funciones.
+151 tests. 97% de cobertura de sentencias y 100% de funciones.
+
+**La cobertura dice qué líneas se ejecutan, no si los tests servirían de algo.** Para comprobar
+eso se inyectaron diez fallos realistas en el código —caducar la caché un milisegundo tarde,
+dejar de cruzar los campos intercambiados de la API, exigir una palabra de la búsqueda en vez de
+todas, dejar de codificar los segmentos de la URL, enviar a la cesta el nombre de la opción en
+lugar de su código— y se comprobó cuáles rompían la suite. Nueve de diez. El que se escapó fue
+**quitar la persistencia del contador de la cesta**: nada lo comprobaba, y persistirlo es un
+requisito del enunciado, así que se podía perder en un refactor sin que nadie se enterara. Con el
+test que faltaba, diez de diez.
 
 ```bash
 npm test

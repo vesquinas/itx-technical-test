@@ -30,8 +30,15 @@ La API escucha en el **5000**. Los endpoints de gestión están en el **5001**
 ./mvnw test
 ```
 
-31 tests. No necesitan Docker: la API existente se sustituye por un doble de WireMock que
+32 tests. No necesitan Docker: la API existente se sustituye por un doble de WireMock que
 reproduce los mismos casos que el simulador, con sus retardos, sus 404 y sus 500.
+
+Para comprobar que los tests sirven de algo —y no solo que ejecutan líneas— se inyectaron nueve
+fallos realistas y se midió cuáles rompían la suite: pedir los detalles en serie en vez de en
+paralelo, tomar cualquier 4xx por «no existe», quitar el tope de similares, reportar el fallo de
+la dependencia como error propio. Ocho de nueve. El que se escapó fue **volver a cancelar la
+llamada descartada**, que es justo la decisión que sostiene el rendimiento, así que ahora tiene su
+propio test.
 
 Nueve de ellos se escribieron durante la revisión final, cada uno reproduciendo un fallo real
 antes de arreglarlo: el nulo en la lista de similares, los identificadores vacíos, el 429 tratado
@@ -157,7 +164,13 @@ Medido con la prueba de carga del propio ejercicio, 200 usuarios y caché vacía
 | Errores HTTP | 0 | **0** |
 
 Quince veces más throughput y un percentil 90 que baja de seis segundos y medio a sesenta
-milisegundos. (Las dos columnas se midieron con el presupuesto de 1,5 s, para comparar una sola
+milisegundos.
+
+**Y no acumula recursos.** Como la llamada descartada no se cancela, cabía la duda de si se
+acumulaban hilos o memoria. Medido con dos pasadas seguidas de la prueba de carga: los hilos vivos
+pasan de 23 a 29 en la primera y **se quedan en 29** en la segunda; la memoria sube a 178 MB y baja
+a 147 MB cuando el recolector la reclama. La segunda pasada además va más rápida (308 peticiones
+por segundo frente a 285) porque la caché ya está caliente. 35.814 respuestas, ninguna 5xx. (Las dos columnas se midieron con el presupuesto de 1,5 s, para comparar una sola
 variable; el ajuste del presupuesto vino después.)
 
 La caché asíncrona guarda en el mapa un futuro —operación inmediata, sin bloqueo bajo el
