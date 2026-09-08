@@ -260,8 +260,13 @@ And **two independent things stop a browser from ever sending that cookie across
 
 Neither is something a client can work around. **The fix is to stop being cross-origin**: the
 development server proxies `/api`, so the requests are same-origin, the browser sends the cookie,
-the session persists and the counter climbs. `cookieDomainRewrite` is the piece that matters —
-without it the cookie stays scoped to the API's domain and never comes back.
+the session persists and the counter climbs.
+
+No cookie rewriting is needed, and it is worth saying why, because this document claimed the
+opposite for a while: the cookie carries **no `Domain` attribute**, so it is host-only and the
+browser scopes it to whoever answered — the proxy. Measured both ways, with and without
+`cookieDomainRewrite`, the session accumulates identically. It would only be needed if the API
+started pinning the cookie to its own domain.
 
 So `npm start` gives a fully working cart. See `server.proxy` in [`vite.config.ts`](./vite.config.ts).
 
@@ -270,6 +275,31 @@ application's own origin, in four lines of [`netlify.toml`](../netlify.toml). St
 do it — GitHub Pages, where this was first deployed, left the counter stuck at 1 with no way to fix
 it. The counter working there and not there is **not a code difference**. It is the same build.
 Only the origin changes.
+
+#### How long the basket lasts, which is not one answer but three
+
+Worth spelling out, because three things with three different lifetimes are involved and none of
+them is the one-hour cache:
+
+| What | Where it lives | How long |
+| --- | --- | --- |
+| The **number shown in the header** | `localStorage`, under `itx-cart-count` | **It does not expire.** It survives closing the browser and restarting the machine |
+| The **session that identifies the basket** | The `session_id` cookie | Until the **browser** closes: the cookie carries no `Expires` and no `Max-Age`, which makes it a session cookie |
+| The **basket itself** | Server-side, in the API | As long as the API keeps that session. It is a free instance that spins down when idle, so in practice a while |
+
+The one-hour expiry belongs to the **product cache** and has nothing to do with the cart: the
+counter is stored separately for exactly that reason — it is not cached API data, it is the state of
+the user's session.
+
+The consequence is that the two can **diverge**: after closing and reopening the browser the header
+still shows 3, because that is what the API last reported and the brief asks for it to be persisted,
+while the API has no session any more and the next add answers 1. Measured: the same session
+answers 1, 2, 3, 4 across requests, and a request with no cookie answers 1.
+
+That is the behaviour the brief specifies — display the value the API returns, and persist it — and
+where the API is the source of truth there is no honest way to keep a client-side count in step with
+a basket the client cannot see. What the application does **not** do is invent a count of its own,
+which is the alternative and a worse one: it would show a number the server does not agree with.
 
 #### How we know it works
 
