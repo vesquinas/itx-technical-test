@@ -1,6 +1,6 @@
 import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { resetProductCacheForTests } from '../api/products.ts';
@@ -20,10 +20,34 @@ function jsonResponse(payload: unknown): Response {
   });
 }
 
+/**
+ * Lets React run the effects it still has pending.
+ *
+ * Needed because **the content being on screen does not mean the effects have run**: the products
+ * appear on commit, and a passive effect flushes after it. Every one of these tests moves the
+ * scroll position after waiting for the list, and without this the first view's restore could run
+ * *after* that move and see a position it was never meant to see — which is what made this file
+ * fail about once in eight runs, in three different shapes: no restore, or two.
+ */
+async function flushEffects(): Promise<void> {
+  await act(async () => {});
+}
+
 /** jsdom implements no scrolling, so the position is simulated to be able to assert on it. */
 function pretendScrolledTo(position: number): void {
-  vi.spyOn(globalThis, 'scrollY', 'get').mockReturnValue(position);
+  pretendPositionIs(position);
   globalThis.dispatchEvent(new Event('scroll'));
+}
+
+/**
+ * Moves the position **without** firing a scroll event.
+ *
+ * That is not an artificial case: it is what happens to the catalogue's remembered position while
+ * the catalogue is not mounted. The detail page scrolls the document to the top, and the
+ * catalogue's listener is not there to hear it.
+ */
+function pretendPositionIs(position: number): void {
+  vi.spyOn(globalThis, 'scrollY', 'get').mockReturnValue(position);
 }
 
 /**
@@ -52,6 +76,11 @@ describe('scroll behaviour across views', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    // `pretendScrolledTo` spies on the `scrollY` getter, and a spy is not a stub: without this it
+    // survived into the next test, which read a scroll position left behind by the previous one.
+    // That is what made these tests flaky — and, worse, what masked a real defect, because a
+    // leftover position of 1840 happened to be the position the next test expected.
+    vi.restoreAllMocks();
   });
 
   describe('the product detail page', () => {
@@ -97,6 +126,7 @@ describe('scroll behaviour across views', () => {
     it('returns the user to where they had left the catalogue', async () => {
       const { unmount } = renderWithProviders(<ProductListPage />);
       await screen.findByRole('heading', { name: 'Iconia Talk S' });
+      await flushEffects();
 
       pretendScrolledTo(1840);
       unmount();
@@ -104,19 +134,54 @@ describe('scroll behaviour across views', () => {
       renderWithProviders(<ProductListPage />);
       await screen.findByRole('heading', { name: 'Iconia Talk S' });
 
-      expect(scrollTo).toHaveBeenCalledWith(0, 1840);
+      // Waited for rather than asserted straight away, and the reason is the whole lesson of this
+      // file: the products being on screen does not mean React has flushed the effect that scrolls.
+      // Asserting immediately passed most of the time and failed about once in fifteen runs —
+      // which is worse than failing always, because it fails in someone else's pipeline.
+      await waitFor(() => {
+        expect(scrollTo).toHaveBeenCalledWith(0, 1840);
+      });
+    });
+
+    it('restores the position even though the page is at the top when it mounts', async () => {
+      const { unmount } = renderWithProviders(<ProductListPage />);
+      await screen.findByRole('heading', { name: 'Iconia Talk S' });
+      await flushEffects();
+      pretendScrolledTo(1840);
+      unmount();
+
+      // The detail page took the document to the top while the catalogue was away, so the
+      // catalogue mounts with the page at zero and a remembered position of 1840. Nothing about
+      // mounting may overwrite what was remembered.
+      //
+      // This is the test the previous one could not be: there, the simulated position still read
+      // 1840 when the view came back, so a mount that overwrote the remembered value overwrote it
+      // with the same number and nothing showed. It was hiding a real defect — an effect cleanup
+      // also runs when the effect re-runs, and React's strict mode re-runs it on every mount, so
+      // in development coming back to the catalogue lost the position.
+      pretendPositionIs(0);
+
+      renderWithProviders(<ProductListPage />);
+      await screen.findByRole('heading', { name: 'Iconia Talk S' });
+
+      await waitFor(() => {
+        expect(scrollTo).toHaveBeenCalledWith(0, 1840);
+      });
     });
 
     it('does not yank the page while the user is filtering', async () => {
       const user = userEvent.setup();
       const { unmount } = renderWithProviders(<ProductListPage />);
       await screen.findByRole('heading', { name: 'Iconia Talk S' });
+      await flushEffects();
       pretendScrolledTo(1200);
       unmount();
 
       renderWithProviders(<ProductListPage />);
       await screen.findByRole('heading', { name: 'Iconia Talk S' });
-      expect(scrollTo).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(scrollTo).toHaveBeenCalledTimes(1);
+      });
 
       // Every keystroke rewrites the URL. If the restore were not guarded, each of those would
       // drag the page back to the remembered position while the user is reading the results.

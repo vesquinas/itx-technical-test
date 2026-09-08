@@ -37,6 +37,15 @@ export function useScrollToTop(key: string): void {
 /**
  * Remembers the scroll position of this view and restores it when the view comes back.
  *
+ * The listener is the only thing that writes the position, and that is deliberate. It used to be
+ * written on cleanup as well, to catch the position at the moment of leaving — which was redundant,
+ * since scrolling is what moves it and scrolling fires the event, and actively harmful: an effect
+ * cleanup also runs when the effect re-runs, so **mounting** the view wrote the current position
+ * over the remembered one. React's strict mode does exactly that on every mount, so in development
+ * coming back to the catalogue overwrote the saved position with zero and no restore happened. The
+ * tests did not see it because they left a scroll-position spy standing between tests, and the
+ * value it left behind happened to be the one the next test expected.
+ *
  * The restore waits for `isReady`, because the position cannot be applied while the content is
  * still a skeleton: the document is not tall enough yet and the browser would clamp the scroll.
  * And it happens once per visit, guarded by a ref, so that filtering the list — which rewrites the
@@ -53,7 +62,6 @@ export function useRememberedScroll(key: string, isReady: boolean): void {
     // scrolling smoothly instead of waiting to find out.
     globalThis.addEventListener('scroll', remember, { passive: true });
     return () => {
-      remember();
       globalThis.removeEventListener('scroll', remember);
     };
   }, [key]);
