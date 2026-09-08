@@ -118,10 +118,48 @@ export function fetchProductList(): Promise<ProductSummary[]> {
   );
 }
 
-export function fetchProductDetail(id: string): Promise<ProductDetail> {
-  return readCached(`product/${id}`, parseProductDetail, () =>
-    requestRawJson(buildUrl(['api', 'product', id])),
-  );
+export async function fetchProductDetail(id: string): Promise<ProductDetail> {
+  try {
+    return await readCached(`product/${id}`, parseProductDetail, () =>
+      requestRawJson(buildUrl(['api', 'product', id])),
+    );
+  } catch (cause) {
+    throw asAbsentIfTheCatalogueSaysSo(id, cause);
+  }
+}
+
+/**
+ * Turns a failure into "this product does not exist" when the catalogue can prove it.
+ *
+ * **This API answers 500 for a product that does not exist, never 404** — checked against several
+ * made-up identifiers, all of them `{"message":"An Unexpected Error Occurred","code":0}`. Taken at
+ * face value that leaves a mistyped URL showing a generic failure with a retry button that can
+ * never succeed, and it leaves the 404 handling unreachable.
+ *
+ * Guessing from the status code is not an option: treating every 500 as "does not exist" would
+ * tell the user a product is gone whenever the server has a bad minute. But there is better
+ * evidence to hand than the status code — **the catalogue itself**. If the list of products is
+ * already cached and this identifier is not in it, the product does not exist, whatever the
+ * status code said.
+ *
+ * The catalogue is only read from the cache, never fetched: someone looking at an error page should
+ * not be made to wait forty seconds for a cold start to find out what kind of error it is. So a
+ * visitor who lands straight on a bad product URL still gets the generic failure. Someone who got
+ * there by clicking through the catalogue — which is every path inside the application — gets the
+ * right message.
+ *
+ * This is the same principle as everything else in this module: the API's defects are corrected at
+ * the edge, in one place, rather than left for the interface to cope with.
+ */
+function asAbsentIfTheCatalogueSaysSo(id: string, cause: unknown): unknown {
+  if (!(cause instanceof ApiError) || cause.kind === 'notFound') return cause;
+
+  const catalogue = cache.get('products', parseProductList);
+  if (catalogue === undefined) return cause;
+
+  return catalogue.some((product) => product.id === id)
+    ? cause
+    : new ApiError('notFound', `El producto ${id} no está en el catálogo`, 404);
 }
 
 /**

@@ -65,6 +65,18 @@ npm start          # development mode, on http://localhost:5173
 
 The API URL can be changed with `VITE_API_BASE_URL`; see [`.env.example`](./.env.example).
 
+**Everything origin-dependent is derived from that one value**, and it took a review to get there.
+`index.html` used to carry a hard-coded `preconnect` to the default API while the
+Content-Security-Policy was generated from the configured one, so building with
+`VITE_API_BASE_URL=https://api.example.com` produced a document pointing at an origin its own policy
+did not allow — and `npm run check:csp`, which is a gate in continuous integration, failed. In other
+words, the documented way of configuring the application broke its own build.
+
+The hints are now injected by a Vite plugin from the resolved origin, and continuous integration
+builds **twice**: once with the default and once with a configured origin, running the CSP check on
+both. A hard-coded value and a generated one drift apart the moment either changes; the only fix
+that lasts is having a single source.
+
 ## Stack
 
 | Piece | Choice | Why |
@@ -151,6 +163,7 @@ than scattering those workarounds across the components:
 | Empty price | `price` is text and comes as `""` in 6 of the 100 products | Translated to `null`, and the interface shows "Precio no disponible" |
 | Empty fields | `nfc` arrives empty in every product of the catalogue | Rows with no value are dropped from the optional part of the spec sheet |
 | Options with no name | `M900` and `DX650` deliver their only storage as `{ code: 2000, name: " " }` | The option is kept, because the code is valid and the code is all that is sent to the cart; the interface labels it "Estándar" |
+| A product that does not exist answers **500**, not 404 | `GET /api/product/<made-up-id>` returns `{"message":"An Unexpected Error Occurred","code":0}` with status 500 | The catalogue already in the cache is used as evidence to tell the two apart; see below |
 
 The type-changing one is not cosmetic: **React renders an array by concatenating its elements with
 no separator**, so an implementation that prints `product.cpu` directly shows
@@ -166,6 +179,22 @@ takes about 40 seconds to wake up.
 The test fixtures are real responses copied verbatim, so the tests double as executable
 documentation: if the API is ever corrected, they will fail and the translation will have to be
 adjusted deliberately.
+
+#### "It does not exist" arrives as a server error
+
+The interface distinguishes a product that is not in the catalogue ("Producto no encontrado", with a
+way back) from a failure of the API ("Algo ha ido mal", with a retry). The distinction is right, and
+against this API it was **unreachable**: five made-up identifiers were tried and all five answered
+500, never 404.
+
+Trusting the status code alone would therefore show a retry button for something no retry can fix.
+So when a detail request fails, the cached product list is consulted: if the catalogue is there and
+the identifier is not in it, the failure is reclassified as "not found". If there is no catalogue
+cached, the error is left as it is — the check **never fetches** anything, because a request that
+already failed is not a good moment to start another one.
+
+It is deliberately conservative: it only ever turns a failure into a 404 with the catalogue in hand
+as evidence, and the day the API returns a proper 404 the whole thing becomes a no-op.
 
 ### The cart counter, and why it needs a proxy
 
@@ -398,7 +427,7 @@ API with no authentication, no sessions and no personal data. What does apply:
 
 ## Tests
 
-151 tests. 97% statement coverage and 100% function coverage.
+172 tests. 98% statement coverage and 100% function coverage.
 
 **Coverage tells you which lines run, not whether the tests would notice a break.** To check that,
 ten realistic defects were injected into the code — expiring the cache one millisecond late, no

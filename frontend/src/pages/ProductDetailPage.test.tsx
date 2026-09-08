@@ -5,8 +5,10 @@ import userEvent from '@testing-library/user-event';
 
 import { clearProductCache } from '../api/products.ts';
 import productDetailFixture from '../test/fixtures/productDetail.json' with { type: 'json' };
+import productListFixture from '../test/fixtures/productList.json' with { type: 'json' };
 import { renderWithProviders } from '../test/render.tsx';
 import { ProductDetailPage } from './ProductDetailPage.tsx';
+import { ProductListPage } from './ProductListPage.tsx';
 
 type FetchStub = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -356,6 +358,31 @@ describe('ProductDetailPage', () => {
       expect(await screen.findByRole('alert')).toHaveTextContent(
         'No hemos encontrado este producto',
       );
+    });
+
+    it('says the product does not exist when the catalogue proves it, even on a 500', async () => {
+      // The real API answers 500 for a product that does not exist, never 404. Without checking
+      // the catalogue the user gets "Algo ha ido mal" and a retry button that can never succeed.
+      fetchMock.mockImplementation((url) =>
+        Promise.resolve(
+          jsonResponse(
+            url.includes('/api/product/') ? productDetailFixture : productListFixture,
+          ),
+        ),
+      );
+      const { unmount } = renderWithProviders(<ProductListPage />);
+      await screen.findByRole('heading', { name: 'Iconia Talk S' });
+      unmount();
+
+      fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ message: 'boom' }, 500)));
+      renderDetail('/product/does-not-exist');
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'No hemos encontrado este producto',
+      );
+      expect(
+        screen.queryByRole('button', { name: 'Volver a intentarlo' }),
+      ).not.toBeInTheDocument();
     });
 
     it('does not offer a retry for a product that does not exist', async () => {

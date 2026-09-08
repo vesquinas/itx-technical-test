@@ -173,6 +173,60 @@ describe('product data layer', () => {
   });
 });
 
+describe('a product that does not exist', () => {
+  let fetchMock: Mock<FetchStub>;
+
+  beforeEach(() => {
+    clearProductCache();
+    fetchMock = vi.fn<FetchStub>(() => Promise.resolve(jsonResponse(productListFixture)));
+    vi.stubGlobal('fetch', fetchMock);
+  });
+
+  afterEach(() => {
+    clearProductCache();
+    vi.unstubAllGlobals();
+  });
+
+  it('is reported as absent when the cached catalogue does not contain it', async () => {
+    // The real API answers 500 for a product that does not exist, never 404 — checked against
+    // several made-up identifiers. Taken at face value that leaves a mistyped URL showing a
+    // generic failure with a retry that can never succeed. The catalogue is better evidence than
+    // the status code.
+    await fetchProductList();
+    fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ message: 'boom' }, 500)));
+
+    await expect(fetchProductDetail('does-not-exist')).rejects.toMatchObject({
+      kind: 'notFound',
+    });
+  });
+
+  it('is still a plain failure when the product IS in the catalogue', async () => {
+    // A 500 for a product that exists is a server having a bad minute, not a missing product.
+    // Reporting it as absent would tell the user the product is gone whenever the API hiccups.
+    const catalogue = await fetchProductList();
+    const existing = catalogue[0];
+    expect(existing).toBeDefined();
+    fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ message: 'boom' }, 500)));
+
+    await expect(fetchProductDetail(existing?.id ?? '')).rejects.toMatchObject({ kind: 'http' });
+  });
+
+  it('is a plain failure when there is no catalogue to check against', async () => {
+    // Landing straight on a bad product URL. The catalogue is only read from the cache and never
+    // fetched: nobody looking at an error page should wait forty seconds for a cold start just to
+    // find out which error it is.
+    fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ message: 'boom' }, 500)));
+
+    await expect(fetchProductDetail('does-not-exist')).rejects.toMatchObject({ kind: 'http' });
+  });
+
+  it('keeps a genuine 404 as absent', async () => {
+    fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({}, 404)));
+
+    await expect(fetchProductDetail('gone')).rejects.toMatchObject({ kind: 'notFound' });
+  });
+});
+
 describe('cache round-trip', () => {
   let fetchMock: Mock<FetchStub>;
   let clock: number;
