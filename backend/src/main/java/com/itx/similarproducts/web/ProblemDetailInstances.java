@@ -16,26 +16,16 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
 /**
  * Keeps the request path out of the {@code instance} field of every error response.
  *
- * <p>Spring fills {@code instance} with the URI of the request when the handler leaves it empty,
- * which hands the caller back the path it sent. A 2,000-character identifier produced a 2,000
- * character error response — found in review, after a README had claimed the opposite.
+ * <p>Spring fills {@code instance} with the request URI when the handler leaves it empty, which
+ * hands the caller back the path it sent: a 2,000-character identifier produced a 2,000-character
+ * error response. What replaces it is the <b>route template</b> — written by us, of fixed length,
+ * and it still says which endpoint failed. Where no route matched there is no endpoint to name, so
+ * the field falls back to {@code about:blank}, the marker RFC 9457 already defines for "nothing
+ * further to say".
  *
- * <p>The risk on its own is modest: the amplification is about 1:1 and there is no secret in a path
- * the caller wrote. It is worth closing anyway for two reasons. A response that repeats the request
- * is the channel through which the serious leaks travel — internal paths, host names, library
- * versions — so the habit matters more than this instance of it. And a client gains nothing from
- * being told the path it just used.
- *
- * <p>What replaces it is the <b>route template</b> — {@code /product/{productId}/similar} — which
- * says which endpoint produced the problem, is written by us rather than by the caller, and has a
- * fixed length. When no route matched there is no endpoint to name, and the field falls back to
- * {@code about:blank}: the same "nothing further to say" marker RFC 9457 defines for {@code type},
- * which these responses already carry.
- *
- * <p>It is done <b>here</b>, on the way out, and not in each handler on purpose. Some of these
- * responses are not ours: the 400 of a failed validation and the 405 of a wrong method are built by
- * Spring's own advice. A fix applied handler by handler would cover the ones we remembered, which is
- * exactly how this leak survived the first time.
+ * <p>It is done <b>here</b>, on the way out, rather than in each handler: the 400 of a failed
+ * validation and the 405 of a wrong method are built by Spring's own advice and never pass through
+ * ours, so a per-handler fix only covers the handlers somebody remembered.
  */
 @ControllerAdvice
 public class ProblemDetailInstances implements ResponseBodyAdvice<Object> {

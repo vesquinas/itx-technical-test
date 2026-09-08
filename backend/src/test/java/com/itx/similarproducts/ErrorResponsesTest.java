@@ -18,21 +18,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * What an error response is allowed to contain.
  *
- * <p>This class exists because of a review finding: the README claimed error messages do not hand
- * the caller back the path it sent, and they did. Every {@code ProblemDetail} carried the full
- * request URI in its {@code instance} field, so a 2,000-character identifier produced a 2,000
- * character response. The test that was supposed to cover the claim asserted
- * {@code doesNotContain("static resource")} — it checked that Spring's wording was gone, not that
- * the path was.
+ * <p>The assertion is deliberately blunt: send a long, recognisable marker and require that
+ * <b>no part of it comes back</b>, over every error the service can produce. A test that names the
+ * field it checks — the previous one asserted {@code doesNotContain("static resource")} — is
+ * satisfied by moving the leak to another field, which is exactly what had happened.
  *
- * <p>So the assertion here is deliberately blunt and hard to fool: send a long, recognisable marker
- * in the request, and require that <b>no part of it comes back</b>, over every error the service can
- * produce. A test that names the field it is checking can be satisfied by moving the leak to
- * another field; this one cannot.
- *
- * <p>The point is not the risk — the amplification is about 1:1 and no secret is involved — it is
- * that a reflected request is the channel through which more serious things leak, and that a claim
- * in a README has to be checked by something.
+ * <p>The risk is modest: about 1:1 amplification and no secret in a path the caller wrote. The
+ * habit is not, since a response that repeats the request is how the serious leaks travel.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class ErrorResponsesTest {

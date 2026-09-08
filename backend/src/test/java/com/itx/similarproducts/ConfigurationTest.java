@@ -14,20 +14,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * The figures the brief states as numbers.
  *
- * <p>This class exists because of a review finding, and the finding was sharper than a missing test:
- * three mutations went unnoticed by an otherwise thorough suite — the cache's hour became ten, the
- * grid's four columns became six, and this service's port 5000 became 8080 — and all three were the
- * same kind of thing. <b>The behaviour was covered; the arithmetic the brief spells out was not.</b>
- * Tests written around behaviour do not notice a number changing, because the behaviour is the same
- * behaviour at any number.
+ * <p>Behaviour tests do not notice a number changing, because the behaviour is the same at any
+ * number: the service still answers on 8080. The port is the clearest case — every other test here
+ * runs on a random one so they can run in parallel, so <b>nothing ever ran against 5000</b>, the
+ * port the exercise's load test targets. Getting it wrong would have surfaced as k6 failing to
+ * connect, and not before.
  *
- * <p>The port is the clearest case. Every test here runs on a random port, precisely so that tests
- * can run in parallel and not collide — which means no test in the suite ever ran against 5000, the
- * port the exercise's own load test targets. Getting it wrong would have been discovered by the
- * load test failing to connect, and not before.
- *
- * <p>The web environment is deliberately {@code NONE}: no server starts, so nothing overrides the
- * configured value and what is asserted is what the configuration file says.
+ * <p>The web environment is {@code NONE} on purpose: with no server started, nothing overrides the
+ * configured value and what is asserted is what the configuration says.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class ConfigurationTest {

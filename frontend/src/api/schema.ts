@@ -1,14 +1,12 @@
 /**
  * Translation of the API responses into the domain model.
  *
- * This module is the only boundary where `unknown` is accepted and turned into typed data.
- * Anything that does not fit is dropped here, so that no component has to defend itself against
- * unexpected JSON.
+ * The only boundary where `unknown` becomes typed data: what does not fit is dropped here, so no
+ * component has to defend itself against unexpected JSON.
  *
  * ## The real quirks of this API
  *
- * Verified against https://itx-frontend-test.onrender.com over the 100 products of the catalogue
- * and all of their details:
+ * Verified against all 100 products of the catalogue and their details:
  *
  * 1. `dimentions` and `secondaryCmera` are misspelled at the source.
  * 2. `displayResolution` holds the inches and `displaySize` holds the pixels: their contents are

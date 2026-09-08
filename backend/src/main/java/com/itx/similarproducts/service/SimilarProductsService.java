@@ -21,23 +21,18 @@ import com.itx.similarproducts.domain.ProductDetail;
  * Resolves the detail of the products similar to a given one.
  *
  * <p>The details are requested <b>in parallel</b>, each on a virtual thread: serially the latency
- * would be the sum of the calls, in parallel it is the maximum. With the mock's delays (100 ms, 1 s
- * and 5 s for the same product) that is the difference between more than six seconds and five.
+ * is the sum of the calls, in parallel the maximum. With the mock's delays for one product — 100 ms,
+ * 1 s, 5 s — that is six seconds against five.
  *
- * <p>There is a short time budget for the whole request, and whatever does not arrive within it is
- * left out of the response: a single slow product must not decide the latency of the entire
- * response. Similar products that do not exist and those that fail are left out too, because one of
- * them having disappeared from the catalogue does not invalidate the others.
+ * <p>A short budget covers the whole request and whatever misses it is left out, so one slow
+ * product does not decide the latency of the response. <b>The abandoned call is not cancelled</b>:
+ * it finishes and leaves the product in the cache, so the next request includes it. Cancelling —
+ * the first version did — throws away the work that was about to make everything faster.
  *
- * <p><b>The abandoned call is not cancelled</b>, and that is deliberate: it runs to completion and
- * leaves the product in the cache, so subsequent requests do include it. Cancelling it — the first
- * version did — throws away exactly the work that was about to speed everything else up.
+ * <p>What was left out is reported back, see {@link SimilarProducts}: from a body of two products a
+ * caller cannot tell whether that is all of them, and the agreed contract has nowhere to say so.
  *
- * <p>Whatever gets left out is reported back: see {@link SimilarProducts}. A caller that receives
- * two products has no way of telling from the body whether that is all of them, and the agreed
- * contract leaves no room in the body to say so.
- *
- * <p>The full reasoning, with the measurements that led to the chosen budget, is in the README.
+ * <p>The measurements behind the budget are in the README.
  */
 @Service
 public class SimilarProductsService {

@@ -47,19 +47,14 @@ export interface TtlCacheOptions {
 /**
  * Client-side cache with per-entry expiry.
  *
- * Three decisions worth explaining:
- *
- * - **Validation happens on read, not only on write.** What comes out of `localStorage` is text the
- *   user may have edited, or that an earlier version of the application wrote. Treating it as
- *   trusted data is the mistake that turns a cache into a security hole, so `get` demands a parser.
- *
- * - **On expiry the entry is deleted and `undefined` is returned**, so the caller revalidates
- *   against the API. That is exactly what the brief asks for. Serving the stale value while
- *   revalidating in the background (stale-while-revalidate) was considered, but that shows
- *   out-of-date data and the requirement says the information "deberá revalidarse".
- *
- * - **No storage failure propagates.** The cache is an optimisation; if it cannot write, the
- *   application has to keep working.
+ * - **Validation happens on read, not only on write**, so `get` demands a parser: what comes out of
+ *   `localStorage` is text the user may have edited, or that an older version of the application
+ *   wrote. Trusting it is what turns a cache into a security hole.
+ * - **On expiry the entry is deleted and `undefined` returned**, so the caller revalidates against
+ *   the API — which is what the brief asks. Serving the stale value while revalidating shows
+ *   out-of-date data, and the requirement says the information "deberá revalidarse".
+ * - **No storage failure propagates**: the cache is an optimisation, and the application has to
+ *   work without it.
  */
 export class TtlCache {
   private readonly storage: KeyValueStorage;

@@ -7,21 +7,14 @@ import styles from './ProductCard.module.css';
 /**
  * A product card in the list: image, brand, model and price.
  *
- * ## Decisions
- *
- * - **A single link wraps the whole card.** It is one destination, so splitting it into two links
- *   (image and title) would force tabbing twice per product to reach the same place.
- *
- * - **The image is lazily loaded and declares its aspect ratio** in CSS. Without reserving the
- *   space, every image that arrives pushes the grid downwards: that is the defect the visual
- *   stability metric (CLS) measures.
- *
- * - **The alternative text is "brand + model", not "photo of…".** The screen reader already
- *   announces it is an image; repeating it is noise.
- *
- * - **The link carries the current search along** (`?q=…`). That way the detail page's back link
- *   can return the user to their filtered list rather than to the whole catalogue, and the
- *   product URL stays shareable.
+ * - **One link wraps the whole card**: it is one destination, and two links would mean tabbing
+ *   twice per product to reach the same page.
+ * - **The image declares its aspect ratio** in CSS and loads lazily. Without reserving the space,
+ *   each arriving image pushes the grid down — the defect CLS measures.
+ * - **The alt text is "brand + model", not "photo of…"**: the screen reader already says it is an
+ *   image.
+ * - **The link carries the current search** (`?q=…`), so the detail page's back link returns to the
+ *   filtered list and the URL stays shareable.
  */
 export function ProductCard({ product }: { product: ProductSummary }) {
   const { search } = useLocation();

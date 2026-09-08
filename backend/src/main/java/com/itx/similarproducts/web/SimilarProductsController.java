@@ -16,29 +16,20 @@ import com.itx.similarproducts.service.SimilarProductsService;
 /**
  * The operation agreed with the front-end applications.
  *
- * <p>The controller does nothing but delegate and shape the response: it does not compose data and
- * it does not catch errors. Translating exceptions into HTTP status codes is the error handler's
- * job, and it lives in a single place so that no route can bypass it.
+ * <p>It delegates and shapes the response: it composes no data and catches no errors, because
+ * translating exceptions into status codes belongs in one place no route can bypass.
  *
- * <p>It does two things of its own:
- *
- * <ol>
- *   <li><b>Caps the size of the identifier</b>, which is forwarded to the source and becomes a
- *       cache key: with the cap those ten thousand keys cannot hold more than some 3 MB, without it
- *       the ceiling is the 8 KB the container accepts in a request line, so 150 MB. It does
- *       <b>not</b> bound the <i>number</i> of distinct identifiers, which is what evicts the good
- *       entries — that needs a per-client request limit, and it is on the README's list of what is
- *       undone.
- *   <li><b>Says whether the list is complete</b>, see below.
- * </ol>
+ * <p>Two things are its own. It <b>caps the size of the identifier</b>, which is forwarded to the
+ * source and becomes a cache key: with the cap the ten thousand cache keys cannot hold more than
+ * some 3 MB, without it the ceiling is the 8 KB the container accepts in a request line. It does
+ * <b>not</b> bound the number of distinct identifiers, which is what evicts good entries — that
+ * needs a per-client limit, on the README's list of what is undone. And it <b>says whether the
+ * list is complete</b>, below.
  */
 @RestController
 public class SimilarProductsController {
 
-    /**
-     * Generous compared with any plausible identifier: the ones in the real catalogue are a few
-     * dozen characters long. It is a cap against abuse, not a business rule.
-     */
+    /** Generous next to any plausible identifier: a cap against abuse, not a business rule. */
     private static final int MAX_PRODUCT_ID_LENGTH = 128;
 
     /**

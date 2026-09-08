@@ -37,23 +37,14 @@ function ladderOf(css: string): string[] {
 /**
  * The number of columns in the catalogue grid, which the brief states as a number.
  *
- * This test reads the stylesheet rather than rendering anything, and that deserves an explanation
- * because it is not how the rest of the suite works.
+ * It reads the stylesheet instead of rendering, because the requirement lives only in a media
+ * query: jsdom parses CSS but lays nothing out and applies no media queries, so no rendering test
+ * can see how many cards a row holds. Proving that needs a real browser and is on the README's list
+ * of what is undone.
  *
- * The requirement — up to four products per row — lives only in a media query. jsdom parses CSS but
- * does not lay anything out and does not apply media queries, so `getComputedStyle` on a rendered
- * grid returns nothing useful: a rendering test cannot see this. Proving that a browser really
- * places four cards per row at 64rem needs a real browser, and that is listed among the things left
- * undone.
- *
- * What can be checked without one is that the stylesheet still declares what the brief asks. That
- * is worth doing, because changing `repeat(4, 1fr)` to `repeat(6, 1fr)` was one of three mutations
- * an external review found the suite blind to — and all three were the same kind: the requirements
- * the brief states as a literal number. Behaviour was covered; arithmetic was not.
- *
- * It also checks something a rendering test could not: that the **skeleton** uses the same ladder as
- * the real grid. They are two files that have to agree, and when they do not the layout jumps as
- * soon as the data arrives.
+ * It also checks what a rendering test could not: that the **skeleton** uses the same ladder as the
+ * real grid. Two files that have to agree, and when they do not the layout jumps as the data
+ * arrives.
  */
 describe('the columns of the catalogue grid', () => {
   it('goes up to four columns and no further', () => {

@@ -17,13 +17,9 @@ import static org.mockito.Mockito.when;
 /**
  * What comes out when something breaks that nobody anticipated.
  *
- * <p>The other error paths are deliberate: a product that does not exist, a source that does not
- * answer. This one is the opposite — a bug — and it is the one that leaks, because the default
- * behaviour is to describe the failure. Without a handler, an unexpected exception falls through to
- * Spring Boot's error dispatch, whose body carries the request path.
- *
- * <p>The catalogue is replaced by a double that throws, which is the only honest way to reach this
- * path: a real bug cannot be summoned on demand.
+ * <p>The other error paths are deliberate; this one is a bug, and it is the one that leaks, because
+ * the default behaviour is to describe the failure. The catalogue is replaced by a double that
+ * throws, which is the only honest way to reach the path.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class UnexpectedErrorTest {

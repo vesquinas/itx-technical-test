@@ -9,21 +9,15 @@ const FALLBACK_LABEL = 'Estándar';
 /**
  * A picker for one option among several.
  *
- * It is built as a group of radios inside a `fieldset` with a `legend`, not as a list of buttons
- * and not as a `<select>`:
+ * A group of radios in a `fieldset` with a `legend`, rather than buttons or a `<select>`: it is the
+ * element that matches a mutually exclusive choice, so the screen reader announces "Color, group,
+ * option 1 of 2", and the arrow keys work without writing any keyboard handling. The radios are
+ * hidden visually and the label carries the appearance, which keeps the native behaviour under the
+ * wireframe's design.
  *
- * - It is the element that matches a mutually exclusive choice, and the screen reader announces
- *   "Color, group, option 1 of 2" instead of reading two unrelated buttons.
- * - The keyboard works without writing anything: the arrow keys move within the group and Tab
- *   jumps to the next group, which is what anyone navigating that way expects.
- *
- * The native radios are hidden visually and the appearance comes from the label, so all the native
- * behaviour is preserved alongside the wireframe's design.
- *
- * When the API gives no name for an option, a filler label is used. That happens in two products of
- * the catalogue, whose only storage option arrives with a space for a name. The alternative —
- * dropping the option — left those products unable to be bought, which is worse: the option's code
- * is valid and the API accepts the purchase.
+ * An option with no name gets a filler label. Two products of the catalogue deliver their only
+ * storage option with a space for a name, and dropping it left them unbuyable — the code is valid
+ * and the API accepts the purchase.
  */
 export function OptionPicker({
   legend,

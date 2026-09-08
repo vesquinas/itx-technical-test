@@ -12,20 +12,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 /**
  * The last resort: anything that was not anticipated.
  *
- * <p>Without it, an unexpected exception falls through to Spring Boot's error dispatch, which
- * answers a different shape from every other error of this service and includes the request path:
- * {@code {"timestamp":…,"status":500,"error":"Internal Server Error","path":"/product/…/similar"}}.
- * So the one failure nobody designed was also the one that described itself the most.
+ * <p>Without it an unexpected exception falls through to Spring Boot's error dispatch, which
+ * answers a different shape from every other error here and includes the request path. It answers
+ * the same {@link ProblemDetail} as the rest with nothing in it, and the exception goes to the log
+ * whole, at {@code error} level, where it is of use.
  *
- * <p>It answers the same {@link ProblemDetail} as the rest, with nothing in it: the caller can do
- * nothing with the reason, and whoever can — us — reads it in the log, where the exception is
- * recorded whole, with its stack trace, at {@code error} level. That asymmetry is the whole point of
- * the class.
- *
- * <p><b>It sits at the lowest precedence, and that is what makes it safe.</b> An advice that handles
- * {@code Exception} at high precedence swallows everything: a failed validation would come out as a
- * 500 instead of a 400, because its exception is also an {@code Exception}. Running last means it
- * only sees what no other handler wanted.
+ * <p><b>Lowest precedence is what makes it safe.</b> An advice handling {@code Exception} at high
+ * precedence swallows everything: a failed validation would come out as a 500, because its
+ * exception is also an {@code Exception}.
  */
 @Order(Ordered.LOWEST_PRECEDENCE)
 @RestControllerAdvice

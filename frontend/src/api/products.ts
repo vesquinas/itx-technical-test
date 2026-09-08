@@ -65,26 +65,19 @@ function shared<T>(key: string, task: () => Promise<T>): Promise<T> {
 /**
  * A cached read, deduplicating concurrent requests.
  *
- * **What gets cached is the API's own response, not the translated model.** That distinction is
- * not academic: `TtlCache.get` validates on read with this very parser, and the parser reads the
- * API's field names (`imgUrl`, `cpu`, `displaySize`). Caching the translated model made that
- * validation silently strip every field whose name differs — which is to say the images and the
- * entire spec sheet — so a product revisited within the hour came back gutted.
+ * **What gets cached is the API's own response, not the translated model.** `TtlCache.get`
+ * validates on read with the parser it is given, and that parser expects the API's field names
+ * (`imgUrl`, `cpu`, `displaySize`): caching the translated model made that validation silently
+ * strip every differently-named field, so a product revisited within the hour came back with no
+ * image and an empty spec sheet. Caching raw also keeps one parser and one translation point, at
+ * the cost of translating on every cache read — imperceptible for a hundred products.
  *
- * The upside of caching the raw response is that there is a single parser and a single translation
- * point, applied identically whether the data comes from the network or from the cache. The cost
- * is translating again on every cache read, which for a hundred products is imperceptible.
- *
- * <b>The shared request takes no caller's abort signal, deliberately.</b> A deduplicated request
- * belongs to the cache and not to whoever happened to ask for it first: tying it to one consumer's
- * lifetime means the second consumer inherits the first one's cancellation. That is not
- * hypothetical — it made the application fail on its very first load, because React's strict mode
- * mounts, unmounts and remounts, and the remount joined the request the unmount had just aborted.
- *
- * So an abandoned request runs to completion and leaves its result in the cache, bounded by the
- * HTTP client's own timeout. It is the same decision the backend makes about the calls it stops
- * waiting for, and for the same reason: cancelling throws away work that was about to make the
- * next read instant.
+ * **The shared request takes no caller's abort signal.** A deduplicated request belongs to the
+ * cache, not to whoever asked first: tying it to one consumer's lifetime makes the next consumer
+ * inherit that consumer's cancellation. So an abandoned request finishes and leaves its result in
+ * the cache, bounded by the HTTP client's timeout — the same choice the backend makes about calls
+ * it stops waiting for, because cancelling throws away work that was about to make the next read
+ * instant.
  */
 async function readCached<T>(
   key: string,
@@ -124,25 +117,15 @@ export async function fetchProductDetail(id: string): Promise<ProductDetail> {
 /**
  * Turns a failure into "this product does not exist" when the catalogue can prove it.
  *
- * **This API answers 500 for a product that does not exist, never 404** — checked against several
- * made-up identifiers, all of them `{"message":"An Unexpected Error Occurred","code":0}`. Taken at
- * face value that leaves a mistyped URL showing a generic failure with a retry button that can
- * never succeed, and it leaves the 404 handling unreachable.
+ * This API answers **500 for a product that does not exist**, never 404, so the status code cannot
+ * tell a mistyped URL from a broken server, and taking it at face value offers a retry that can
+ * never succeed. The cached catalogue is better evidence: if the list is there and the identifier is
+ * not in it, the product does not exist whatever the status said.
  *
- * Guessing from the status code is not an option: treating every 500 as "does not exist" would
- * tell the user a product is gone whenever the server has a bad minute. But there is better
- * evidence to hand than the status code — **the catalogue itself**. If the list of products is
- * already cached and this identifier is not in it, the product does not exist, whatever the
- * status code said.
- *
- * The catalogue is only read from the cache, never fetched: someone looking at an error page should
- * not be made to wait forty seconds for a cold start to find out what kind of error it is. So a
- * visitor who lands straight on a bad product URL still gets the generic failure. Someone who got
- * there by clicking through the catalogue — which is every path inside the application — gets the
- * right message.
- *
- * This is the same principle as everything else in this module: the API's defects are corrected at
- * the edge, in one place, rather than left for the interface to cope with.
+ * It is read from the cache and **never fetched**, so landing straight on a bad URL still gets the
+ * generic failure while clicking through the catalogue gets the right message. The accepted cost is
+ * a catalogue up to an hour old: a product added since, whose detail also fails, is reported as
+ * non-existent. See the README.
  */
 function asAbsentIfTheCatalogueSaysSo(id: string, cause: unknown): unknown {
   if (!(cause instanceof ApiError) || cause.kind === 'notFound') return cause;
@@ -169,15 +152,10 @@ export function addToCart(selection: CartSelection): Promise<number> {
 }
 
 /**
- * Empties the cache and forgets the requests under way. **For the tests.**
+ * Empties the cache and forgets the requests under way.
  *
- * The name says so because it was called `resetProductCacheForTests` and documented as being there "so a
- * manual refresh can be offered" — a feature that does not exist. Every one of its callers is a
- * test, and a comment describing an intention rather than the code is how a reader ends up looking
- * for the refresh button.
- *
- * The tests need it because both of these live for the lifetime of the module, so without it one
- * test would serve the data another one left behind.
+ * Both live for the lifetime of the module, so without this one test would serve what another left
+ * behind. Nothing in the application calls it, which is why the name says so.
  */
 export function resetProductCacheForTests(): void {
   cache.clear();

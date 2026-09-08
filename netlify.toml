@@ -7,8 +7,8 @@
 # credentialed cross-origin requests outright.
 #
 # The only fix is to stop being cross-origin, which needs a proxy. Static hosting cannot proxy;
-# Netlify can, in the four lines below. With them the requests are same-origin, the browser sends
-# the cookie, the session persists and the counter climbs.
+# Netlify can, in the rules below. With them the requests are same-origin, the browser sends the
+# cookie, the session persists and the counter climbs.
 
 [build]
   base    = "frontend"
@@ -23,13 +23,42 @@
   # proxy below. See `resolveBaseUrl` in src/api/client.ts.
   VITE_API_BASE_URL = "/"
 
-# Order matters: the API proxy has to come before the SPA fallback, or `/api/...` would be
-# answered with index.html.
+# The three endpoints the application uses, one rule each, and **not** a `/api/*` wildcard.
+#
+# A wildcard here would forward anything under `/api/` to that host, which makes this deployment a
+# relay anyone could point at it. It is a public API and the cost is bandwidth rather than a
+# security hole — nothing here holds a credential to lend — but a relay for three known paths is
+# strictly better than a relay for any path, and it costs two extra rules.
+#
+# `:productId` matches a single path segment, so `/api/product/a/b` is not proxied either.
+#
+# Order matters: these have to come before the SPA fallback, or `/api/...` would be answered with
+# index.html.
 [[redirects]]
-  from   = "/api/*"
-  to     = "https://itx-frontend-test.onrender.com/api/:splat"
+  from   = "/api/product"
+  to     = "https://itx-frontend-test.onrender.com/api/product"
   status = 200
   force  = true
+
+[[redirects]]
+  from   = "/api/product/:productId"
+  to     = "https://itx-frontend-test.onrender.com/api/product/:productId"
+  status = 200
+  force  = true
+
+[[redirects]]
+  from   = "/api/cart"
+  to     = "https://itx-frontend-test.onrender.com/api/cart"
+  status = 200
+  force  = true
+
+# Anything else under `/api/` is not ours to forward. It answers 404 with the application's own
+# page rather than falling through to the SPA fallback below, which would answer 200 and pretend
+# the path exists.
+[[redirects]]
+  from   = "/api/*"
+  to     = "/index.html"
+  status = 404
 
 # SPA fallback. Unlike the 404.html trick that static hosting forces, this answers **200**, so a
 # deep link such as /product/<id> is a proper page and not an error page that happens to render.

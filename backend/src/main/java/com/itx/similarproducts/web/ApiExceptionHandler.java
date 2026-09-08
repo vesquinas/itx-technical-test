@@ -25,21 +25,16 @@ import com.itx.similarproducts.catalog.ProductNotFoundException;
  * <p>It uses {@link ProblemDetail} (RFC 9457), the error format Spring produces by default and one
  * a client can interpret without ad-hoc agreements.
  *
- * <p>No message carries the original exception or its stack trace. That is not an oversight: error
- * messages are a common leak channel — system paths, internal host names, library versions. The
- * technical detail goes to the server log, where it serves whoever operates the service rather than
- * whoever is calling it.
- *
- * <p>Nothing the caller sent is repeated back either, which took a review to actually achieve: see
- * {@link ProblemDetailInstances} for the {@code instance} field, and the 405 below for the method
- * name. {@code ErrorResponsesTest} checks the whole set of errors at once rather than field by
- * field, because a leak moved to a different field is the failure mode a per-field test misses.
+ * <p>No message carries the exception, its stack trace, or anything the caller sent: errors are a
+ * common leak channel — system paths, host names, library versions — and a response that repeats
+ * the request is the channel the serious ones travel through. The technical detail goes to the log.
+ * See {@link ProblemDetailInstances} for the {@code instance} field and the 405 below for the
+ * method name; {@code ErrorResponsesTest} checks every error at once rather than field by field.
  *
  * <p>The explicit ordering is necessary, not decorative. Spring Boot registers its own
- * <i>problem details</i> {@code @ControllerAdvice} with order 0, and an advice with no order ends up
- * last: the handlers in this file for exceptions Spring also knows about — {@link
- * NoResourceFoundException}, for instance — would never run. This was found by measuring: without
- * the annotation, an unknown path still answered with Spring's default message.
+ * <i>problem details</i> advice with order 0, and an advice with no order ends up last, so the
+ * handlers here for exceptions Spring also knows — {@link NoResourceFoundException} — would never
+ * run.
  */
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
@@ -54,11 +49,8 @@ public class ApiExceptionHandler {
     }
 
     /**
-     * Unknown path.
-     *
-     * <p>Without this handler, Spring answers with the detail {@code "No static resource <path>."},
-     * which reveals that there is a static resource server behind and hands the client back the path
-     * it sent. Neither of those serves anyone but someone probing the service.
+     * Unknown path. Spring's own detail is {@code "No static resource <path>."}, which announces
+     * that there is a static resource server behind and repeats the path back.
      */
     @ExceptionHandler(NoResourceFoundException.class)
     ProblemDetail handleUnknownPath(NoResourceFoundException exception) {
@@ -67,14 +59,9 @@ public class ApiExceptionHandler {
     }
 
     /**
-     * The route exists but not for this method.
-     *
-     * <p>Handled here only to drop Spring's wording, {@code "Method 'X' is not supported."}, which
-     * repeats back the method the caller sent — one more piece of the request in the response, and
-     * one an attacker chooses freely.
-     *
-     * <p>The {@code Allow} header stays, because that is the part of a 405 that belongs to us: it
-     * says what the endpoint accepts, and the HTTP specification requires it.
+     * The route exists but not for this method. Handled here only to drop Spring's wording,
+     * {@code "Method 'X' is not supported."}, which repeats back a string the caller chooses. The
+     * {@code Allow} header stays: that part of a 405 is ours, and HTTP requires it.
      */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     ResponseEntity<ProblemDetail> handleWrongMethod(HttpRequestMethodNotSupportedException exception) {

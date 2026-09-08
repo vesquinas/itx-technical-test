@@ -24,10 +24,9 @@ function jsonResponse(payload: unknown): Response {
  * Lets React run the effects it still has pending.
  *
  * Needed because **the content being on screen does not mean the effects have run**: the products
- * appear on commit, and a passive effect flushes after it. Every one of these tests moves the
- * scroll position after waiting for the list, and without this the first view's restore could run
- * *after* that move and see a position it was never meant to see — which is what made this file
- * fail about once in eight runs, in three different shapes: no restore, or two.
+ * appear on commit and a passive effect flushes after it. Every test here moves the scroll position
+ * once the list is up, and without this the first view's restore could run after that move and see
+ * a position it was never meant to see.
  */
 async function flushEffects(): Promise<void> {
   await act(async () => {});
@@ -134,10 +133,8 @@ describe('scroll behaviour across views', () => {
       renderWithProviders(<ProductListPage />);
       await screen.findByRole('heading', { name: 'Iconia Talk S' });
 
-      // Waited for rather than asserted straight away, and the reason is the whole lesson of this
-      // file: the products being on screen does not mean React has flushed the effect that scrolls.
-      // Asserting immediately passed most of the time and failed about once in fifteen runs —
-      // which is worse than failing always, because it fails in someone else's pipeline.
+      // Waited for, not asserted straight away: the products being on screen does not mean React
+      // has flushed the effect that scrolls.
       await waitFor(() => {
         expect(scrollTo).toHaveBeenCalledWith(0, 1840);
       });
@@ -151,14 +148,8 @@ describe('scroll behaviour across views', () => {
       unmount();
 
       // The detail page took the document to the top while the catalogue was away, so the
-      // catalogue mounts with the page at zero and a remembered position of 1840. Nothing about
-      // mounting may overwrite what was remembered.
-      //
-      // This is the test the previous one could not be: there, the simulated position still read
-      // 1840 when the view came back, so a mount that overwrote the remembered value overwrote it
-      // with the same number and nothing showed. It was hiding a real defect — an effect cleanup
-      // also runs when the effect re-runs, and React's strict mode re-runs it on every mount, so
-      // in development coming back to the catalogue lost the position.
+      // catalogue mounts with the page at zero and 1840 remembered. Mounting must not overwrite
+      // what was remembered — which it did, through the effect cleanup, until this test existed.
       pretendPositionIs(0);
 
       renderWithProviders(<ProductListPage />);

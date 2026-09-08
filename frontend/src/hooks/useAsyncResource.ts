@@ -35,33 +35,22 @@ function toApiError(cause: unknown): ApiError {
 }
 
 /**
- * Loads an async resource and exposes its state as a discriminated union.
+ * Loads an async resource and exposes its state as a discriminated union, so there is no state in
+ * which `data` and `error` are both defined.
  *
- * The `AsyncState` type is what keeps a component from forgetting a case: there is no state in
- * which `data` and `error` are both defined, nor one in which the view is painted with the data
- * still on its way.
+ * The loading state is **derived** during render, by comparing the identifier of the in-flight
+ * request with that of the last stored result. Setting it inside the effect instead costs an extra
+ * render on every change and leaves a window where the view shows the previous product's data. The
+ * comparison also discards an out-of-order response: one that arrives after a newer request no
+ * longer matches.
  *
- * ## Why there is a `requestId`
+ * `load` takes no abort signal: the requests it drives are shared and cached, so one nobody waits
+ * for still has a result worth keeping. What matters is not *applying* a stale result, which the
+ * identifier comparison and the cleanup flag handle.
  *
- * The loading state is **derived** during render by comparing the identifier of the in-flight
- * request with that of the last stored result. The obvious alternative — setting the state to
- * "loading" inside the effect — causes an extra render on every change and leaves a window in
- * which the view shows the previous product's data.
- *
- * It also solves out-of-order responses: if the user navigates from one product to another and the
- * first response arrives after the second, its identifier no longer matches and it is discarded.
- *
- * `load` takes no abort signal. Cancelling the network was never this hook's job: the requests it
- * drives are shared and cached, so a request nobody is waiting for any more still has a result
- * worth keeping. What the hook needs is not to *apply* a result that is no longer current, and
- * that is what the flag in the cleanup and the identifier comparison are for.
- *
- * `load` has to be stable (wrapped in `useCallback` by the caller), and `key` has to change
- * **whenever** `load` changes. That is the hook's contract: the loading state is derived by
- * comparing identifiers, so if `load` started pointing at a different resource without the key
- * changing, the view would show the previous resource's data while the new one arrived. Both call
- * sites in this application satisfy it by construction, because `key` is composed of the same
- * dependencies as `load`'s `useCallback`.
+ * **Contract:** `load` must be stable and `key` must change whenever `load` does. Otherwise the
+ * derived state would show the previous resource while the new one loads. Both call sites satisfy
+ * it because `key` is built from the same dependencies as `load`'s `useCallback`.
  */
 export function useAsyncResource<T>(
   /** Identifies the requested resource. When it changes, the resource is loaded again. */

@@ -123,6 +123,16 @@ Two responses of that first endpoint carry more than the contract says, without 
 The management endpoints being on **5001** is the point, not an accident: the public port serves the
 API and nothing else. Verified — `/actuator/metrics` on 5000 answers 404. See [Security](#security).
 
+> **One response escapes the uniform format, and it is not reachable from here.** A path containing
+> an encoded slash or backslash (`%2F`, `%5C`) is rejected by Tomcat before the request reaches
+> Spring, so it answers **`text/html`** with the container's own page instead of
+> `application/problem+json`. A client that parses every error as JSON chokes exactly there. It
+> leaks nothing — 435 bytes, no version, no trace, no echo of the path — so this is a consistency
+> defect and not a security one, and the fix is not in the application: it is
+> `server.tomcat.relaxed-path-chars`, or the gateway normalising the path first. Left as it is, and
+> written down, rather than papered over with an error page filter that would have to reimplement
+> the format.
+
 ## What the service does in each case
 
 The five scenarios of the load test each cover a different case. This is what the service returns,
@@ -447,10 +457,15 @@ cache — the same reasoning written in three places, which is three places to u
 will quietly go stale. The class now keeps the warning not to go back to the synchronous cache, and
 the reasoning lives here, once.
 
-The density is **45% of the lines of `src/main`**, and that figure is worth reading with care rather
-than as a target: on a four-line record a single paragraph of rationale is 75% of the file. The test
-of a comment is not the ratio but whether it survives the question *does this say something the code
-does not?* Some did not, and they are gone.
+The density is **41% of the lines of `src/main`** and 18% of the tests. That figure went the wrong
+way first: the classes added while fixing review findings came with their own rationale, and it rose
+to 44% under a commit that claimed to be removing dead weight. What brought it down was not deleting
+the reasoning but moving the part that is *history* — how a defect was found, which review found it
+— into this README, where it belongs, and saying the rest in fewer words.
+
+Read the figure with care rather than as a target: on a four-line record a single paragraph of
+rationale is 75% of the file. The test of a comment is not the ratio but whether it survives the
+question *does this say something the code does not?*
 
 ## How the code is organised
 

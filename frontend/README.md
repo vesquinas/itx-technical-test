@@ -234,6 +234,13 @@ already failed is not a good moment to start another one.
 It is deliberately conservative: it only ever turns a failure into a 404 with the catalogue in hand
 as evidence, and the day the API returns a proper 404 the whole thing becomes a no-op.
 
+**The cost of that trade, stated plainly.** The cached catalogue can be up to an hour old, so a
+product added since it was cached, *and* whose detail request happens to fail, is reported to the
+user as non-existent. It needs both halves to go wrong at once, the window is one hour, and the
+alternative is trusting a status code that is known to be wrong — which misleads more often, since
+every 500 would be reported as a real failure with a retry that cannot work. It is the compromise
+this application chooses; it was chosen knowingly and it belongs here rather than only in the code.
+
 ### The cart counter, and why it needs a proxy
 
 The brief asks to display **the value returned by the API** on add, and to persist it. That is what
@@ -271,7 +278,14 @@ started pinning the cookie to its own domain.
 So `npm start` gives a fully working cart. See `server.proxy` in [`vite.config.ts`](./vite.config.ts).
 
 **And that is how the public demo is hosted**: on a host that can forward `/api` from the
-application's own origin, in four lines of [`netlify.toml`](../netlify.toml). Static hosting cannot
+application's own origin, in [`netlify.toml`](../netlify.toml).
+
+That forwarding is **three rules, one per endpoint** — `/api/product`, `/api/product/:productId`
+and `/api/cart` — and not a `/api/*` wildcard, which is what it was until a review pointed out what
+a wildcard means: any path anyone put after `/api/` would be relayed to that host from this
+deployment. It is a public API and there is no credential here to lend, so the exposure was
+bandwidth rather than access — but a relay for three known paths is strictly better than a relay for
+any path, and it cost two extra rules. Anything else under `/api/` now answers 404. Static hosting cannot
 do it — GitHub Pages, where this was first deployed, left the counter stuck at 1 with no way to fix
 it. The counter working there and not there is **not a code difference**. It is the same build.
 Only the origin changes.
@@ -440,10 +454,15 @@ own module, why `auto-fill` is not used for the grid. What none of them do is re
 says — a rule that a review found was not being applied evenly, so the paragraphs that described the
 code were removed and one hook's comment stopped apologising for its own name.
 
-The density is **34% of the lines of `src`** outside the tests. That number is worth reading with
-care rather than as a target: several of the densest files are fifteen lines long, where a single
-paragraph of rationale dominates the ratio. The test of a comment is not the ratio but whether it
-survives the question *does this say something the code does not?*
+The density is **23% of the lines of `src` counting the tests**, 33% of the application code alone.
+That figure went the wrong way first — it rose while review findings were being fixed, because each
+fix arrived with its own rationale — and what brought it back down was not deleting the reasoning
+but moving the part that is *history* into this README, where it belongs, and saying the rest in
+fewer words.
+
+Read it with care rather than as a target: several of the densest files are fifteen lines long,
+where one paragraph of rationale dominates the ratio. The test of a comment is not the ratio but
+whether it survives the question *does this say something the code does not?*
 
 ## Accessibility
 
