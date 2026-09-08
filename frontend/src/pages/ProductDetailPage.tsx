@@ -9,6 +9,7 @@ import { ProductActions } from '../components/ProductActions.tsx';
 import { ProductSpecs } from '../components/ProductSpecs.tsx';
 import { SlowNotice } from '../components/SlowNotice.tsx';
 import { useAsyncResource } from '../hooks/useAsyncResource.ts';
+import { useScrollToTop } from '../hooks/useScroll.ts';
 import { formatPrice } from '../lib/format.ts';
 import styles from './ProductDetailPage.module.css';
 
@@ -30,6 +31,11 @@ export function ProductDetailPage() {
     [productId],
   );
   const { state, isSlow, reload } = useAsyncResource(`product-${productId}`, load);
+
+  // The view always opens at the top. Without this the browser keeps the position of whatever was
+  // on screen before, so a product opened from halfway down the catalogue appeared already
+  // scrolled.
+  useScrollToTop(productId);
 
   const backTo = { pathname: '/', search };
   const productName =

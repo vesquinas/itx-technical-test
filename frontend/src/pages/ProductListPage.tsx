@@ -13,6 +13,7 @@ import type { ProductSummary } from '../domain/product.ts';
 import { filterProducts } from '../domain/search.ts';
 import { useAsyncResource } from '../hooks/useAsyncResource.ts';
 import { useDebouncedValue } from '../hooks/useDebouncedValue.ts';
+import { useRememberedScroll } from '../hooks/useScroll.ts';
 import styles from './ProductListPage.module.css';
 
 const TRAIL: Crumb[] = [{ label: 'Productos' }];
@@ -73,6 +74,11 @@ export function ProductListPage() {
       { replace: true },
     );
   }, [debouncedQuery, setSearchParams]);
+
+  // Coming back from a product returns the user to where they were in the catalogue. Without it,
+  // taking the detail page's "back to the list" link — which is a new navigation and not a browser
+  // back — would land them at the top and lose their place in a hundred-product grid.
+  useRememberedScroll('product-list', state.status === 'ready');
 
   const products = state.status === 'ready' ? state.data : NO_PRODUCTS;
   const visibleProducts = useMemo(() => filterProducts(products, query), [products, query]);

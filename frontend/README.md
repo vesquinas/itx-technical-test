@@ -303,6 +303,28 @@ market, and the interface copy goes through i18n. Neither of those is available 
 The same situation applies, more mildly, to the option pickers: the legends are in Spanish
 ("Almacenamiento", "Color") and the values come from the API in English ("Black", "16 GB").
 
+### Scroll position across views
+
+A single-page application does not reload the document, so the browser keeps the scroll position
+when the view changes. Left alone, that means opening a product from halfway down the catalogue
+shows its detail page already scrolled down — which is what happened, and it was reported from the
+deployed demo rather than caught here.
+
+The two views want opposite things, so they get opposite treatment:
+
+- **The detail page always opens at the top**, and goes back to the top when a different product is
+  opened. It uses a layout effect rather than a normal one, so the scroll happens before the
+  browser paints and the page never flashes at the wrong position on its way up.
+- **The catalogue returns the user to where they left it.** That matters because the detail page's
+  "back to the list" link is a new navigation and not a browser back, so without remembering the
+  position the user would land at the top of a hundred-product grid every time.
+
+Two details of the restore are worth explaining. It waits for the data to be ready, because the
+position cannot be applied while the content is still a skeleton: the document is not tall enough
+and the browser would clamp the scroll. And it happens once per visit, because filtering rewrites
+the URL on every keystroke and an unguarded restore would keep yanking the page back while the user
+is reading the results. There is a test for exactly that.
+
 ### The order of the second column comes from the wireframe
 
 On the detail page, the description sits above the actions. Commercially the opposite is arguable —
