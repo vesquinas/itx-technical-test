@@ -5,15 +5,13 @@ import { CartProvider } from './cart/CartProvider.tsx';
 import { RouteFallback } from './components/RouteFallback.tsx';
 
 /**
- * Las dos vistas se cargan en diferido.
+ * Both views are lazily loaded.
  *
- * Cada una acaba en su propio fragmento, de modo que quien abre el listado no
- * descarga el código de la ficha ni al reves. Es el motivo por el que no hace
- * falta configurar el troceado manual del bundler.
+ * Each ends up in its own chunk, so whoever opens the list does not download the detail page's
+ * code, and vice versa. That is why no manual chunking needs configuring in the bundler.
  *
- * `React.lazy` necesita una exportacion por defecto, y en el resto del proyecto
- * se usan exportaciones nombradas para que los nombres sean estables al
- * refactorizar. Se adapta aquí, en un solo punto.
+ * `React.lazy` needs a default export, and the rest of the project uses named exports so that
+ * names stay stable across refactors. It is adapted here, in one single place.
  */
 const ProductListPage = lazy(async () => {
   const module = await import('./pages/ProductListPage.tsx');
@@ -31,24 +29,27 @@ const NotFoundPage = lazy(async () => {
 });
 
 /**
- * Raiz de la aplicación.
+ * The application root.
  *
- * Es una SPA con enrutado en cliente (`BrowserRouter`), sin renderizado en
- * servidor y sin navegación entre documentos, como exige el enunciado.
+ * It is a SPA with client-side routing (`BrowserRouter`), with no server rendering and no document
+ * navigation, as the brief requires.
  *
- * El proveedor de la cesta envuelve al enrutador para que el contador sobreviva
- * a los cambios de vista: si estuviera dentro de una ruta, se reiniciaria en cada
- * navegación.
+ * The cart provider wraps the router so the counter survives view changes: were it inside a route,
+ * it would reset on every navigation.
  */
 export function App() {
   return (
     <CartProvider>
-      <BrowserRouter>
+      {/*
+        `basename` comes from the build's base path, so the same bundle works both at the root and
+        under a sub-path (which is how the public demo on GitHub Pages is served).
+      */}
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route element={<ProductListPage />} path="/" />
             <Route element={<ProductDetailPage />} path="/product/:productId" />
-            {/* Comodin: evita la pantalla en blanco ante una URL desconocida. */}
+            {/* Catch-all: prevents a blank screen on an unknown URL. */}
             <Route element={<NotFoundPage />} path="*" />
           </Routes>
         </Suspense>

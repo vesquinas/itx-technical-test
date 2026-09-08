@@ -1,28 +1,28 @@
-# Prueba backend — API de productos similares
+# Backend test — Similar products API
 
-Servicio REST que, dado un producto, devuelve el detalle de sus productos similares. Compone la
-respuesta a partir de dos APIs existentes: una que da los identificadores de los similares y otra
-que da el detalle de un producto.
+REST service that, given a product, returns the detail of its similar products. It composes the
+response from two existing APIs: one that provides the ids of the similar products and one that
+provides a product's detail.
 
-Expone [el contrato acordado](./similarProducts.yaml) en el puerto 5000.
+It exposes [the agreed contract](./similarProducts.yaml) on port 5000.
 
-## Cómo ejecutarlo
+## How to run it
 
-Requiere Java 21 y Docker. No hace falta instalar Maven: el proyecto incluye el wrapper.
+Requires Java 21 and Docker. Maven does not need installing: the project ships the wrapper.
 
 ```bash
-# 1. Levantar los simuladores de las APIs existentes y la infraestructura de medición
+# 1. Bring up the mocks of the existing APIs and the measurement infrastructure
 docker compose up -d simulado influxdb grafana
 
-# 2. Arrancar el servicio
+# 2. Start the service
 ./mvnw spring-boot:run
 
-# 3. Comprobar
+# 3. Check
 curl http://localhost:5000/product/1/similar
 ```
 
-La API escucha en el **5000**. Los endpoints de gestión están en el **5001**
-(`http://localhost:5001/actuator/health`), separados a propósito: ver [Seguridad](#seguridad).
+The API listens on **5000**. The management endpoints live on **5001**
+(`http://localhost:5001/actuator/health`), separated on purpose: see [Security](#security).
 
 ### Tests
 
@@ -30,275 +30,263 @@ La API escucha en el **5000**. Los endpoints de gestión están en el **5001**
 ./mvnw test
 ```
 
-32 tests. No necesitan Docker: la API existente se sustituye por un doble de WireMock que
-reproduce los mismos casos que el simulador, con sus retardos, sus 404 y sus 500.
+32 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
+the same cases as the mock service, with its delays, its 404s and its 500s.
 
-Para comprobar que los tests sirven de algo —y no solo que ejecutan líneas— se inyectaron nueve
-fallos realistas y se midió cuáles rompían la suite: pedir los detalles en serie en vez de en
-paralelo, tomar cualquier 4xx por «no existe», quitar el tope de similares, reportar el fallo de
-la dependencia como error propio. Ocho de nueve. El que se escapó fue **volver a cancelar la
-llamada descartada**, que es justo la decisión que sostiene el rendimiento, así que ahora tiene su
-propio test.
+To check that the tests are worth something — and not merely that they execute lines — nine
+realistic defects were injected and it was measured which of them broke the suite: fetching the
+details serially instead of in parallel, treating any 4xx as "not found", removing the cap on
+similar products, reporting a dependency failure as our own error. Eight out of nine. The one that
+slipped through was **cancelling the abandoned call again**, which is precisely the decision that
+holds up the performance, so it now has a test of its own.
 
-Nueve de ellos se escribieron durante la revisión final, cada uno reproduciendo un fallo real
-antes de arreglarlo: el nulo en la lista de similares, los identificadores vacíos, el 429 tratado
-como «no existe», el detalle sin identificador, la amplificación sin tope, el identificador
-desmesurado y el mensaje de la ruta desconocida.
-
-### Prueba de carga
+### Load test
 
 ```bash
 docker compose run --rm k6 run scripts/test.js
 ```
 
-Resultados en el [panel de Grafana](http://localhost:3000/d/Le2Ku9NMk/k6-performance-test), que
-grafica número de peticiones y duración media. Verificado de extremo a extremo: k6 escribe en
-InfluxDB y el panel se provisiona en esa URL.
+Results on the [Grafana dashboard](http://localhost:3000/d/Le2Ku9NMk/k6-performance-test), which
+graphs request count and mean duration. Verified end to end: k6 writes into InfluxDB and the
+dashboard is provisioned at that URL.
 
-## Qué hace el servicio ante cada caso
+## What the service does in each case
 
-Los cinco escenarios de la prueba de carga cubren un caso distinto cada uno. Esto es lo que
-devuelve el servicio, medido contra el simulador:
+The five scenarios of the load test each cover a different case. This is what the service returns,
+measured against the mock service:
 
-| Petición | Similares | Qué tiene de particular | Respuesta |
+| Request | Similar ids | What is tricky about it | Response |
 | --- | --- | --- | --- |
-| `/product/1/similar` | 2, 3, 4 | nada | 200 con los 3 productos |
-| `/product/2/similar` | 3, 100, 1000 | retardos de 100 ms, 1 s y 5 s | 200 con los 3; el lento entra en cuanto está cacheado |
-| `/product/3/similar` | 100, 1000, 10000 | el 10000 tarda **50 s** | 200 con los 2 disponibles; el inalcanzable se omite |
-| `/product/4/similar` | 1, 2, 5 | el 5 responde **404** | 200 con los 2 que existen |
-| `/product/5/similar` | 1, 2, 6 | el 6 responde **500** | 200 con los 2 que responden |
+| `/product/1/similar` | 2, 3, 4 | nothing | 200 with all 3 products |
+| `/product/2/similar` | 3, 100, 1000 | delays of 100 ms, 1 s and 5 s | 200 with all 3; the slow one joins as soon as it is cached |
+| `/product/3/similar` | 100, 1000, 10000 | 10000 takes **50 s** | 200 with the 2 reachable ones; the unreachable one is left out |
+| `/product/4/similar` | 1, 2, 5 | 5 answers **404** | 200 with the 2 that exist |
+| `/product/5/similar` | 1, 2, 6 | 6 answers **500** | 200 with the 2 that answer |
 
-Y los casos de error de la petición en sí:
+And the failure cases of the request itself:
 
-| Situación | Respuesta | Por qué |
+| Situation | Response | Why |
 | --- | --- | --- |
-| El producto de la petición no existe (404 del origen) | **404** | Lo indica el contrato |
-| La API existente falla o limita las peticiones (500, 429, 403…) | **502** | El fallo es de una dependencia, no nuestro. Un 500 diría que el error es del servicio, y un 200 con lista vacía mentiría diciendo que ese producto no tiene similares |
-| Identificador de más de 128 caracteres | **400** | Se rechaza antes de reenviarlo al origen y de convertirlo en clave de caché |
-| Ruta desconocida | **404** | Con un mensaje genérico, sin devolver la ruta recibida |
+| The requested product does not exist (404 from the source) | **404** | The contract says so |
+| The existing API fails or rate-limits (500, 429, 403…) | **502** | The failure belongs to a dependency, not to us. A 500 would claim the service is at fault, and a 200 with an empty list would lie by saying the product has no similar products |
+| Identifier longer than 128 characters | **400** | Rejected before being forwarded to the source and before becoming a cache key |
+| Unknown path | **404** | With a generic message, without echoing back the received path |
 
-**Solo el 404 significa «no existe».** Un 429 o un 403 son problemas de la dependencia, y
-traducirlos a 404 le diría al cliente que el producto no existe cuando lo que ocurre es que no
-hemos podido preguntar. La distinción importa además porque cada caso se recuerda en caché un
-tiempo distinto: un minuto «no existe», diez segundos «ha fallado».
+**Only a 404 means "does not exist".** A 429 or a 403 are problems of the dependency, and turning
+them into a 404 would tell the client the product does not exist when what actually happened is that
+we could not ask. The distinction also matters because each case is remembered in the cache for a
+different length of time: one minute for "does not exist", ten seconds for "it failed".
 
-## Las tres decisiones que determinan el rendimiento
+## The three decisions that determine the performance
 
-### 1. En paralelo, no en serie
+### 1. In parallel, not serially
 
-Los detalles se piden todos a la vez. En serie, la latencia sería la **suma** de las llamadas; en
-paralelo es el **máximo**. Con los retardos del simulador para el producto 2 (100 ms, 1 s y 5 s),
-la diferencia es de más de seis segundos a poco más de cinco.
+All the details are requested at once. Serially the latency would be the **sum** of the calls; in
+parallel it is the **maximum**. With the mock's delays for product 2 (100 ms, 1 s and 5 s), that is
+the difference between more than six seconds and a little over five.
 
-Cada llamada va en un hilo virtual, así que no hay ningún pool que dimensionar y bloquearse
-esperando a la red deja de ser caro. El servidor también atiende cada petición en un hilo virtual
+Every call runs on a virtual thread, so there is no pool to size and blocking on the network stops
+being expensive. The server also serves each request on a virtual thread
 (`spring.threads.virtual.enabled`).
 
-### 2. Presupuesto de tiempo corto, pero sin cancelar el trabajo
+### 2. A short time budget, but without cancelling the work
 
-Hay un presupuesto para toda la petición (600 ms). Lo que no llega dentro de él se omite de la
-respuesta, porque un solo producto lento no debe decidir la latencia de la respuesta entera. Es
-el valor que fija el peor caso del servicio, y se elige por debajo del segundo: los similares son
-un complemento de la ficha de producto, no su contenido principal.
+There is a budget for the whole request (600 ms). Whatever does not arrive within it is left out of
+the response, because a single slow product must not decide the latency of the entire response. It
+is the value that fixes the service's worst case, and it is chosen below one second: similar
+products are a complement to the product page, not its main content.
 
-Lo importante es lo que **no** se hace: la llamada descartada **no se cancela**. Sigue su curso y,
-al terminar, deja el producto en la caché, de modo que las peticiones siguientes lo incluyen. La
-primera versión sí la cancelaba, y eso tiraba justamente el trabajo que iba a acelerar todo lo
-demás: cada ciclo volvía a pagar la espera desde cero.
+What matters is what is **not** done: the abandoned call **is not cancelled**. It runs to completion
+and leaves the product in the cache, so subsequent requests include it. The first version did cancel
+it, and that threw away exactly the work that was about to speed everything else up: every cycle
+paid the wait again from scratch.
 
-El coste de no cancelar está acotado por dos lados: por el límite de tiempo de lectura del cliente
-HTTP, y porque la caché deduplica por producto, así que nunca hay más de una llamada en vuelo para
-el mismo identificador.
+The cost of not cancelling is bounded from two sides: by the HTTP client's read timeout, and because
+the cache deduplicates per product, so there is never more than one in-flight call for the same
+identifier.
 
-#### Cómo se eligió el valor, y una lectura contraintuitiva
+#### How the value was chosen, and a counter-intuitive reading
 
-Se midieron dos presupuestos con la prueba de carga:
+Two budgets were measured with the load test:
 
-| Métrica | Presupuesto 1,5 s | Presupuesto 600 ms |
+| Metric | 1.5 s budget | 600 ms budget |
 | --- | --- | --- |
-| Peticiones | 16.322 (270,8/s) | **17.200 (285,2/s)** |
-| Latencia media | 123 ms | **92 ms** |
-| Latencia mediana | **6,1 ms** | 7,7 ms |
-| Percentil 90 | **65 ms** | 602 ms |
-| Percentil 95 | 1,51 s | **609 ms** |
-| Peor caso | 1,53 s | **649 ms** |
+| Requests | 16,322 (270.8/s) | **17,200 (285.2/s)** |
+| Mean latency | 123 ms | **92 ms** |
+| Median latency | **6.1 ms** | 7.7 ms |
+| 90th percentile | **65 ms** | 602 ms |
+| 95th percentile | 1.51 s | **609 ms** |
+| Worst case | 1.53 s | **649 ms** |
 
-El percentil 95 mejora y el percentil 90 empeora. No es contradictorio, y la explicación importa:
+The 95th percentile improves and the 90th gets worse. That is not a contradiction, and the
+explanation matters:
 
-**la prueba de carga es de lazo cerrado.** Son 200 usuarios que esperan la respuesta y luego
-duermen medio segundo, así que una petición lenta se autolimita: mientras un usuario espera, no
-genera más peticiones. Con el presupuesto largo, las peticiones lentas duran más y por tanto se
-registran **menos**, de modo que ocupan una franja menor de la distribución y el percentil 90 sale
-mejor. No es que la experiencia sea mejor: es que las respuestas malas se cuentan menos veces.
+**the load test is closed-loop.** It is 200 virtual users that wait for the response and then sleep
+half a second, so a slow request throttles itself: while a user is waiting, it generates no more
+requests. With the long budget, slow requests last longer and are therefore recorded **fewer**
+times, so they occupy a smaller slice of the distribution and the 90th percentile looks better. It
+is not that the experience is better: it is that the bad responses are counted fewer times.
 
-Con tráfico real, donde la llegada de peticiones no depende de lo que tarde el servicio, la
-fracción afectada la determina cuánto dura la ventana en la que el producto lento no está
-cacheado, no cuánto tarda cada respuesta. En ese modelo el presupuesto corto gana sin ambigüedad:
-la misma proporción de usuarios espera menos de la mitad.
+With real traffic, where arrivals do not depend on how long the service takes, the affected fraction
+is determined by how long the window in which the slow product is uncached lasts, not by how long
+each response takes. In that model the short budget wins unambiguously: the same proportion of users
+waits less than half as long.
 
-Lo que no depende del modelo de carga es el **peor caso**: 649 ms frente a 1,53 s. Y la
-completitud no se resiente, porque la llamada descartada sigue en curso y deja el producto en
-caché: en cuanto está caliente, las respuestas vuelven a traer todos los similares alcanzables.
-Se verificó producto a producto.
+What does not depend on the load model is the **worst case**: 649 ms versus 1.53 s. And completeness
+does not suffer, because the abandoned call keeps running and leaves the product in the cache: once
+it is warm, responses carry every reachable similar product again. This was verified product by
+product.
 
-### 3. La caché es asíncrona, y ese detalle lo cambia todo
+### 3. The cache is asynchronous, and that detail changes everything
 
-Esta es la decisión que más rendimiento aportó, y la encontré midiendo.
+This is the decision that contributed the most performance, and it was found by measuring.
 
-La caché sincrónica de Caffeine se apoya en `ConcurrentHashMap.computeIfAbsent`, que ejecuta la
-función de carga **dentro de un bloque `synchronized`**. En Java 21, un hilo virtual que se
-bloquea dentro de un monitor **fija su hilo portador**: no se desmonta, y ese hilo de plataforma
-queda inutilizable mientras dure el bloqueo. Como la carga hace una llamada de red que puede
-tardar segundos, unas pocas cargas simultáneas bastan para clavar todos los portadores del
-planificador y dejar la aplicación sin atender peticiones.
+Caffeine's synchronous cache relies on `ConcurrentHashMap.computeIfAbsent`, which runs the loading
+function **inside a `synchronized` block**. In Java 21, a virtual thread that blocks inside a monitor
+**pins its carrier thread**: it is not unmounted, and that platform thread is unusable for as long
+as the block lasts. Since the load makes a network call that can take seconds, a handful of
+concurrent loads is enough to pin every carrier in the scheduler and leave the application unable to
+serve requests.
 
-Medido con la prueba de carga del propio ejercicio, 200 usuarios y caché vacía:
+Measured with the exercise's own load test, 200 virtual users and a cold cache:
 
-| Métrica | Caché sincrónica | Caché asíncrona |
+| Metric | Synchronous cache | Asynchronous cache |
 | --- | --- | --- |
-| Peticiones completadas | 1.608 | **16.400** |
-| Throughput | 17,8/s | **272,2/s** |
-| Latencia mediana | 15,3 ms | **5,7 ms** |
-| Latencia media | 1,63 s | **120 ms** |
-| Percentil 90 | 6,50 s | **60,5 ms** |
-| Errores HTTP | 0 | **0** |
+| Completed requests | 1,608 | **16,400** |
+| Throughput | 17.8/s | **272.2/s** |
+| Median latency | 15.3 ms | **5.7 ms** |
+| Mean latency | 1.63 s | **120 ms** |
+| 90th percentile | 6.50 s | **60.5 ms** |
+| HTTP errors | 0 | **0** |
 
-Quince veces más throughput y un percentil 90 que baja de seis segundos y medio a sesenta
-milisegundos.
+Fifteen times the throughput, and a 90th percentile that drops from six and a half seconds to sixty
+milliseconds. (Both columns were measured with the 1.5 s budget, to compare a single variable; the
+budget was tuned afterwards.)
 
-**Y no acumula recursos.** Como la llamada descartada no se cancela, cabía la duda de si se
-acumulaban hilos o memoria. Medido con dos pasadas seguidas de la prueba de carga: los hilos vivos
-pasan de 23 a 29 en la primera y **se quedan en 29** en la segunda; la memoria sube a 178 MB y baja
-a 147 MB cuando el recolector la reclama. La segunda pasada además va más rápida (308 peticiones
-por segundo frente a 285) porque la caché ya está caliente. 35.814 respuestas, ninguna 5xx. (Las dos columnas se midieron con el presupuesto de 1,5 s, para comparar una sola
-variable; el ajuste del presupuesto vino después.)
+**And it does not accumulate resources.** Since the abandoned call is not cancelled, there was a
+question of whether threads or memory piled up. Measured over two consecutive runs of the load test:
+live threads go from 23 to 29 on the first run and **stay at 29** on the second; memory rises to
+178 MB and falls back to 147 MB once the collector reclaims it. The second run is also faster
+(308 requests per second versus 285) because the cache is already warm. 35,814 responses, no 5xx.
 
-La caché asíncrona guarda en el mapa un futuro —operación inmediata, sin bloqueo bajo el
-monitor— y ejecuta la llamada fuera. Conserva la deduplicación y elimina la fijación.
+The asynchronous cache stores a future in the map — an immediate operation, with no blocking under
+the monitor — and runs the call outside it. It keeps the deduplication and removes the pinning.
 
-## Resiliencia
+## Resilience
 
-### Deduplicación de llamadas idénticas
+### Deduplication of identical calls
 
-La caché guarda la llamada **en curso**, no solo su resultado. Doscientas peticiones simultáneas
-que necesiten el mismo producto generan **una** llamada al origen. Sin esto, el arranque de cada
-escenario de la prueba de carga lanza doscientas llamadas idénticas contra un origen lento.
+The cache stores the **in-flight** call, not just its result. Two hundred simultaneous requests
+needing the same product produce **one** call to the source. Without this, the start of every
+scenario of the load test fires two hundred identical calls at a slow source.
 
-### Cortacircuitos con granularidad por producto
+### A circuit breaker with per-product granularity
 
-No se usa una librería de cortacircuitos, y es una decisión deliberada: sus interruptores son por
-nombre, y aquí el fallo es **por producto**. El producto 10000 tarda 50 segundos pero el 100
-responde en uno; un interruptor compartido abierto por el primero dejaría de servir el segundo,
-que está perfectamente sano.
+No circuit-breaker library is used, and that is deliberate: their breakers are per name, and here the
+failure is **per product**. Product 10000 takes 50 seconds while product 100 answers in one; a shared
+breaker opened by the first would stop serving the second, which is perfectly healthy.
 
-En su lugar, el resultado de consultar un producto se modela como un tipo sellado con tres casos, y
-cada uno tiene su propia expiración en caché:
+Instead, the outcome of looking a product up is modelled as a sealed type with three cases, each with
+its own cache expiry:
 
-| Resultado | Expiración | Razonamiento |
+| Outcome | Expiry | Reasoning |
 | --- | --- | --- |
-| `Found` | 5 min | Un dato bueno se puede reutilizar |
-| `Missing` (404) | 1 min | Que un producto no exista es estable: no va a aparecer de golpe |
-| `Unavailable` (fallo o tiempo agotado) | 10 s | Es transitorio: se recuerda poco y se vuelve a intentar |
+| `Found` | 5 min | A good value can be reused |
+| `Missing` (404) | 1 min | A product not existing is a stable fact: it will not appear out of nowhere |
+| `Unavailable` (failure or timeout) | 10 s | It is transient: remember it briefly and try again |
 
-El efecto es el de un cortacircuitos en el sitio correcto: el primer intento paga la espera, y
-durante los segundos siguientes ese producto se descarta al instante mientras el resto se sigue
-atendiendo con normalidad.
+The effect is a circuit breaker in the right place: the first attempt pays the wait, and for the next
+few seconds that product is skipped instantly while everything else is served normally.
 
-### Tope al número de similares
+### A cap on the number of similar products
 
-Sin un límite, **una** petición a este servicio se convierte en tantas llamadas al origen como
-elementos tenga la lista de similares, y ese número lo decide el origen, no nosotros. Es una
-amplificación que conviene acotar: hay un tope configurable (50 por omisión) y, como la lista
-viene ordenada por similitud, el recorte se queda con los más parecidos.
+Without a limit, **one** request to this service turns into as many calls to the source as the
+similar-ids list has entries, and that number is decided by the source, not by us. It is an
+amplification worth bounding: there is a configurable cap (50 by default) and, since the list comes
+ordered by similarity, the trim keeps the closest matches.
 
-La lista se sanea además antes de cachearla: se descartan los identificadores nulos y vacíos y se
-eliminan los duplicados conservando el orden. Lo de los nulos no es hipotético: un `null` dentro
-del array JSON llega como elemento nulo de la lista, y `List.copyOf` los rechaza con
-`NullPointerException`, así que **un solo nulo en el origen tumbaba la petición con un 500**.
+The list is also sanitised before being cached: null and empty identifiers are dropped and duplicates
+are removed while preserving order. The null part is not hypothetical: a `null` inside the JSON array
+arrives as a null list element, and `List.copyOf` rejects nulls with `NullPointerException`, so **a
+single null at the source brought the request down with a 500**.
 
-### Resultados parciales antes que ningún resultado
+### Partial results rather than no results
 
-Un similar que no existe, que falla o que tarda demasiado se omite de la respuesta. El contrato
-define una lista de similares, y que uno de ellos haya desaparecido del catálogo no invalida los
-demás. La alternativa —fallar la respuesta entera— convertiría el fallo de un producto en el fallo
-de todos.
+A similar product that does not exist, that fails or that takes too long is left out of the response.
+The contract defines a list of similar products, and one of them having disappeared from the
+catalogue does not invalidate the others. The alternative — failing the whole response — would turn
+one product's failure into everybody's.
 
-### Límites de tiempo separados
+### Separate timeouts
 
-Conectar y leer son fallos distintos: una conexión rechazada se sabe al instante (1 s), mientras
-que un origen lento puede tardar lo que quiera (6 s). El límite de lectura se eligió por encima
-del producto que tarda 5 segundos, para que llegue a responder y quede cacheado, y muy por debajo
-del que tarda 50, que nunca merece la espera.
+Connecting and reading are different failures: a refused connection is known instantly (1 s), whereas
+a slow source can take as long as it likes (6 s). The read timeout was chosen above the product that
+takes 5 seconds, so that it gets to answer and be cached, and well below the one that takes 50, which
+is never worth waiting for.
 
-## Seguridad
+## Security
 
-- **Imagen sin privilegios.** El contenedor corre como usuario `spring`, no como root, y la imagen
-  final lleva solo el JRE: sin JDK ni herramientas de compilación.
-- **Los endpoints de gestión viven en su propio puerto** (5001), que en un despliegue real queda
-  accesible solo desde la red interna. En el puerto público no hay nada más que la API. Importa
-  más de lo que parece: `/actuator/metrics` permite enumerar 44 métricas sin autenticar, entre
-  ellas el espacio libre en disco e interioridades de la JVM.
-- **Y aun ahí, solo lo necesario**: salud, información y métricas. Exponerlos todos publica la
-  configuración, las variables de entorno y los volcados de hilos y de memoria.
-- **Los detalles de salud no se publican** (`show-details: never`): revelan los servicios de los
-  que depende el sistema.
-- **El tamaño del identificador está acotado** a 128 caracteres. Sin ese límite, cualquiera puede
-  pedir identificadores arbitrariamente largos, y cada uno se reenvía al origen y se convierte en
-  una clave de caché nueva: es una vía cómoda para desalojar las entradas buenas y para generar
-  una llamada al origen por cada petición recibida.
-- **El detalle que llega del origen se valida** antes de aceptarlo. Un producto sin los campos que
-  el contrato declara obligatorios se descarta: devolverlo nos convertiría en el origen del
-  incumplimiento para nuestros clientes.
-- **No se anuncia el servidor ni su versión** en las respuestas. Es información que solo le sirve a
-  quien busca una vulnerabilidad conocida.
-- **Los mensajes de error no incluyen la excepción ni su traza.** Los errores son una vía habitual
-  de filtración: rutas del sistema, nombres de host internos, versiones de librerías. El detalle
-  técnico va al registro del servidor. Incluye el caso de una ruta desconocida: por omisión Spring
-  responde `"No static resource <ruta>."`, que revela que detrás hay un servidor de recursos
-  estáticos y devuelve al cliente la ruta que él mismo envió.
-- **No se anuncian el servidor ni su versión** en las respuestas (verificado: no hay cabecera
-  `Server`).
-- **Los identificadores se pasan como variables de plantilla de URI** (`/product/{productId}`), no
-  concatenados, de modo que el cliente HTTP los codifica y no pueden alterar la ruta.
-- **Dependencias mínimas**: web, caché, actuator y validación. Menos superficie de cadena de
-  suministro.
+- **Unprivileged image.** The container runs as the `spring` user, not as root, and the final image
+  ships only the JRE: no JDK and no build tooling.
+- **The management endpoints live on their own port** (5001), which in a real deployment stays
+  reachable only from the internal network. The public port serves nothing but the API. This matters
+  more than it looks: `/actuator/metrics` lets you enumerate 44 metrics without authenticating, among
+  them free disk space and JVM internals.
+- **And even there, only what is needed**: health, info and metrics. Exposing them all publishes the
+  configuration, the environment variables and thread and heap dumps.
+- **Health details are not published** (`show-details: never`): they enumerate the services the
+  system depends on.
+- **The identifier size is capped** at 128 characters. Without that limit anyone can ask for
+  arbitrarily long identifiers, and each one is forwarded to the source and becomes a new cache key:
+  a convenient way to evict the good entries and to force one call to the source per request received.
+- **The detail arriving from the source is validated** before being accepted. A product missing the
+  fields the contract declares mandatory is dropped: returning it would make us the origin of the
+  breach for our own clients.
+- **Error messages carry neither the exception nor its stack trace.** Errors are a common leak
+  channel: system paths, internal host names, library versions. The technical detail goes to the
+  server log. This includes the unknown-path case: by default Spring answers
+  `"No static resource <path>."`, which reveals that there is a static resource server behind and
+  hands the client back the path it sent.
+- **Neither the server nor its version is advertised** in the responses (verified: there is no
+  `Server` header).
+- **Minimal dependencies**: web, cache, actuator and validation. Less supply-chain surface.
 
-## Ficheros de terceros
+## Third-party files
 
-El contrato, los simuladores y la prueba de carga vienen del repositorio que indica el
-enunciado, [dalogax/backendDevTest](https://github.com/dalogax/backendDevTest), y se conservan
-**sin modificar**: son el banco de pruebas con el que se evalúa la solución, y tocarlos
-invalidaría la comparación.
+The contract, the mocks and the load test come from the repository the brief points to,
+[dalogax/backendDevTest](https://github.com/dalogax/backendDevTest), and are kept **unmodified**:
+they are the test bench the solution is judged with, and touching them would invalidate the
+comparison.
 
-Están bajo Apache License 2.0. El detalle de qué fichero es de quién está en
-[`NOTICE.md`](./NOTICE.md), y el texto de la licencia en
+They are under the Apache License 2.0. Which file belongs to whom is detailed in
+[`NOTICE.md`](./NOTICE.md), and the licence text is in
 [`LICENSE-APACHE-2.0`](./LICENSE-APACHE-2.0).
 
-## Cómo está organizado
+## How the code is organised
 
 ```
 src/main/java/com/itx/similarproducts/
-├── catalog/    Acceso a la API existente, caché y tipos de resultado
-├── config/     Cliente HTTP, ejecutor y propiedades
-├── domain/     El modelo del contrato
-├── service/    Composición en paralelo con presupuesto de tiempo
-└── web/        Controlador y traducción de errores a HTTP
+├── catalog/    Access to the existing API, cache and result types
+├── config/     HTTP client, executor and properties
+├── domain/     The contract's model
+├── service/    Parallel composition with a time budget
+└── web/        Controller and error-to-HTTP translation
 ```
 
-Un detalle de configuración que merece explicación: el ejecutor de hilos virtuales es un **bean
-compartido**, no uno creado por petición. Desde que `ExecutorService` implementa `AutoCloseable`,
-cerrarlo en un `try-with-resources` **espera a que terminen todas las tareas**, lo que anularía el
-presupuesto de tiempo: tras descartar una llamada lenta, el cierre del ejecutor se quedaría
-esperándola igualmente.
+One configuration detail deserves explaining: the virtual-thread executor is a **shared bean**, not
+one created per request. Since `ExecutorService` implements `AutoCloseable`, closing it in a
+`try-with-resources` **waits for every task to finish**, which would defeat the time budget: after
+abandoning a slow call, closing the executor would wait for it anyway.
 
-## Qué haría con más tiempo
+## What I would do with more time
 
-- Un *bulkhead* que limite las llamadas concurrentes al origen. Ahora las acotan la caché, el tope
-  de similares y el pool de conexiones, que basta a esta escala, pero no es un límite explícito.
-- Limitación de peticiones por cliente. El tope de similares acota la amplificación por petición,
-  pero no el número de peticiones, y un cliente que pida identificadores distintos sin parar sigue
-  pudiendo desalojar la caché. Corresponde a la pasarela más que a este servicio, pero conviene
-  decir que aquí no está.
-- Métricas propias de aciertos de caché y de similares omitidos por tiempo agotado, que es lo que
-  querría vigilar en producción.
-- Contract testing contra el `similarProducts.yaml`, para que el contrato se verifique solo.
+- A bulkhead limiting concurrent calls to the source. Today they are bounded by the cache, the cap on
+  similar products and the connection pool, which is enough at this scale, but it is not an explicit
+  limit.
+- Rate limiting per client. The cap on similar products bounds the amplification per request, but not
+  the number of requests, and a client asking for distinct identifiers non-stop can still evict the
+  cache. That belongs to the gateway rather than to this service, but it is worth saying it is not
+  here.
+- Custom metrics for cache hits and for similar products dropped on timeout, which is what I would
+  want to watch in production.
+- Contract testing against `similarProducts.yaml`, so the contract verifies itself.

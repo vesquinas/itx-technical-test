@@ -37,7 +37,7 @@
   cursor: not-allowed;
 }
 
-/* Altura reservada para que el mensaje no desplace el contenido al aparecer. */
+/* Height reserved so the message does not push the content when it appears. */
 .feedback {
   min-height: 1.25rem;
   font-size: var(--text-sm);

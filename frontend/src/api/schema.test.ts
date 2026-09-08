@@ -11,13 +11,12 @@ import {
 } from './schema.ts';
 
 /**
- * Las fixtures son respuestas reales de la API, copiadas tal cual. Los tests de
- * este fichero valen sobre todo como documentación ejecutable de las rarezas de
- * ese origen de datos: si algun dia la API se corrige, estos tests fallarán y
- * habrá que ajustar la traducción a propósito.
+ * The fixtures are real API responses, copied verbatim. The tests in this file are worth most as
+ * executable documentation of that data source's quirks: if the API is ever corrected, these tests
+ * will fail and the translation will have to be adjusted on purpose.
  */
 describe('parseProductSummary', () => {
-  it('traduce un producto real del listado', () => {
+  it('translates a real product from the list', () => {
     expect(parseProductSummary(productListFixture[0])).toEqual({
       id: 'ZmGrkLRPXOTpxsU4jjAcv',
       brand: 'Acer',
@@ -27,37 +26,37 @@ describe('parseProductSummary', () => {
     });
   });
 
-  it('convierte a null el precio vacío que llega en 6 de los 100 productos', () => {
+  it('turns into null the empty price that arrives in 6 of the 100 products', () => {
     const sinPrecio = productListFixture.find((product) => product.price === '');
 
     expect(sinPrecio).toBeDefined();
     expect(parseProductSummary(sinPrecio)?.price).toBeNull();
   });
 
-  it('descarta una dirección de imagen con un esquema peligroso', () => {
+  it('drops an image address with a dangerous scheme', () => {
     const parsed = parseProductSummary({
       ...productListFixture[0],
       imgUrl: 'javascript:alert(document.domain)',
     });
 
-    // El producto sigue siendo utilizable; lo que se descarta es la imagen, y la interfaz
-    // muestra "Sin imagen" en su lugar.
+    // The product remains usable; what gets dropped is the image, and the interface shows
+    // "Sin imagen" in its place.
     expect(parsed?.id).toBe('ZmGrkLRPXOTpxsU4jjAcv');
     expect(parsed?.imageUrl).toBe('');
   });
 
-  it('rechaza un producto sin id, porque no se puede enrutar ni consultar', () => {
+  it('rejects a product with no id, because it can neither be routed to nor looked up', () => {
     expect(parseProductSummary({ brand: 'Acer', model: 'X960' })).toBeUndefined();
     expect(parseProductSummary({ id: '  ', brand: 'Acer' })).toBeUndefined();
   });
 
-  it('rechaza lo que no es un objeto', () => {
+  it('rejects anything that is not an object', () => {
     expect(parseProductSummary(null)).toBeUndefined();
     expect(parseProductSummary('texto')).toBeUndefined();
     expect(parseProductSummary([])).toBeUndefined();
   });
 
-  it('tolera los campos ausentes dejandolos vacíos', () => {
+  it('tolerates missing fields by leaving them empty', () => {
     expect(parseProductSummary({ id: 'abc' })).toEqual({
       id: 'abc',
       brand: '',
@@ -69,21 +68,21 @@ describe('parseProductSummary', () => {
 });
 
 describe('parseProductList', () => {
-  it('traduce el listado completo', () => {
+  it('translates the whole list', () => {
     expect(parseProductList(productListFixture)).toHaveLength(productListFixture.length);
   });
 
-  it('descarta los elementos invalidos sin dejar al usuario sin catálogo', () => {
+  it('drops the invalid elements without leaving the user with no catalogue', () => {
     const conBasura = [productListFixture[0], null, { sinId: true }, productListFixture[1]];
 
     expect(parseProductList(conBasura)).toHaveLength(2);
   });
 
-  it('rechaza una respuesta que no es un array', () => {
+  it('rejects a response that is not an array', () => {
     expect(parseProductList({ products: [] })).toBeUndefined();
   });
 
-  it('acepta un catálogo vacío', () => {
+  it('accepts an empty catalogue', () => {
     expect(parseProductList([])).toEqual([]);
   });
 });
@@ -91,31 +90,31 @@ describe('parseProductList', () => {
 describe('parseProductDetail', () => {
   const detail = parseProductDetail(productDetailFixture);
 
-  it('traduce el detalle de un producto real', () => {
+  it('translates the detail of a real product', () => {
     expect(detail).toBeDefined();
     expect(detail?.brand).toBe('Acer');
     expect(detail?.model).toBe('X960');
   });
 
-  it('deshace el intercambio entre displayResolution y displaySize', () => {
-    // La API publica las pulgadas bajo `displayResolution` y los píxeles bajo
-    // `displaySize`, al contrario de lo que dicen sus nombres.
+  it('undoes the swap between displayResolution and displaySize', () => {
+    // The API publishes the inches under `displayResolution` and the pixels under
+    // `displaySize`, the opposite of what their names say.
     expect(detail?.specs.screenResolution).toBe('480 x 640 pixels (~286 ppi pixel density)');
     expect(detail?.specs.screenSize).toBe('2.8 inches (~38.7% screen-to-body ratio)');
   });
 
-  it('lee los campos cuyo nombre esta mal escrito en el origen', () => {
-    // `dimentions` y `secondaryCmera`, tal cual los publica la API.
+  it('reads the fields whose names are misspelled at the source', () => {
+    // `dimentions` and `secondaryCmera`, exactly as the API publishes them.
     expect(detail?.specs.dimensions).not.toBe('');
     expect(detail?.specs.dimensions).toBe(productDetailFixture.dimentions);
   });
 
-  it('normaliza a lista un campo que llega como texto suelto', () => {
+  it('normalises to a list a field that arrives as plain text', () => {
     expect(productDetailFixture.cpu).toBeTypeOf('string');
     expect(detail?.specs.cpu).toEqual(['533 MHz Samsung S3C 6410']);
   });
 
-  it('normaliza a lista un campo que llega ya como lista', () => {
+  it('normalises to a list a field that already arrives as a list', () => {
     const conListas = parseProductDetail(productDetailListFieldsFixture);
 
     expect(productDetailListFieldsFixture.cpu).toBeInstanceOf(Array);
@@ -123,15 +122,15 @@ describe('parseProductDetail', () => {
     expect(conListas?.specs.cpu.every((item) => typeof item === 'string')).toBe(true);
   });
 
-  it('traduce las opciones de color y capacidad conservando sus códigos', () => {
+  it('translates the colour and capacity options keeping their codes', () => {
     expect(detail?.options.colors).toEqual([{ code: 1000, name: 'Black' }]);
     expect(detail?.options.storages).toEqual([{ code: 2000, name: '256 MB ROM' }]);
   });
 
-  it('conserva una opción cuyo nombre viene en blanco pero tiene código', () => {
-    // Es el caso real de los productos M900 y DX650 del catálogo, cuya única capacidad
-    // llega como { code: 2000, name: " " }. Descartarla los dejaba sin poder comprarse
-    // aunque la API sí acepta la compra: el código es válido y es lo único que se envía.
+  it('keeps an option whose name arrives blank but which has a code', () => {
+    // This is the real case of catalogue products M900 and DX650, whose only capacity arrives as
+    // { code: 2000, name: " " }. Dropping it left them unbuyable even though the API does accept
+    // the purchase: the code is valid and it is the only thing that gets sent.
     const parsed = parseProductDetail({
       ...productDetailFixture,
       options: {
@@ -143,7 +142,7 @@ describe('parseProductDetail', () => {
     expect(parsed?.options.storages).toEqual([{ code: 2000, name: '' }]);
   });
 
-  it('descarta una opción sin código, que no se podría enviar a la cesta', () => {
+  it('drops an option with no code, which could not be sent to the cart', () => {
     const parsed = parseProductDetail({
       ...productDetailFixture,
       options: {
@@ -152,12 +151,12 @@ describe('parseProductDetail', () => {
       },
     });
 
-    // Sin código no hay nada que enviar a la cesta, así que la opción no sirve.
+    // With no code there is nothing to send to the cart, so the option is useless.
     expect(parsed?.options.colors).toEqual([{ code: 1001, name: 'White' }]);
     expect(parsed?.options.storages).toEqual([]);
   });
 
-  it('devuelve opciones vacías cuando la API no las trae', () => {
+  it('returns empty options when the API does not provide them', () => {
     const parsed = parseProductDetail({ id: 'abc' });
 
     expect(parsed?.options).toEqual({ colors: [], storages: [] });
@@ -165,12 +164,12 @@ describe('parseProductDetail', () => {
 });
 
 describe('parseCartCount', () => {
-  it('lee la respuesta de añadir a la cesta', () => {
+  it('reads the add-to-cart response', () => {
     expect(parseCartCount({ count: 3 })).toBe(3);
     expect(parseCartCount({ count: 0 })).toBe(0);
   });
 
-  it('rechaza una respuesta sin un contador utilizable', () => {
+  it('rejects a response with no usable counter', () => {
     expect(parseCartCount({ count: '3' })).toBeUndefined();
     expect(parseCartCount({ count: -1 })).toBeUndefined();
     expect(parseCartCount({})).toBeUndefined();

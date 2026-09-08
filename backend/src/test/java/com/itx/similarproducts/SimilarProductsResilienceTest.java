@@ -22,10 +22,10 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Comportamiento del servicio ante una API existente lenta o caída.
+ * Behaviour of the service against a slow or downed existing API.
  *
- * <p>Los límites de tiempo se recortan a centenares de milisegundos para que los tests corran
- * rápido; en producción son segundos. Lo que se comprueba es el comportamiento, no los valores.
+ * <p>The timeouts are cut down to hundreds of milliseconds so the tests run fast; in production
+ * they are seconds. What is being checked is the behaviour, not the values.
  */
 @SpringBootTest(properties = {
         "existing-api.read-timeout=400ms",
@@ -66,9 +66,9 @@ class SimilarProductsResilienceTest {
     }
 
     @Test
-    void las_llamadas_van_en_paralelo_no_en_serie() {
-        // Tres detalles de 300 ms cada uno. En serie serían 900 ms y no cabrían en el
-        // presupuesto de 600 ms; en paralelo terminan en algo más de 300.
+    void the_calls_run_in_parallel_and_not_serially() {
+        // Three details of 300 ms each. Serially that would be 900 ms and would not fit in the
+        // 600 ms budget; in parallel they finish in a little over 300.
         stubSimilarIds("p1", "[\"p2\",\"p3\",\"p4\"]");
         stubProduct("p2", "Uno", 300);
         stubProduct("p3", "Dos", 300);
@@ -83,7 +83,7 @@ class SimilarProductsResilienceTest {
     }
 
     @Test
-    void responde_con_lo_que_tiene_cuando_un_similar_tarda_demasiado() {
+    void answers_with_what_it_has_when_a_similar_product_takes_too_long() {
         stubSimilarIds("q1", "[\"q2\",\"q3\"]");
         stubProduct("q2", "Rapido", 0);
         stubProduct("q3", "Lentisimo", 5_000);
@@ -92,35 +92,35 @@ class SimilarProductsResilienceTest {
         List<ProductDetail> products = service.findSimilarProducts("q1");
         Duration elapsed = Duration.ofNanos(System.nanoTime() - startedAt);
 
-        // Devuelve el que llegó y no espera al que tarda cinco segundos.
+        // It returns the one that arrived and does not wait for the one taking five seconds.
         assertThat(products).extracting(ProductDetail::id).containsExactly("q2");
         assertThat(elapsed).isLessThan(Duration.ofSeconds(2));
     }
 
     @Test
-    void deja_de_insistir_con_un_producto_que_no_responde() {
+    void stops_insisting_on_a_product_that_does_not_answer() {
         stubSimilarIds("r1", "[\"r2\"]");
         stubProduct("r2", "Lentisimo", 5_000);
 
         service.findSimilarProducts("r1");
-        int llamadasTrasElPrimerIntento =
+        int callsAfterTheFirstAttempt =
                 existingApi.findAll(WireMock.getRequestedFor(urlEqualTo("/product/r2"))).size();
 
-        // Las tres peticiones siguientes no vuelven a intentarlo: el fallo se recuerda unos
-        // segundos, lo que hace de cortacircuitos con granularidad por producto.
+        // The next three requests do not try again: the failure is remembered for a few
+        // seconds, which acts as a circuit breaker with per-product granularity.
         service.findSimilarProducts("r1");
         service.findSimilarProducts("r1");
         service.findSimilarProducts("r1");
 
         assertThat(existingApi.findAll(WireMock.getRequestedFor(urlEqualTo("/product/r2"))))
-                .hasSize(llamadasTrasElPrimerIntento);
+                .hasSize(callsAfterTheFirstAttempt);
     }
 
     @Test
-    void acota_cuantos_similares_resuelve_por_peticion() {
-        // Sin tope, una lista de similares larga convierte UNA peticion a este servicio en
-        // tantas llamadas al origen como elementos tenga. Es una amplificacion que un cliente
-        // puede provocar y que hay que acotar.
+    void caps_how_many_similar_products_it_resolves_per_request() {
+        // Without a cap, a long similar-ids list turns ONE request to this service into as many
+        // calls to the source as it has entries. That is an amplification a client can trigger
+        // and it needs bounding.
         StringBuilder ids = new StringBuilder("[");
         for (int i = 0; i < 30; i++) {
             if (i > 0) ids.append(',');
@@ -138,7 +138,7 @@ class SimilarProductsResilienceTest {
     }
 
     @Test
-    void un_similar_lento_no_impide_devolver_los_rapidos() {
+    void a_slow_similar_product_does_not_prevent_returning_the_fast_ones() {
         stubSimilarIds("t1", "[\"t2\",\"t3\",\"t4\"]");
         stubProduct("t2", "Rapido", 0);
         stubProduct("t3", "Lentisimo", 5_000);

@@ -1,0 +1,76 @@
+name: Demo
+
+# Publishes the frontend to GitHub Pages so the application can be tried without installing
+# anything. The API it talks to allows cross-origin requests, so the demo is fully functional,
+# including adding products to the cart.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time, and the newest wins.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build the demo
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          # On Pages the application is served from a repository sub-path, not from the root.
+          VITE_BASE_PATH: /${{ github.event.repository.name }}/
+
+      - name: Verify the Content-Security-Policy
+        run: npm run check:csp
+
+      # GitHub Pages serves 404.html for any path it does not have a file for. A copy of
+      # index.html turns that into the SPA fallback, so deep links such as /product/<id> work
+      # instead of showing GitHub's 404 page.
+      - name: SPA fallback for deep links
+        run: cp dist/index.html dist/404.html
+
+      # `enablement` turns Pages on for the repository the first time this runs, using the
+      # workflow's own token. Without it, someone has to flip the switch by hand in the
+      # repository settings.
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

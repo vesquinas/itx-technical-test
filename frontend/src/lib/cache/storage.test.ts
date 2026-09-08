@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createMemoryStorage, resolveStorage } from './storage.ts';
 
 describe('createMemoryStorage', () => {
-  it('se comporta como un almacén clave-valor', () => {
+  it('behaves like a key-value store', () => {
     const storage = createMemoryStorage();
 
     expect(storage.getItem('a')).toBeNull();
@@ -21,7 +21,7 @@ describe('createMemoryStorage', () => {
 });
 
 describe('resolveStorage', () => {
-  it('usa localStorage cuando está disponible', () => {
+  it('uses localStorage when it is available', () => {
     const storage = resolveStorage();
 
     storage.setItem('clave', 'valor');
@@ -29,15 +29,15 @@ describe('resolveStorage', () => {
     expect(localStorage.getItem('clave')).toBe('valor');
   });
 
-  it('expone las claves de localStorage', () => {
+  it('exposes the keys of localStorage', () => {
     localStorage.setItem('uno', '1');
     localStorage.setItem('dos', '2');
 
     expect(resolveStorage().keys().toSorted()).toEqual(['dos', 'uno']);
   });
 
-  it('degrada a memoria cuando localStorage rechaza la escritura', () => {
-    // Reproduce la navegación privada de Safari: el objeto existe pero lanza.
+  it('degrades to memory when localStorage rejects the write', () => {
+    // Reproduces Safari private browsing: the object exists but throws.
     vi.spyOn(globalThis.localStorage, 'setItem').mockImplementation(() => {
       throw new DOMException('cuota agotada', 'QuotaExceededError');
     });
@@ -50,7 +50,7 @@ describe('resolveStorage', () => {
     expect(storage.getItem('clave')).toBe('valor');
   });
 
-  it('no deja la clave de sondeo en el almacén', () => {
+  it('does not leave the probe key behind in the store', () => {
     resolveStorage();
 
     expect(localStorage.length).toBe(0);

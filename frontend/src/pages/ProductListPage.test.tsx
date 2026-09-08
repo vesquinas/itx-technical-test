@@ -10,7 +10,7 @@ import { ProductListPage } from './ProductListPage.tsx';
 
 type FetchStub = (url: string, init?: RequestInit) => Promise<Response>;
 
-/** Acota las consultas a la rejilla, para no contar las migas de pan. */
+/** Narrows the queries to the grid, so the breadcrumbs are not counted. */
 function productItems(): HTMLElement[] {
   return within(screen.getByRole('list', { name: 'Productos' })).getAllByRole('listitem');
 }
@@ -31,7 +31,7 @@ describe('ProductListPage', () => {
     vi.stubGlobal('fetch', fetchMock);
   });
 
-  it('muestra los productos que devuelve la API', async () => {
+  it('shows the products the API returns', async () => {
     renderWithProviders(<ProductListPage />);
 
     expect(await screen.findByRole('heading', { name: 'Iconia Talk S' })).toBeInTheDocument();
@@ -39,7 +39,7 @@ describe('ProductListPage', () => {
     expect(productItems()).toHaveLength(productListFixture.length);
   });
 
-  it('muestra el precio formateado en euros', async () => {
+  it('shows the price formatted in euros', async () => {
     renderWithProviders(<ProductListPage />);
 
     const precio = await screen.findByText(/170,00/);
@@ -47,15 +47,15 @@ describe('ProductListPage', () => {
     expect(precio).toBeInTheDocument();
   });
 
-  it('avisa cuando la API no da precio, en lugar de dejar el hueco vacío', async () => {
+  it('says so when the API gives no price, instead of leaving a gap', async () => {
     renderWithProviders(<ProductListPage />);
     await screen.findByRole('heading', { name: 'Iconia Talk S' });
 
-    // La fixture incluye los 2 productos sin precio que trae la API real.
+    // The fixture includes the 2 products with no price that the real API delivers.
     expect(screen.getAllByText('Precio no disponible')).toHaveLength(2);
   });
 
-  it('enlaza cada producto con su ficha', async () => {
+  it('links every product to its detail page', async () => {
     renderWithProviders(<ProductListPage />);
 
     const enlace = await screen.findByRole('link', { name: /Iconia Talk S/ });
@@ -63,8 +63,8 @@ describe('ProductListPage', () => {
     expect(enlace).toHaveAttribute('href', '/product/ZmGrkLRPXOTpxsU4jjAcv');
   });
 
-  describe('búsqueda', () => {
-    it('filtra por modelo mientras se escribe', async () => {
+  describe('search', () => {
+    it('filters by model while typing', async () => {
       const user = userEvent.setup();
       renderWithProviders(<ProductListPage />);
       await screen.findByRole('heading', { name: 'Iconia Talk S' });
@@ -75,7 +75,7 @@ describe('ProductListPage', () => {
       expect(screen.queryByRole('heading', { name: 'Liquid Z6' })).not.toBeInTheDocument();
     });
 
-    it('filtra por marca', async () => {
+    it('filters by brand', async () => {
       const user = userEvent.setup();
       renderWithProviders(<ProductListPage />);
       await screen.findByRole('heading', { name: 'Iconia Talk S' });
@@ -85,7 +85,7 @@ describe('ProductListPage', () => {
       expect(productItems()).toHaveLength(productListFixture.length);
     });
 
-    it('informa del número de resultados', async () => {
+    it('reports the number of results', async () => {
       const user = userEvent.setup();
       renderWithProviders(<ProductListPage />);
       await screen.findByRole('heading', { name: 'Iconia Talk S' });
@@ -95,18 +95,18 @@ describe('ProductListPage', () => {
       expect(screen.getByText('1 producto encontrado')).toBeInTheDocument();
     });
 
-    it('no vuelve a llamar a la API al filtrar', async () => {
+    it('does not call the API again when filtering', async () => {
       const user = userEvent.setup();
       renderWithProviders(<ProductListPage />);
       await screen.findByRole('heading', { name: 'Iconia Talk S' });
 
       await user.type(screen.getByRole('searchbox', { name: 'Buscar' }), 'liquid');
 
-      // El filtrado es en cliente sobre los datos ya cargados.
+      // Filtering happens on the client over the already-loaded data.
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
-    it('ofrece salida cuando la búsqueda no encuentra nada', async () => {
+    it('offers a way out when the search finds nothing', async () => {
       const user = userEvent.setup();
       renderWithProviders(<ProductListPage />);
       await screen.findByRole('heading', { name: 'Iconia Talk S' });
@@ -120,7 +120,7 @@ describe('ProductListPage', () => {
       expect(screen.getByRole('heading', { name: 'Iconia Talk S' })).toBeInTheDocument();
     });
 
-    it('arranca con el termino que trae la URL', async () => {
+    it('starts with the term carried by the URL', async () => {
       renderWithProviders(<ProductListPage />, { route: '/?q=iconia' });
 
       await screen.findByRole('heading', { name: 'Iconia Talk S' });
@@ -129,7 +129,7 @@ describe('ProductListPage', () => {
       expect(screen.queryByRole('heading', { name: 'Liquid Z6' })).not.toBeInTheDocument();
     });
 
-    it('borra la búsqueda con el boton del campo', async () => {
+    it('clears the search with the button in the field', async () => {
       const user = userEvent.setup();
       renderWithProviders(<ProductListPage />, { route: '/?q=iconia' });
       await screen.findByRole('heading', { name: 'Iconia Talk S' });
@@ -140,8 +140,8 @@ describe('ProductListPage', () => {
     });
   });
 
-  describe('fallos', () => {
-    it('explica el error y permite reintentar', async () => {
+  describe('failures', () => {
+    it('explains the error and allows retrying', async () => {
       const user = userEvent.setup();
       fetchMock.mockImplementationOnce(() => Promise.reject(new TypeError('sin red')));
 
@@ -155,7 +155,7 @@ describe('ProductListPage', () => {
       expect(await screen.findByRole('heading', { name: 'Iconia Talk S' })).toBeInTheDocument();
     });
 
-    it('avisa cuando la respuesta no tiene la forma esperada', async () => {
+    it('says so when the response does not have the expected shape', async () => {
       fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ productos: [] })));
 
       renderWithProviders(<ProductListPage />);
@@ -165,7 +165,7 @@ describe('ProductListPage', () => {
       );
     });
 
-    it('esconde el buscador mientras no hay catálogo que filtrar', async () => {
+    it('hides the search field while there is no catalogue to filter', async () => {
       fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({}, 500)));
 
       renderWithProviders(<ProductListPage />);
@@ -175,9 +175,9 @@ describe('ProductListPage', () => {
     });
   });
 
-  it('explica la espera cuando la primera carga se alarga', async () => {
-    // La API de la prueba se aloja en un plan gratuito que apaga el servicio:
-    // la primera petición tarda unos 40 segundos en arrancarlo.
+  it('explains the wait when the first load drags on', async () => {
+    // The test API sits on a free tier that shuts the service down: the first request takes
+    // about 40 seconds to start it up.
     vi.useFakeTimers({ shouldAdvanceTime: true });
     fetchMock.mockImplementation(
       () =>
@@ -202,7 +202,7 @@ describe('ProductListPage', () => {
     expect(screen.queryByText(/despertando el servidor/)).not.toBeInTheDocument();
   });
 
-  it('muestra la cesta vacía al arrancar', async () => {
+  it('shows an empty cart on start-up', async () => {
     renderWithProviders(<ProductListPage />);
     await screen.findByRole('heading', { name: 'Iconia Talk S' });
 

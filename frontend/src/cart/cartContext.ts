@@ -1,18 +1,17 @@
 import { createContext } from 'react';
 
 export interface CartContextValue {
-  /** Número de artículos en la cesta, tal y como lo informa la API. */
+  /** Number of items in the cart, as reported by the API. */
   count: number;
-  /** Fija el contador al valor devuelto por la API y lo persiste. */
+  /** Sets the counter to the value returned by the API and persists it. */
   setCount: (count: number) => void;
 }
 
 /**
- * El contexto vive en su propio modulo, separado del proveedor y del hook.
+ * The context lives in its own module, separate from the provider and from the hook.
  *
- * No es una manía: Vite solo puede aplicar recarga en caliente a un fichero que
- * exporta únicamente componentes. Mezclar el componente proveedor con el hook o
- * con el objeto de contexto obliga a recargar la página entera en cada cambio y
- * hace perder el estado de la aplicación mientras se desarrolla.
+ * This is not fussiness: Vite can only hot-reload a file that exports components exclusively.
+ * Mixing the provider component with the hook or with the context object forces a full page reload
+ * on every change and loses the application state while developing.
  */
 export const CartContext = createContext<CartContextValue | undefined>(undefined);

@@ -5,11 +5,10 @@ import { CartContext } from './cartContext.ts';
 
 export function useCart(): CartContextValue {
   const context = useContext(CartContext);
-  // Falla de forma explicita en lugar de devolver un cero silencioso: un
-  // componente fuera del proveedor es un error de programación, no un caso que
-  // haya que tolerar en ejecución.
+  // Fail explicitly rather than returning a silent zero: a component outside the provider is a
+  // programming error, not a case to tolerate at runtime.
   if (context === undefined) {
-    throw new Error('useCart tiene que usarse dentro de un CartProvider');
+    throw new Error('useCart has to be used inside a CartProvider');
   }
   return context;
 }

@@ -3,16 +3,16 @@ package com.itx.similarproducts.domain;
 import java.math.BigDecimal;
 
 /**
- * Detalle de producto, tal y como lo define el contrato acordado.
+ * Product detail, as defined by the agreed contract.
  *
- * <p>El precio es {@link BigDecimal} y no {@code double}: con coma flotante binaria, 9.99 no se
- * representa de forma exacta y los importes acumulan desviaciones. En dinero eso no es
- * aceptable, aunque aquí el servicio solo lo transporte.
+ * <p>The price is a {@link BigDecimal} and not a {@code double}: in binary floating point 9.99 has
+ * no exact representation and amounts accumulate drift. That is not acceptable for money, even
+ * though this service only carries it through.
  *
- * @param id           identificador del producto
- * @param name         nombre comercial
- * @param price        precio
- * @param availability si está disponible
+ * @param id           product identifier
+ * @param name         commercial name
+ * @param price        price
+ * @param availability whether it is available
  */
 public record ProductDetail(String id, String name, BigDecimal price, boolean availability) {
 }

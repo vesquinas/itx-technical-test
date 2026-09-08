@@ -7,10 +7,10 @@ import styles from './NotFoundPage.module.css';
 const TRAIL: Crumb[] = [{ label: 'Página no encontrada' }];
 
 /**
- * Ruta comodin.
+ * Catch-all route.
  *
- * Sin esta ruta, una URL mal escrita deja la aplicación en blanco sin ninguna
- * explicación: el enrutador no encuentra coincidencia y no pinta nada.
+ * Without it, a mistyped URL leaves the application blank with no explanation whatsoever: the
+ * router finds no match and renders nothing.
  */
 export function NotFoundPage() {
   return (

@@ -2,11 +2,10 @@ import type { ApiError } from '../api/client.ts';
 import styles from './ErrorState.module.css';
 
 /**
- * Traduce un fallo tecnico a un mensaje que le sirva a una persona.
+ * Translates a technical failure into a message that is useful to a person.
  *
- * Se distingue por tipo de fallo porque la acción que puede tomar el usuario es
- * distinta en cada caso: ante un problema de red puede reintentar, ante un
- * producto inexistente no tiene sentido ofrecerlo.
+ * The cases are told apart because the action the user can take differs in each: a network problem
+ * can be retried, whereas offering a retry for a product that does not exist makes no sense.
  */
 function describe(error: ApiError): { title: string; detail: string; canRetry: boolean } {
   switch (error.kind) {
@@ -46,14 +45,14 @@ function describe(error: ApiError): { title: string; detail: string; canRetry: b
 }
 
 /**
- * Bloque de error con reintento.
+ * Error block with a retry.
  *
- * El reintento es explicito y no automático a propósito: un reintento en bucle
- * castiga a un servidor que ya está en problemas, y deja al usuario sin saber
- * si la aplicación está haciendo algo o se ha quedado colgada.
+ * The retry is explicit and not automatic on purpose: retrying in a loop punishes a server that is
+ * already in trouble, and leaves the user unsure whether the application is doing something or has
+ * hung.
  *
- * `role="alert"` hace que el lector de pantalla lo anuncie en cuanto aparece,
- * sin esperar a que el usuario llegue navegando hasta el.
+ * `role="alert"` makes the screen reader announce it as soon as it appears, without waiting for the
+ * user to navigate down to it.
  */
 export function ErrorState({ error, onRetry }: { error: ApiError; onRetry?: () => void }) {
   const { title, detail, canRetry } = describe(error);

@@ -23,13 +23,13 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Recorrido completo de la operación, entrando por HTTP y con la API existente sustituida por un
- * doble que reproduce los mismos casos que el simulador de la prueba: retardos, 404 y 500.
+ * Full walk-through of the operation, entering over HTTP and with the existing API replaced by a
+ * double that reproduces the same cases as the test's mock service: delays, 404s and 500s.
  *
- * <p>Cada test usa identificadores propios. La caché es un componente único compartido por todo
- * el contexto de Spring, así que reutilizar identificadores haría que un test viera lo que dejó
- * otro; con identificadores distintos los tests quedan aislados sin necesidad de reconstruir el
- * contexto, que es lo caro.
+ * <p>Every test uses its own identifiers. The cache is a single component shared across the whole
+ * Spring context, so reusing identifiers would let one test see what another left behind; with
+ * distinct identifiers the tests stay isolated without rebuilding the context, which is the
+ * expensive part.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class SimilarProductsApiTest {
@@ -66,7 +66,7 @@ class SimilarProductsApiTest {
                 .withBody(body);
     }
 
-    /** Para los casos de error: el cuerpo es un ProblemDetail, no una lista de productos. */
+    /** For the failure cases: the body is a ProblemDetail, not a list of products. */
     private ResponseEntity<String> getSimilarRaw(String productId) {
         return restTemplate.getForEntity("/product/{productId}/similar", String.class, productId);
     }
@@ -82,7 +82,7 @@ class SimilarProductsApiTest {
     }
 
     @Test
-    void devuelve_el_detalle_de_todos_los_similares() {
+    void returns_the_detail_of_every_similar_product() {
         stubSimilarIds("a1", "[\"a2\",\"a3\"]");
         stubProduct("a2", "Dress", 19.99);
         stubProduct("a3", "Blazer", 29.99);
@@ -98,7 +98,7 @@ class SimilarProductsApiTest {
     }
 
     @Test
-    void conserva_el_orden_de_similitud_que_informa_la_api() {
+    void keeps_the_order_of_similarity_reported_by_the_api() {
         stubSimilarIds("b1", "[\"b3\",\"b2\",\"b4\"]");
         stubProduct("b2", "Dress", 19.99);
         stubProduct("b3", "Blazer", 29.99);
@@ -106,13 +106,13 @@ class SimilarProductsApiTest {
 
         List<ProductDetail> products = getSimilar("b1").getBody();
 
-        // El orden de la respuesta es el de la lista de similares, no el de llegada de las
-        // respuestas: las llamadas van en paralelo y terminan en cualquier orden.
+        // The order of the response is that of the similar-ids list, not the order the responses
+        // arrive in: the calls run in parallel and finish in any order.
         assertThat(products).extracting(ProductDetail::id).containsExactly("b3", "b2", "b4");
     }
 
     @Test
-    void descarta_los_identificadores_repetidos() {
+    void drops_duplicate_identifiers() {
         stubSimilarIds("c1", "[\"c2\",\"c2\",\"c3\"]");
         stubProduct("c2", "Dress", 19.99);
         stubProduct("c3", "Blazer", 29.99);
@@ -123,9 +123,9 @@ class SimilarProductsApiTest {
     }
 
     @Test
-    void acepta_los_identificadores_numericos_que_devuelve_el_simulador() {
-        // El contrato declara la lista como cadenas, pero el simulador de la prueba responde
-        // `[2,3,4]` con números. Hay que aceptar las dos formas.
+    void accepts_the_numeric_identifiers_the_mock_returns() {
+        // The contract declares the list as strings, but the test's mock answers `[2,3,4]` with
+        // numbers. Both shapes have to be accepted.
         stubSimilarIds("d1", "[91,92]");
         stubProduct("91", "Shirt", 9.99);
         stubProduct("92", "Dress", 19.99);
@@ -136,7 +136,7 @@ class SimilarProductsApiTest {
     }
 
     @Test
-    void devuelve_404_cuando_el_producto_de_la_peticion_no_existe() {
+    void returns_404_when_the_requested_product_does_not_exist() {
         existingApi.stubFor(get(urlEqualTo("/product/e1/similarids"))
                 .willReturn(aResponse().withStatus(404)));
 
@@ -144,16 +144,16 @@ class SimilarProductsApiTest {
     }
 
     @Test
-    void devuelve_502_cuando_la_api_existente_falla_al_dar_los_similares() {
+    void returns_502_when_the_existing_api_fails_to_give_the_similar_ids() {
         existingApi.stubFor(get(urlEqualTo("/product/f1/similarids"))
                 .willReturn(aResponse().withStatus(500)));
 
-        // No es un 500: el fallo es de una dependencia, no de este servicio.
+        // Not a 500: the failure belongs to a dependency, not to this service.
         assertThat(getSimilarRaw("f1").getStatusCode()).isEqualTo(HttpStatus.BAD_GATEWAY);
     }
 
     @Test
-    void omite_un_similar_que_ya_no_existe_en_lugar_de_fallar_la_respuesta_entera() {
+    void leaves_out_a_similar_product_that_no_longer_exists_instead_of_failing_the_whole_response() {
         stubSimilarIds("g1", "[\"g2\",\"g3\"]");
         stubProduct("g2", "Dress", 19.99);
         existingApi.stubFor(get(urlEqualTo("/product/g3")).willReturn(aResponse().withStatus(404)));
@@ -165,7 +165,7 @@ class SimilarProductsApiTest {
     }
 
     @Test
-    void omite_un_similar_que_devuelve_error() {
+    void leaves_out_a_similar_product_that_returns_an_error() {
         stubSimilarIds("h1", "[\"h2\",\"h3\"]");
         stubProduct("h2", "Dress", 19.99);
         existingApi.stubFor(get(urlEqualTo("/product/h3")).willReturn(aResponse().withStatus(500)));
@@ -177,7 +177,7 @@ class SimilarProductsApiTest {
     }
 
     @Test
-    void devuelve_lista_vacia_cuando_el_producto_no_tiene_similares() {
+    void returns_an_empty_list_when_the_product_has_no_similar_products() {
         stubSimilarIds("i1", "[]");
 
         ResponseEntity<List<ProductDetail>> response = getSimilar("i1");
@@ -187,7 +187,7 @@ class SimilarProductsApiTest {
     }
 
     @Test
-    void conserva_los_decimales_del_precio() {
+    void keeps_the_decimals_of_the_price() {
         stubSimilarIds("j1", "[\"j2\"]");
         stubProduct("j2", "Coat", 89.99);
 
@@ -199,9 +199,9 @@ class SimilarProductsApiTest {
     }
 
     @Test
-    void tolera_un_identificador_nulo_en_la_lista_de_similares() {
-        // Un `null` dentro del array JSON llega como elemento nulo de la lista, y
-        // `List.copyOf` rechaza los nulos con NullPointerException.
+    void tolerates_a_null_identifier_in_the_similar_ids_list() {
+        // A `null` inside the JSON array arrives as a null list element, and `List.copyOf`
+        // rejects nulls with NullPointerException.
         stubSimilarIds("n1", "[\"n2\",null,\"n3\"]");
         stubProduct("n2", "Dress", 19.99);
         stubProduct("n3", "Blazer", 29.99);
@@ -213,20 +213,20 @@ class SimilarProductsApiTest {
     }
 
     @Test
-    void descarta_los_identificadores_vacios_sin_llamar_a_la_api() {
+    void drops_blank_identifiers_without_calling_the_api() {
         stubSimilarIds("o1", "[\"\",\"  \",\"o2\"]");
         stubProduct("o2", "Dress", 19.99);
 
         List<ProductDetail> products = getSimilar("o1").getBody();
 
         assertThat(products).extracting(ProductDetail::id).containsExactly("o2");
-        // Un identificador vacio produciria una llamada a /product/, que no significa nada.
+        // A blank identifier would produce a call to /product/, which means nothing.
         existingApi.verify(0, WireMock.getRequestedFor(urlEqualTo("/product/")));
     }
 
     @Test
-    void devuelve_502_y_no_404_cuando_la_api_existente_limita_las_peticiones() {
-        // Un 429 no significa "el producto no existe": significa "vuelve luego".
+    void returns_502_and_not_404_when_the_existing_api_rate_limits() {
+        // A 429 does not mean "the product does not exist": it means "come back later".
         existingApi.stubFor(get(urlEqualTo("/product/r9/similarids"))
                 .willReturn(aResponse().withStatus(429)));
 
@@ -234,7 +234,7 @@ class SimilarProductsApiTest {
     }
 
     @Test
-    void omite_un_similar_cuyo_detalle_llega_sin_identificador() {
+    void leaves_out_a_similar_product_whose_detail_arrives_with_no_identifier() {
         stubSimilarIds("s9", "[\"s8\",\"s7\"]");
         stubProduct("s8", "Dress", 19.99);
         existingApi.stubFor(get(urlEqualTo("/product/s7")).willReturn(aResponse()
@@ -244,36 +244,36 @@ class SimilarProductsApiTest {
 
         List<ProductDetail> products = getSimilar("s9").getBody();
 
-        // Sin identificador el producto no es utilizable, y devolverlo incumpliria el contrato,
-        // que declara `id` obligatorio.
+        // With no identifier the product is unusable, and returning it would break the contract,
+        // which declares `id` mandatory.
         assertThat(products).extracting(ProductDetail::id).containsExactly("s8");
     }
 
     @Test
-    void rechaza_un_identificador_desmesurado_sin_llegar_a_la_api() {
-        String largo = "a".repeat(3_000);
+    void rejects_an_oversized_identifier_without_reaching_the_api() {
+        String oversized = "a".repeat(3_000);
 
-        ResponseEntity<String> response = getSimilarRaw(largo);
+        ResponseEntity<String> response = getSimilarRaw(oversized);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        // Lo importante: no se reenvia al origen ni se convierte en una clave de cache.
+        // The point: it is neither forwarded to the source nor turned into a cache key.
         existingApi.verify(0, WireMock.getRequestedFor(
-                urlEqualTo("/product/" + largo + "/similarids")));
+                urlEqualTo("/product/" + oversized + "/similarids")));
     }
 
     @Test
-    void responde_a_una_ruta_desconocida_sin_revelar_como_esta_construido_el_servicio() {
+    void answers_an_unknown_path_without_revealing_how_the_service_is_built() {
         ResponseEntity<String> response =
                 restTemplate.getForEntity("/una/ruta/inventada", String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        // Por omision, Spring responde "No static resource <ruta>." y devuelve al cliente la
-        // ruta que envio. Ni una cosa ni la otra le sirven a nadie mas que a quien explora.
+        // By default Spring answers "No static resource <path>." and hands the client back the
+        // path it sent. Neither serves anyone but someone probing the service.
         assertThat(response.getBody()).doesNotContain("static resource");
     }
 
     @Test
-    void no_vuelve_a_llamar_a_la_api_para_un_detalle_ya_cacheado() {
+    void does_not_call_the_api_again_for_an_already_cached_detail() {
         stubSimilarIds("k1", "[\"k2\"]");
         stubProduct("k2", "Dress", 19.99);
 

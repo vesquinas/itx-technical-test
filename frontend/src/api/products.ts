@@ -1,16 +1,16 @@
 /**
- * Acceso a los datos de producto: API + caché de cliente.
+ * Access to the product data: API plus client-side cache.
  *
- * Aquí se juntan las dos piezas anteriores. El orden de cada lectura es:
+ * This is where the two previous pieces come together. The order of every read is:
  *
- *   1. Caché. Si hay entrada valida y no caducada, se sirve sin red.
- *   2. Petición en vuelo. Si ya hay una petición identica en curso, se espera a
- *      esa en lugar de lanzar otra.
- *   3. API. Se pide, se valida y se guarda en caché.
+ *   1. Cache. If there is a valid, unexpired entry, it is served without hitting the network.
+ *   2. In-flight request. If an identical request is already under way, we wait for that one
+ *      instead of starting another.
+ *   3. API. Request, validate, store in the cache.
  *
- * El paso 2 importa más de lo que parece: sin el, montar en la misma vista dos
- * componentes que necesiten el mismo producto genera dos peticiones simultaneas,
- * porque ninguna ha terminado todavía para poblar la caché.
+ * Step 2 matters more than it looks: without it, mounting two components in the same view that
+ * both need the same product produces two simultaneous requests, because neither has finished yet
+ * to populate the cache.
  */
 
 import type { CartSelection, ProductDetail, ProductSummary } from '../domain/product.ts';
@@ -21,9 +21,9 @@ import { buildUrl, requestJson } from './client.ts';
 import { parseCartCount, parseProductDetail, parseProductList } from './schema.ts';
 
 /**
- * Subir esta versión inválida todo lo cacheado en los navegadores. Hay que
- * hacerlo cuando cambie la forma del modelo de dominio, o los usuarios que ya
- * tengan datos guardados seguirían leyendo el formato antiguo.
+ * Bumping this version invalidates everything cached in every browser. It has to be done when the
+ * shape of the domain model changes, or users who already have data stored would keep reading the
+ * old format.
  */
 const CACHE_VERSION = 1;
 
@@ -34,16 +34,15 @@ const cache = new TtlCache({
 });
 
 /**
- * Registro de peticiones en curso, para no lanzar dos veces la misma.
+ * Registry of in-flight requests, so the same one is not started twice.
  *
- * El tipo se recupera con una aserción, acotada a este único punto: la clave
- * determina de forma univoca el tipo del resultado (`products` siempre resuelve
- * a `ProductSummary[]`, `product/<id>` siempre a `ProductDetail`), así que la
- * aserción es correcta por construcción.
+ * The type is recovered with an assertion, confined to this single point: the key uniquely
+ * determines the type of the result (`products` always resolves to `ProductSummary[]`,
+ * `product/<id>` always to `ProductDetail`), so the assertion is correct by construction.
  *
- * Se intento evitarla revalidando la promesa compartida con el mismo parser,
- * pero es un error de concepto: el parser traduce la forma de la API y la
- * promesa ya contiene el modelo de dominio, con otros nombres de campo.
+ * Avoiding it by re-validating the shared promise with the same parser was tried, but that is a
+ * conceptual error: the parser translates the API's shape and the promise already holds the domain
+ * model, with different field names.
  */
 class InFlightRegistry {
   private readonly pending = new Map<string, Promise<unknown>>();
@@ -66,7 +65,7 @@ class InFlightRegistry {
 
 const inFlight = new InFlightRegistry();
 
-/** Lectura cacheada, con deduplicación de peticiones concurrentes. */
+/** A cached read, deduplicating concurrent requests. */
 async function readCached<T>(
   key: string,
   parse: Parser<T>,
@@ -98,10 +97,10 @@ export function fetchProductDetail(
 }
 
 /**
- * Añade un producto a la cesta y devuelve el número de artículos que hay en ella.
+ * Adds a product to the cart and returns the number of items in it.
  *
- * No se cachea ni se deduplica: es una escritura, y dos pulsaciones del boton
- * son dos intenciones distintas del usuario.
+ * It is neither cached nor deduplicated: it is a write, and two presses of the button are two
+ * distinct intentions from the user.
  */
 export function addToCart(
   selection: CartSelection,
@@ -114,7 +113,7 @@ export function addToCart(
   });
 }
 
-/** Vacía la caché de productos. Se expone para poder ofrecer un refresco manual. */
+/** Empties the product cache. Exposed so a manual refresh can be offered. */
 export function clearProductCache(): void {
   cache.clear();
   inFlight.clear();

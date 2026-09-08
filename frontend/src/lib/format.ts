@@ -1,15 +1,15 @@
 /**
- * Formateo de valores para la interfaz.
+ * Formatting of values for the interface.
  *
- * Los formateadores de `Intl` se crean una sola vez a nivel de modulo: construir
- * un `Intl.NumberFormat` es una operación costosa y hacerlo dentro del
- * renderizado de cada tarjeta se nota en una rejilla de cien productos.
+ * The `Intl` formatters are created once at module level: building an `Intl.NumberFormat` is
+ * expensive, and doing it inside the render of every card is noticeable on a grid of a hundred
+ * products.
  */
 
 /**
- * La API entrega el precio como un número sin unidad. Se asume el euro, que es
- * la divisa del mercado de la prueba; si algun dia la API informara la divisa,
- * este es el único punto que habría que cambiar.
+ * The API delivers the price as a number with no unit. The euro is assumed, since that is the
+ * currency of the test's market; if the API ever reported the currency, this is the only place
+ * that would need changing.
  */
 const priceFormatter = new Intl.NumberFormat('es-ES', {
   style: 'currency',
@@ -20,25 +20,25 @@ const priceFormatter = new Intl.NumberFormat('es-ES', {
 export const PRICE_UNAVAILABLE = 'Precio no disponible';
 
 /**
- * Formatea el precio, o devuelve un texto explicito cuando no hay.
+ * Formats the price, or returns explicit copy when there is none.
  *
- * Seis de los cien productos de la API llegan sin precio. Devolver un texto en
- * lugar de un hueco vacío evita que parezca un fallo de carga.
+ * Six of the hundred products in the API arrive with no price. Returning text instead of an empty
+ * gap keeps it from looking like a loading failure.
  */
 export function formatPrice(price: number | null): string {
   return price === null ? PRICE_UNAVAILABLE : priceFormatter.format(price);
 }
 
-/** El peso llega como número en gramos y sin unidad: `"260"`. */
+/** The weight arrives as a number of grams with no unit: `"260"`. */
 export function formatWeight(weight: string): string {
   return weight.length === 0 ? '' : `${weight} g`;
 }
 
 /**
- * Une los campos de valor multiple con un separador legible.
+ * Joins multi-valued fields with a readable separator.
  *
- * Es el remedio al hecho de que React concatene los arrays sin separación: sin
- * esto, `["13 MP", "autofocus"]` se pinta como `"13 MPautofocus"`.
+ * This is the remedy for React concatenating arrays with no separation: without it,
+ * `["13 MP", "autofocus"]` renders as `"13 MPautofocus"`.
  */
 export function joinSpecs(values: readonly string[]): string {
   return values.join(' · ');

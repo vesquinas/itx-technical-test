@@ -1,139 +1,146 @@
 /**
- * Valida los parsers de la aplicación contra la API real, entera.
+ * Validates the application's parsers against the real API, all of it.
  *
- * Los tests usan fixtures: respuestas reales copiadas, pero solo unas pocas. Este script
- * recorre **los 100 productos del catálogo** con el mismo código que usa la aplicación y
- * comprueba que ninguno produce un resultado que la interfaz no pueda pintar.
+ * The tests use fixtures: real responses, copied verbatim, but only a handful. This script walks
+ * **the 100 products of the catalogue** with the same code the application uses and checks that
+ * none of them produces a result the interface cannot render.
  *
- * Sirve para dos cosas distintas:
+ * It serves two distinct purposes:
  *
- *  1. Detectar un producto raro que las fixtures no cubren. Así se encontró que 1 de cada 5
- *     productos tiene vacío alguno de los atributos que el enunciado exige.
- *  2. Avisar si la API cambia. Si algún día corrigen los campos intercambiados o los nombres
- *     mal escritos, este script lo dice y habrá que ajustar la traducción a propósito.
+ *  1. Catching an odd product the fixtures do not cover. That is how it was found that 1 in 5
+ *     products has one of the attributes the brief requires empty.
+ *  2. Warning if the API changes. If the swapped fields or the misspelled names are ever fixed,
+ *     this script says so and the translation will have to be adjusted on purpose.
  *
- * No está en integración continua: necesita red y la API tarda unos 40 segundos en despertar.
- * Se ejecuta a mano con `npm run check:api`.
+ * It is not in continuous integration: it needs network and the API takes about 40 seconds to wake
+ * up. Run it by hand with `npm run check:api`.
  */
 
 import { parseProductDetail, parseProductList } from '../src/api/schema.ts';
 import type { ProductDetail } from '../src/domain/product.ts';
 
 const BASE_URL = process.env['VITE_API_BASE_URL'] ?? 'https://itx-frontend-test.onrender.com';
-const CONCURRENCIA = 8;
+const CONCURRENCY = 8;
 
-/** Atributos que el enunciado exige mostrar «al menos». */
-const OBLIGATORIOS: readonly (readonly [string, (p: ProductDetail) => string])[] = [
-  ['Marca', (p) => p.brand],
-  ['Modelo', (p) => p.model],
-  ['Precio', (p) => (p.price === null ? '' : String(p.price))],
-  ['Procesador', (p) => p.specs.cpu.join(' ')],
-  ['Memoria RAM', (p) => p.specs.ram],
-  ['Sistema operativo', (p) => p.specs.operatingSystem.join(' ')],
-  ['Resolución de pantalla', (p) => p.specs.screenResolution],
-  ['Batería', (p) => p.specs.battery],
-  ['Cámara principal', (p) => p.specs.primaryCamera.join(' ')],
-  ['Cámara frontal', (p) => p.specs.secondaryCamera.join(' ')],
-  ['Dimensiones', (p) => p.specs.dimensions],
-  ['Peso', (p) => p.specs.weight],
+/** The attributes the brief requires to be shown "at least". */
+const REQUIRED: readonly (readonly [string, (p: ProductDetail) => string])[] = [
+  ['Brand', (p) => p.brand],
+  ['Model', (p) => p.model],
+  ['Price', (p) => (p.price === null ? '' : String(p.price))],
+  ['CPU', (p) => p.specs.cpu.join(' ')],
+  ['RAM', (p) => p.specs.ram],
+  ['Operating system', (p) => p.specs.operatingSystem.join(' ')],
+  ['Screen resolution', (p) => p.specs.screenResolution],
+  ['Battery', (p) => p.specs.battery],
+  ['Main camera', (p) => p.specs.primaryCamera.join(' ')],
+  ['Front camera', (p) => p.specs.secondaryCamera.join(' ')],
+  ['Dimensions', (p) => p.specs.dimensions],
+  ['Weight', (p) => p.specs.weight],
 ];
 
-async function pedirJson(ruta: string): Promise<unknown> {
-  const respuesta = await fetch(new URL(ruta, `${BASE_URL}/`), {
+async function fetchJson(path: string): Promise<unknown> {
+  const response = await fetch(new URL(path, `${BASE_URL}/`), {
     headers: { Accept: 'application/json' },
     signal: AbortSignal.timeout(90_000),
   });
-  if (!respuesta.ok) throw new Error(`${ruta} respondió ${String(respuesta.status)}`);
-  return respuesta.json();
+  if (!response.ok) throw new Error(`${path} answered ${String(response.status)}`);
+  return response.json();
 }
 
-async function enLotes<T, R>(
-  elementos: readonly T[],
-  tamano: number,
-  tarea: (elemento: T) => Promise<R>,
+/**
+ * Runs the task over the items in batches.
+ *
+ * Sequential awaiting per batch is the mechanism that limits concurrency against the API. Awaiting
+ * every promise at once would fire a hundred simultaneous requests, which is what we want to
+ * avoid.
+ */
+async function inBatches<T, R>(
+  items: readonly T[],
+  size: number,
+  task: (item: T) => Promise<R>,
 ): Promise<R[]> {
-  const resultados: R[] = [];
-  for (let inicio = 0; inicio < elementos.length; inicio += tamano) {
-    const lote = elementos.slice(inicio, inicio + tamano);
-    resultados.push(...(await Promise.all(lote.map(tarea))));
+  const results: R[] = [];
+  for (let start = 0; start < items.length; start += size) {
+    const batch = items.slice(start, start + size);
+    results.push(...(await Promise.all(batch.map(task))));
   }
-  return resultados;
+  return results;
 }
 
-const errores: string[] = [];
-const avisos: string[] = [];
+const errors: string[] = [];
+const warnings: string[] = [];
 
-console.log(`Consultando ${BASE_URL} (la primera petición puede tardar ~40 s)…`);
+console.log(`Querying ${BASE_URL} (the first request may take ~40 s)…`);
 
-const listaSinValidar = await pedirJson('api/product');
-const lista = parseProductList(listaSinValidar);
-if (lista === undefined) {
-  console.error('FALLO: el listado no supera la validación. La API ha cambiado de forma.');
+const rawList = await fetchJson('api/product');
+const list = parseProductList(rawList);
+if (list === undefined) {
+  console.error('FAIL: the product list does not pass validation. The API has changed shape.');
   process.exit(1);
 }
 
-const brutos = Array.isArray(listaSinValidar) ? listaSinValidar.length : 0;
-console.log(`Listado: ${String(brutos)} productos, ${String(lista.length)} válidos.`);
-if (lista.length !== brutos) {
-  errores.push(`${String(brutos - lista.length)} productos del listado no superan la validación`);
+const rawCount = Array.isArray(rawList) ? rawList.length : 0;
+console.log(`List: ${String(rawCount)} products, ${String(list.length)} valid.`);
+if (list.length !== rawCount) {
+  errors.push(`${String(rawCount - list.length)} products in the list do not pass validation`);
 }
-for (const producto of lista) {
-  if (producto.imageUrl.length === 0) avisos.push(`${producto.model}: sin imagen utilizable`);
+for (const product of list) {
+  if (product.imageUrl.length === 0) warnings.push(`${product.model}: no usable image`);
 }
 
-console.log('Consultando el detalle de cada producto…');
-const detalles = await enLotes(lista, CONCURRENCIA, async (resumen) => {
-  const bruto = await pedirJson(`api/product/${encodeURIComponent(resumen.id)}`);
-  return { resumen, detalle: parseProductDetail(bruto), bruto };
+console.log('Querying the detail of every product…');
+const details = await inBatches(list, CONCURRENCY, async (summary) => {
+  const raw = await fetchJson(`api/product/${encodeURIComponent(summary.id)}`);
+  return { summary, detail: parseProductDetail(raw), raw };
 });
 
-const sinAtributo = new Map<string, string[]>();
+const missingAttribute = new Map<string, string[]>();
 
-for (const { resumen, detalle, bruto } of detalles) {
-  if (detalle === undefined) {
-    errores.push(`${resumen.model}: el detalle no supera la validación`);
+for (const { summary, detail, raw } of details) {
+  if (detail === undefined) {
+    errors.push(`${summary.model}: the detail does not pass validation`);
     continue;
   }
 
-  for (const [etiqueta, leer] of OBLIGATORIOS) {
-    if (leer(detalle).length === 0) {
-      sinAtributo.set(etiqueta, [...(sinAtributo.get(etiqueta) ?? []), detalle.model]);
+  for (const [label, read] of REQUIRED) {
+    if (read(detail).length === 0) {
+      missingAttribute.set(label, [...(missingAttribute.get(label) ?? []), detail.model]);
     }
   }
 
-  if (detalle.options.colors.length === 0 || detalle.options.storages.length === 0) {
-    errores.push(`${detalle.model}: sin colores o sin capacidades, no se podría comprar`);
+  if (detail.options.colors.length === 0 || detail.options.storages.length === 0) {
+    errors.push(`${detail.model}: no colours or no capacities, it could not be bought`);
   }
 
-  // Las particularidades documentadas de esta API. Si dejan de cumplirse, la API se ha
-  // corregido y hay que revisar la traduccion: dejar de cruzar los campos, por ejemplo.
-  const fuente = bruto as Record<string, unknown>;
-  if (!('dimentions' in fuente)) avisos.push(`${detalle.model}: ya no existe el campo mal escrito 'dimentions'`);
-  if (!('secondaryCmera' in fuente)) avisos.push(`${detalle.model}: ya no existe 'secondaryCmera'`);
-  if (typeof fuente['displaySize'] === 'string' && !/pixel/i.test(fuente['displaySize'])) {
-    avisos.push(`${detalle.model}: 'displaySize' ya no trae píxeles; ¿han deshecho el intercambio?`);
+  // The documented quirks of this API. If they stop holding, the API has been corrected and the
+  // translation needs revisiting: no longer crossing the fields back, for instance.
+  const source = raw as Record<string, unknown>;
+  if (!('dimentions' in source)) warnings.push(`${detail.model}: the misspelled field 'dimentions' is gone`);
+  if (!('secondaryCmera' in source)) warnings.push(`${detail.model}: 'secondaryCmera' is gone`);
+  if (typeof source['displaySize'] === 'string' && !/pixel/i.test(source['displaySize'])) {
+    warnings.push(`${detail.model}: 'displaySize' no longer carries pixels; has the swap been undone?`);
   }
 }
 
-console.log(`\nProductos consultados: ${String(detalles.length)}`);
-console.log('\nAtributos obligatorios sin valor en la API (se muestran como «No disponible»):');
-if (sinAtributo.size === 0) {
-  console.log('  ninguno');
+console.log(`\nProducts queried: ${String(details.length)}`);
+console.log('\nRequired attributes with no value in the API (shown as "No disponible"):');
+if (missingAttribute.size === 0) {
+  console.log('  none');
 } else {
-  for (const [etiqueta, modelos] of [...sinAtributo].toSorted((a, b) => b[1].length - a[1].length)) {
-    console.log(`  ${etiqueta}: ${String(modelos.length)} productos (${modelos.slice(0, 3).join(', ')}…)`);
+  for (const [label, models] of [...missingAttribute].toSorted((a, b) => b[1].length - a[1].length)) {
+    console.log(`  ${label}: ${String(models.length)} products (${models.slice(0, 3).join(', ')}…)`);
   }
 }
 
-if (avisos.length > 0) {
-  console.log(`\n${String(avisos.length)} aviso(s):`);
-  for (const aviso of [...new Set(avisos)].slice(0, 10)) console.log(`  ${aviso}`);
+if (warnings.length > 0) {
+  console.log(`\n${String(warnings.length)} warning(s):`);
+  for (const warning of [...new Set(warnings)].slice(0, 10)) console.log(`  ${warning}`);
 }
 
-if (errores.length > 0) {
-  console.error(`\n${String(errores.length)} error(es):`);
-  for (const error of errores.slice(0, 15)) console.error(`  ${error}`);
+if (errors.length > 0) {
+  console.error(`\n${String(errors.length)} error(s):`);
+  for (const error of errors.slice(0, 15)) console.error(`  ${error}`);
   process.exit(1);
 }
 
-console.log('\nTodos los productos del catálogo se traducen correctamente.');
+console.log('\nEvery product in the catalogue translates correctly.');

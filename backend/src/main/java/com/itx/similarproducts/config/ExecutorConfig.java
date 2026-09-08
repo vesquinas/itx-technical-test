@@ -7,20 +7,19 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Ejecutor con el que se resuelven en paralelo los detalles de producto.
+ * The executor used to resolve product details in parallel.
  *
- * <p>Es un único ejecutor compartido, y no uno creado por petición, por dos motivos. El menor es
- * no pagar la creación en cada llamada.
+ * <p>It is one shared executor rather than one created per request, for two reasons. The lesser one
+ * is not paying for the creation on every call.
  *
- * <p>El importante es la semántica de {@code close()}: desde que {@link ExecutorService}
- * implementa {@code AutoCloseable}, cerrarlo dentro de un {@code try-with-resources} <b>espera a
- * que terminen todas las tareas</b>. Eso convertiría en inútil el presupuesto de tiempo de la
- * petición: tras descartar una llamada lenta, el cierre del ejecutor se quedaría esperándola
- * igualmente. Con un ejecutor compartido, la petición responde de inmediato y la carga descartada
- * termina por su cuenta, dejando el producto en la caché.
+ * <p>The important one is the semantics of {@code close()}: since {@link ExecutorService} implements
+ * {@code AutoCloseable}, closing it inside a {@code try-with-resources} <b>waits for every task to
+ * finish</b>. That would defeat the request's time budget: after abandoning a slow call, closing the
+ * executor would wait for it anyway. With a shared executor the request answers immediately and the
+ * abandoned load finishes on its own, leaving the product in the cache.
  *
- * <p>Se destruye con {@code shutdownNow} en lugar de {@code shutdown} para que al parar la
- * aplicación no se quede esperando a las llamadas en vuelo.
+ * <p>It is destroyed with {@code shutdownNow} instead of {@code shutdown} so that stopping the
+ * application does not wait for in-flight calls.
  */
 @Configuration
 public class ExecutorConfig {

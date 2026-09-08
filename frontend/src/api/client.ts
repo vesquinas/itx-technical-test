@@ -1,9 +1,8 @@
 /**
- * Cliente HTTP de la aplicación.
+ * The application's HTTP client.
  *
- * Responsabilidades: construir las URLs de forma segura, imponer un limite de
- * tiempo a toda petición y traducir cualquier fallo a un error tipado que la
- * interfaz pueda explicar al usuario.
+ * Its responsibilities: building URLs safely, imposing a time limit on every request, and
+ * translating any failure into a typed error the interface can explain to the user.
  */
 
 import type { Parser } from '../lib/parse.ts';
@@ -11,27 +10,26 @@ import type { Parser } from '../lib/parse.ts';
 const DEFAULT_BASE_URL = 'https://itx-frontend-test.onrender.com';
 
 /**
- * La API de la prueba está alojada en el plan gratuito de Render, que apaga el
- * servicio cuando no recibe tráfico. La primera petición tras un periodo de
- * inactividad tarda unos 40 segundos en responder porque el servicio tiene que
- * arrancar (medido). Un limite de tiempo "normal" de 10 segundos haría fallar
- * siempre la primera carga, así que se toma un margen amplio y es la interfaz la
- * que avisa al usuario de que la espera puede ser larga.
+ * The test API is hosted on Render's free tier, which shuts the service down when it receives no
+ * traffic. The first request after a period of inactivity takes about 40 seconds to answer because
+ * the service has to boot (measured). A "normal" 10-second limit would make the first load fail
+ * every time, so a generous margin is taken and it is the interface that warns the user the wait
+ * may be long.
  */
 export const DEFAULT_TIMEOUT_MS = 60_000;
 
 export type ApiFailureKind =
-  /** No hubo respuesta: sin conexión, DNS, CORS o servidor caído. */
+  /** No response at all: no connection, DNS, CORS or a downed server. */
   | 'network'
-  /** Se agoto el limite de tiempo. */
+  /** The time limit ran out. */
   | 'timeout'
-  /** El recurso no existe (404). */
+  /** The resource does not exist (404). */
   | 'notFound'
-  /** Respondió con un código de error distinto de 404. */
+  /** It answered with an error status other than 404. */
   | 'http'
-  /** Respondió, pero el cuerpo no tiene la forma esperada. */
+  /** It answered, but the body does not have the expected shape. */
   | 'malformed'
-  /** La petición se cancelo desde la aplicación (cambio de vista, por ejemplo). */
+  /** The request was cancelled from the application (a view change, for instance). */
   | 'aborted';
 
 export class ApiError extends Error {
@@ -49,16 +47,16 @@ export class ApiError extends Error {
 function resolveBaseUrl(): string {
   const configured = import.meta.env.VITE_API_BASE_URL;
   const raw = typeof configured === 'string' && configured.length > 0 ? configured : DEFAULT_BASE_URL;
-  // Normaliza para que `new URL` no descarte segmentos de la ruta base.
+  // Normalised so `new URL` does not drop segments of the base path.
   return raw.endsWith('/') ? raw : `${raw}/`;
 }
 
 /**
- * Construye la URL a partir de segmentos ya codificados.
+ * Builds the URL out of already-encoded segments.
  *
- * Se usa `encodeURIComponent` en cada segmento en lugar de interpolar en una
- * plantilla: un identificador que contenga `../` o `?` no debe poder cambiar la
- * ruta ni añadir parámetros a la petición.
+ * `encodeURIComponent` is applied to each segment rather than interpolating into a template: an
+ * identifier containing `../` or `?` must not be able to change the path or add parameters to the
+ * request.
  */
 export function buildUrl(segments: readonly string[]): string {
   const path = segments.map((segment) => encodeURIComponent(segment)).join('/');
@@ -78,10 +76,10 @@ function combineSignals(signal: AbortSignal | undefined, timeoutMs: number): Abo
 }
 
 /**
- * Realiza la petición y valida la respuesta con `parse`.
+ * Performs the request and validates the response with `parse`.
  *
- * Devolver el tipo ya validado (en vez de `unknown` o un `as`) es lo que hace
- * que el resto de la aplicación pueda confiar en sus datos.
+ * Returning the already-validated type (rather than `unknown` or an `as`) is what lets the rest of
+ * the application trust its data.
  */
 export async function requestJson<T>(
   url: string,
@@ -137,8 +135,8 @@ function toRequestError(cause: unknown, signal: AbortSignal | undefined): ApiErr
     return new ApiError('timeout', 'La API ha tardado demasiado en responder');
   }
   if (cause instanceof DOMException && cause.name === 'AbortError') {
-    // Distinguimos la cancelación nuestra del limite de tiempo: la primera no
-    // es un error que haya que mostrar al usuario.
+    // We tell our own cancellation apart from the time limit: the former is not an error to show
+    // to the user.
     return signal?.aborted === true
       ? new ApiError('aborted', 'Petición cancelada')
       : new ApiError('timeout', 'La API ha tardado demasiado en responder');

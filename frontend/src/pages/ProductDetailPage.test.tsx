@@ -17,12 +17,12 @@ function jsonResponse(payload: unknown, status = 200): Response {
   });
 }
 
-/** El detalle vive en una ruta con parámetro, así que hay que declararla. */
+/** The detail lives on a route with a parameter, so it has to be declared. */
 function renderDetail(route = '/product/abc123') {
   return renderWithProviders(<ProductDetailPage />, { route, path: '/product/:productId' });
 }
 
-/** Producto con dos colores y dos capacidades, para probar la selección. */
+/** A product with two colours and two capacities, to exercise the selection. */
 const conVariasOpciones = {
   ...productDetailFixture,
   options: {
@@ -46,16 +46,16 @@ describe('ProductDetailPage', () => {
     vi.stubGlobal('fetch', fetchMock);
   });
 
-  it('muestra marca, modelo y precio del producto', async () => {
+  it('shows the brand, model and price of the product', async () => {
     renderDetail();
 
     expect(await screen.findByRole('heading', { level: 1, name: 'X960' })).toBeInTheDocument();
-    // La marca aparece dos veces a propósito: sobre el titulo y en la ficha.
+    // The brand appears twice on purpose: above the title and in the spec sheet.
     expect(screen.getAllByText('Acer')).toHaveLength(2);
     expect(screen.getAllByText(/270,00/).length).toBeGreaterThan(0);
   });
 
-  it('muestra la imagen con un texto alternativo útil', async () => {
+  it('shows the image with useful alternative text', async () => {
     renderDetail();
 
     const imagen = await screen.findByRole('img', { name: 'Acer X960' });
@@ -63,8 +63,8 @@ describe('ProductDetailPage', () => {
     expect(imagen).toHaveAttribute('src', productDetailFixture.imgUrl);
   });
 
-  describe('ficha tecnica', () => {
-    it('muestra todos los atributos que exige el enunciado', async () => {
+  describe('spec sheet', () => {
+    it('shows every attribute the brief requires', async () => {
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
 
@@ -86,27 +86,27 @@ describe('ProductDetailPage', () => {
       }
     });
 
-    it('muestra la resolución en píxeles, deshaciendo el intercambio de la API', async () => {
+    it('shows the resolution in pixels, undoing the swap made by the API', async () => {
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
 
-      // La API publica los píxeles bajo `displaySize` y las pulgadas bajo
-      // `displayResolution`; la ficha tiene que mostrar los píxeles.
+      // The API publishes the pixels under `displaySize` and the inches under
+      // `displayResolution`; the spec sheet has to show the pixels.
       expect(screen.getByText(productDetailFixture.displaySize)).toBeInTheDocument();
     });
 
-    it('añade la unidad al peso', async () => {
+    it('adds the unit to the weight', async () => {
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
 
       expect(screen.getByText(`${productDetailFixture.weight} g`)).toBeInTheDocument();
     });
 
-    it('muestra los atributos obligatorios aunque la API no traiga su valor', async () => {
-      // El enunciado pide mostrar «al menos» once atributos, así que ocultar uno
-      // porque la API no lo trae incumple el requisito. Y no es un caso raro:
-      // sobre los 100 productos del catálogo, 1 de cada 5 tiene al menos uno de
-      // esos once vacío (el peso falta en 7, la RAM en 4, la camara frontal en 4).
+    it('shows the required attributes even when the API brings no value', async () => {
+      // The brief asks to show "at least" eleven attributes, so hiding one because the API does
+      // not deliver it breaks the requirement. And it is not a rare case: across the 100 products
+      // of the catalogue, 1 in 5 has at least one of those eleven empty (weight is missing in 7,
+      // RAM in 4, the front camera in 4).
       fetchMock.mockImplementation(() =>
         Promise.resolve(
           jsonResponse({
@@ -128,7 +128,7 @@ describe('ProductDetailPage', () => {
       expect(screen.getAllByText('No disponible')).toHaveLength(4);
     });
 
-    it('coloca la descripción sobre las acciones, como el wireframe del enunciado', async () => {
+    it('places the description above the actions, just as the wireframe does', async () => {
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
 
@@ -140,18 +140,18 @@ describe('ProductDetailPage', () => {
       ).toBeTruthy();
     });
 
-    it('omite las filas sin valor en lugar de dejarlas vacías', async () => {
+    it('leaves out rows with no value instead of showing them empty', async () => {
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
 
-      // `nfc` llega vacío en los 100 productos del catálogo, y no esta entre los
-      // atributos que el enunciado exige, así que su fila no se dibuja.
+      // `nfc` arrives empty across all 100 products of the catalogue, and it is not among the
+      // attributes the brief requires, so its row is not drawn.
       expect(screen.queryByText('NFC')).not.toBeInTheDocument();
     });
   });
 
-  describe('selectores', () => {
-    it('preselecciona la opción cuando solo hay una', async () => {
+  describe('option pickers', () => {
+    it('preselects the option when there is only one', async () => {
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
 
@@ -160,9 +160,9 @@ describe('ProductDetailPage', () => {
       expect(screen.getByRole('button', { name: 'Añadir a la cesta' })).toBeEnabled();
     });
 
-    it('permite comprar un producto cuya opción no tiene nombre', async () => {
-      // M900 y DX650 traen su única capacidad con un espacio por nombre. Antes se
-      // descartaba la opción y el producto aparecía como no disponible para comprar.
+    it('allows buying a product whose option has no name', async () => {
+      // M900 and DX650 deliver their only capacity with a space for a name. The option used to
+      // be dropped and the product showed up as unavailable for purchase.
       fetchMock.mockImplementation(() =>
         Promise.resolve(
           jsonResponse({
@@ -185,7 +185,7 @@ describe('ProductDetailPage', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('muestra el selector aunque haya una sola opción', async () => {
+    it('shows the picker even with a single option', async () => {
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
 
@@ -193,7 +193,7 @@ describe('ProductDetailPage', () => {
       expect(screen.getByRole('group', { name: 'Almacenamiento' })).toBeInTheDocument();
     });
 
-    it('exige elegir cuando hay varias opciones', async () => {
+    it('requires a choice when there are several options', async () => {
       fetchMock.mockImplementation(() => Promise.resolve(jsonResponse(conVariasOpciones)));
       const user = userEvent.setup();
       renderDetail();
@@ -211,8 +211,8 @@ describe('ProductDetailPage', () => {
     });
   });
 
-  describe('añadir a la cesta', () => {
-    it('envia identificador, color y capacidad seleccionados', async () => {
+  describe('add to cart', () => {
+    it('sends the selected identifier, colour and capacity', async () => {
       const user = userEvent.setup();
       renderDetail('/product/abc123');
       await screen.findByRole('heading', { level: 1, name: 'X960' });
@@ -222,8 +222,8 @@ describe('ProductDetailPage', () => {
 
       const ultimaLlamada = fetchMock.mock.calls.at(-1);
       expect(ultimaLlamada?.[0]).toContain('/api/cart');
-      // Se envía el identificador del producto cargado, no el de la URL: si
-      // ambos discreparan, el dato bueno es el que ha devuelto la API.
+      // The identifier of the loaded product is sent, not the one from the URL: if the two
+      // disagreed, the good value is the one the API returned.
       expect(JSON.parse(String(ultimaLlamada?.[1]?.body))).toEqual({
         id: productDetailFixture.id,
         colorCode: 1000,
@@ -231,7 +231,7 @@ describe('ProductDetailPage', () => {
       });
     });
 
-    it('lleva a la cabecera el contador que devuelve la API', async () => {
+    it('carries the counter the API returns into the header', async () => {
       const user = userEvent.setup();
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
@@ -242,11 +242,11 @@ describe('ProductDetailPage', () => {
       expect(await screen.findByText('3 artículos')).toBeInTheDocument();
     });
 
-    it('persiste el contador, de modo que sobrevive a recargar la aplicación', async () => {
-      // El enunciado exige persistir el contador de la cesta. Sin este test, quitar la
-      // escritura en almacenamiento no rompía ninguna prueba: el requisito se podía
-      // perder en un refactor sin que nadie se enterara. Se detectó inyectando ese
-      // bug a proposito y comprobando que la suite no lo cazaba.
+    it('persists the counter, so it survives reloading the application', async () => {
+      // The brief requires persisting the cart counter. Without this test, removing the write to
+      // storage broke no test at all: the requirement could have been lost in a refactor without
+      // anyone noticing. It was found by injecting that very defect on purpose and checking that
+      // the suite did not catch it.
       const user = userEvent.setup();
       const { unmount } = renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
@@ -255,8 +255,8 @@ describe('ProductDetailPage', () => {
       await user.click(screen.getByRole('button', { name: 'Añadir a la cesta' }));
       await screen.findByText('4 artículos');
 
-      // Desmontar y volver a montar equivale a que el usuario recargue la página: el
-      // estado en memoria se pierde y solo queda lo que se haya persistido.
+      // Unmounting and mounting again is the equivalent of the user reloading the page: the
+      // in-memory state is lost and only what was persisted remains.
       unmount();
       fetchMock.mockImplementation(() => Promise.resolve(jsonResponse(productDetailFixture)));
       renderDetail();
@@ -264,7 +264,7 @@ describe('ProductDetailPage', () => {
       expect(await screen.findByText('4 artículos')).toBeInTheDocument();
     });
 
-    it('confirma la acción al usuario', async () => {
+    it('confirms the action to the user', async () => {
       const user = userEvent.setup();
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
@@ -275,9 +275,9 @@ describe('ProductDetailPage', () => {
       expect(await screen.findByText('Producto añadido a la cesta.')).toBeInTheDocument();
     });
 
-    it('bloquea los selectores mientras la petición está en vuelo', async () => {
-      // Sin esto, cambiar de color con la petición en curso hacia que al llegar la respuesta
-      // se anunciara "producto añadido" para una selección distinta de la que se envio.
+    it('locks the pickers while the request is in flight', async () => {
+      // Without this, changing colour with the request under way meant that when the response
+      // arrived it announced "producto añadido" for a selection other than the one sent.
       const user = userEvent.setup();
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
@@ -304,7 +304,7 @@ describe('ProductDetailPage', () => {
       expect(screen.getByRole('radio', { name: 'Black' })).toBeEnabled();
     });
 
-    it('avisa si la petición falla y no toca el contador', async () => {
+    it('warns if the request fails and leaves the counter alone', async () => {
       const user = userEvent.setup();
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
@@ -317,8 +317,8 @@ describe('ProductDetailPage', () => {
     });
   });
 
-  describe('navegación', () => {
-    it('ofrece un enlace de vuelta al listado', async () => {
+  describe('navigation', () => {
+    it('offers a link back to the list', async () => {
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
 
@@ -328,7 +328,7 @@ describe('ProductDetailPage', () => {
       );
     });
 
-    it('conserva la búsqueda al volver al listado', async () => {
+    it('keeps the search when going back to the list', async () => {
       renderDetail('/product/abc123?q=iconia');
       await screen.findByRole('heading', { level: 1, name: 'X960' });
 
@@ -338,7 +338,7 @@ describe('ProductDetailPage', () => {
       );
     });
 
-    it('muestra el nombre del producto en las migas de pan', async () => {
+    it('shows the product name in the breadcrumbs', async () => {
       renderDetail();
 
       const migas = await screen.findByRole('navigation', { name: 'Ruta de navegación' });
@@ -347,8 +347,8 @@ describe('ProductDetailPage', () => {
     });
   });
 
-  describe('fallos', () => {
-    it('explica que el producto no existe cuando la API responde 404', async () => {
+  describe('failures', () => {
+    it('explains that the product does not exist when the API answers 404', async () => {
       fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({}, 404)));
 
       renderDetail();
@@ -358,7 +358,7 @@ describe('ProductDetailPage', () => {
       );
     });
 
-    it('no ofrece reintentar ante un producto inexistente', async () => {
+    it('does not offer a retry for a product that does not exist', async () => {
       fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({}, 404)));
 
       renderDetail();

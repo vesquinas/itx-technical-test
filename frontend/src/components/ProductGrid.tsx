@@ -3,25 +3,23 @@ import { ProductCard } from './ProductCard.tsx';
 import styles from './ProductGrid.module.css';
 
 /**
- * Rejilla de productos.
+ * The product grid.
  *
- * Es una lista (`ul`/`li`) y no un puñado de `div`: el lector de pantalla anuncia
- * "lista de 100 elementos" y permite recorrerla como tal.
+ * It is a list (`ul`/`li`) and not a handful of `div`s: the screen reader announces "list of 100
+ * items" and lets the user traverse it as such.
  *
- * La rejilla llega hasta cuatro columnas, como pide el enunciado, y baja a tres,
- * dos y una segun el ancho disponible. Se usan puntos de ruptura explicitos en
- * lugar de `auto-fill` porque `auto-fill` no permite poner un techo al número de
- * columnas, y en una pantalla ancha pasaria de cuatro.
+ * The grid goes up to four columns, as the brief asks, and drops to three, two and one depending
+ * on the available width. Explicit breakpoints are used instead of `auto-fill` because `auto-fill`
+ * offers no way to cap the number of columns, and on a wide screen it would go past four.
  *
- * No se virtualiza: son 100 productos. Virtualizar aquí añadiria una dependencia,
- * rompería la búsqueda del navegador y complicaria la accesibilidad para resolver
- * un problema que a esta escala no existe.
+ * It is not virtualised: there are 100 products. Virtualising here would add a dependency, break
+ * the browser's find-in-page and complicate accessibility, to solve a problem that does not exist
+ * at this scale.
  */
 export function ProductGrid({ products }: { products: readonly ProductSummary[] }) {
   return (
-    // El nombre accesible distingue esta lista de las migas de pan de la
-    // cabecera, que también son una lista, tanto para un lector de pantalla como
-    // para los tests.
+    // The accessible name tells this list apart from the header's breadcrumbs, which are also a
+    // list, both for a screen reader and for the tests.
     <ul aria-label="Productos" className={styles.grid}>
       {products.map((product) => (
         <li className={styles.cell} key={product.id}>

@@ -21,12 +21,12 @@ function jsonResponse(payload: unknown, status = 200): Response {
 }
 
 /**
- * Auditoría de accesibilidad de las dos vistas, en sus estados relevantes.
+ * Accessibility audit of both views, in their relevant states.
  *
- * No basta con comprobar la vista cargada: los estados de carga y de error tienen
- * su propio marcado, y son justamente los que se suelen dejar sin revisar.
+ * Checking the loaded view is not enough: the loading and error states have markup of their own,
+ * and they are precisely the ones usually left unchecked.
  */
-describe('accesibilidad', () => {
+describe('accessibility', () => {
   let fetchMock: Mock<FetchStub>;
 
   beforeEach(() => {
@@ -35,15 +35,15 @@ describe('accesibilidad', () => {
     vi.stubGlobal('fetch', fetchMock);
   });
 
-  describe('listado', () => {
-    it('no tiene violaciones con el catálogo cargado', async () => {
+  describe('product list', () => {
+    it('has no violations with the catalogue loaded', async () => {
       const { container } = renderWithProviders(<ProductListPage />);
       await screen.findByRole('heading', { name: 'Iconia Talk S' });
 
       await expectNoAccessibilityViolations(container);
     });
 
-    it('no tiene violaciones mientras carga', async () => {
+    it('has no violations while loading', async () => {
       fetchMock.mockImplementation(() => new Promise(() => undefined));
 
       const { container } = renderWithProviders(<ProductListPage />);
@@ -51,7 +51,7 @@ describe('accesibilidad', () => {
       await expectNoAccessibilityViolations(container);
     });
 
-    it('no tiene violaciones en el estado de error', async () => {
+    it('has no violations in the error state', async () => {
       fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({}, 500)));
 
       const { container } = renderWithProviders(<ProductListPage />);
@@ -60,7 +60,7 @@ describe('accesibilidad', () => {
       await expectNoAccessibilityViolations(container);
     });
 
-    it('no tiene violaciones cuando la búsqueda no encuentra nada', async () => {
+    it('has no violations when the search finds nothing', async () => {
       const user = userEvent.setup();
       const { container } = renderWithProviders(<ProductListPage />);
       await screen.findByRole('heading', { name: 'Iconia Talk S' });
@@ -71,8 +71,8 @@ describe('accesibilidad', () => {
     });
   });
 
-  describe('ficha de producto', () => {
-    it('no tiene violaciones con el producto cargado', async () => {
+  describe('product detail page', () => {
+    it('has no violations with the product loaded', async () => {
       fetchMock.mockImplementation(() => Promise.resolve(jsonResponse(productDetailFixture)));
 
       const { container } = renderWithProviders(<ProductDetailPage />, {
@@ -84,7 +84,7 @@ describe('accesibilidad', () => {
       await expectNoAccessibilityViolations(container);
     });
 
-    it('no tiene violaciones cuando el producto no existe', async () => {
+    it('has no violations when the product does not exist', async () => {
       fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({}, 404)));
 
       const { container } = renderWithProviders(<ProductDetailPage />, {

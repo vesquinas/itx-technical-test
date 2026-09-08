@@ -6,19 +6,18 @@ import { CartIndicator } from './CartIndicator.tsx';
 import styles from './Header.module.css';
 
 /**
- * Cabecera de la aplicación, presente en las dos vistas.
+ * The application header, present on both views.
  *
- * Recibe las migas de pan como prop en lugar de deducirlas de la ruta. El motivo
- * es que la miga de la vista de detalle es el nombre del producto, que solo se
- * conoce cuando el producto ha cargado: pasarla desde la vista mantiene la
- * cabecera como un componente sin estado, facil de probar y sin necesidad de un
- * contexto ni de efectos para sincronizar el titulo.
+ * It receives the breadcrumb trail as a prop instead of deriving it from the route. The reason is
+ * that the detail view's crumb is the product name, which is only known once the product has
+ * loaded: passing it from the view keeps the header a stateless component, easy to test and with
+ * no need for a context or effects to keep the title in sync.
  */
 export function Header({ trail }: { trail: readonly Crumb[] }) {
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
-        {/* El titulo enlaza a la vista principal, como pide el enunciado. */}
+        {/* The title links to the main view, as the brief asks. */}
         <Link aria-label="Ir a la lista de productos" className={styles.brand} to="/">
           <span className={styles.brandMark}>MOBILE</span>
           <span className={styles.brandThin}>STORE</span>

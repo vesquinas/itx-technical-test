@@ -1,15 +1,14 @@
 /**
- * Superficie mínima de almacenamiento que necesita la caché.
+ * The minimal storage surface the cache needs.
  *
- * Definirla como interfaz en lugar de usar `localStorage` directamente permite
- * dos cosas: probar la caché sin navegador, y degradar a memoria cuando el
- * almacenamiento persistente no está disponible.
+ * Defining it as an interface instead of using `localStorage` directly buys two things: testing
+ * the cache without a browser, and degrading to memory when persistent storage is unavailable.
  */
 export interface KeyValueStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
   removeItem(key: string): void;
-  /** Claves presentes, necesarias para poder limpiar por prefijo. */
+  /** The keys present, needed to be able to clear by prefix. */
   keys(): string[];
 }
 
@@ -50,12 +49,11 @@ function wrapWebStorage(storage: Storage): KeyValueStorage {
 const PROBE_KEY = '__itx_storage_probe__';
 
 /**
- * Comprueba que el almacenamiento se puede leer y escribir de verdad.
+ * Checks that the storage can really be read from and written to.
  *
- * No basta con que `localStorage` exista: en navegación privada de Safari y con
- * las cookies de terceros bloqueadas, el objeto está presente pero `setItem`
- * lanza una excepción. Incluso el simple acceso a la propiedad puede lanzar
- * dentro de un iframe restringido, de ahi que el acceso vaya en `try`.
+ * `localStorage` existing is not enough: in Safari private browsing and with third-party cookies
+ * blocked, the object is there but `setItem` throws. Even accessing the property itself can throw
+ * inside a restricted iframe, which is why the access sits in a `try`.
  */
 export function isUsable(storage: KeyValueStorage): boolean {
   try {
@@ -68,17 +66,17 @@ export function isUsable(storage: KeyValueStorage): boolean {
 }
 
 /**
- * Devuelve `localStorage` si es utilizable y, si no, un almacén en memoria.
+ * Returns `localStorage` if it is usable, and an in-memory store otherwise.
  *
- * La caché es una optimización: cuando no se puede persistir, la aplicación
- * tiene que seguir funcionando aunque pierda el cacheo entre recargas.
+ * The cache is an optimisation: when persisting is impossible the application still has to work,
+ * even if it loses the caching across reloads.
  */
 export function resolveStorage(): KeyValueStorage {
   try {
     const candidate = wrapWebStorage(globalThis.localStorage);
     if (isUsable(candidate)) return candidate;
   } catch {
-    // Sin acceso a localStorage: caemos a memoria.
+    // No access to localStorage: fall back to memory.
   }
   return createMemoryStorage();
 }

@@ -3,25 +3,28 @@ import { useId } from 'react';
 import type { ProductOption } from '../domain/product.ts';
 import styles from './OptionPicker.module.css';
 
-/**
- * Selector de una opción entre varias.
- *
- * Se implementa como un grupo de radios dentro de un `fieldset` con `legend`, no
- * como una lista de botones ni como un `<select>`:
- *
- * - Es el elemento que corresponde a una eleccion excluyente, y el lector de
- *   pantalla anuncia "Color, grupo, opción 1 de 2" en lugar de leer dos botones
- *   sueltos sin relación.
- * - El teclado funciona sin escribir nada: las flechas se mueven dentro del
- *   grupo y el tabulador salta al siguiente grupo, que es lo que espera quien
- *   navega así.
- *
- * Los radios nativos van ocultos visualmente y el aspecto lo da la etiqueta, de
- * modo que se conserva todo el comportamiento nativo con el diseno del wireframe.
- */
-/** Rótulo para una opción a la que la API no da nombre. */
+/** Label for an option the API gives no name for. */
 const FALLBACK_LABEL = 'Estándar';
 
+/**
+ * A picker for one option among several.
+ *
+ * It is built as a group of radios inside a `fieldset` with a `legend`, not as a list of buttons
+ * and not as a `<select>`:
+ *
+ * - It is the element that matches a mutually exclusive choice, and the screen reader announces
+ *   "Color, group, option 1 of 2" instead of reading two unrelated buttons.
+ * - The keyboard works without writing anything: the arrow keys move within the group and Tab
+ *   jumps to the next group, which is what anyone navigating that way expects.
+ *
+ * The native radios are hidden visually and the appearance comes from the label, so all the native
+ * behaviour is preserved alongside the wireframe's design.
+ *
+ * When the API gives no name for an option, a filler label is used. That happens in two products of
+ * the catalogue, whose only storage option arrives with a space for a name. The alternative —
+ * dropping the option — left those products unable to be bought, which is worse: the option's code
+ * is valid and the API accepts the purchase.
+ */
 export function OptionPicker({
   legend,
   options,
@@ -33,14 +36,14 @@ export function OptionPicker({
   options: readonly ProductOption[];
   selectedCode: number | undefined;
   onSelect: (code: number) => void;
-  /** Bloquea el grupo mientras hay una acción en curso. */
+  /** Locks the group while an action is under way. */
   disabled?: boolean;
 }) {
   const groupName = useId();
 
   return (
-    // `disabled` en el `fieldset` bloquea todo el grupo de una vez, que es lo que hace el
-    // elemento nativo: no hay que propagarlo a cada radio.
+    // `disabled` on the `fieldset` locks the whole group at once, which is what the native element
+    // does: there is no need to propagate it to every radio.
     <fieldset className={styles.group} disabled={disabled}>
       <legend className={styles.legend}>{legend}</legend>
 

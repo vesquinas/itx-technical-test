@@ -9,21 +9,20 @@ import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 /**
- * Cliente HTTP hacia la API existente.
+ * HTTP client towards the existing API.
  *
- * <p>Tres decisiones que importan bajo carga:
+ * <p>Three decisions that matter under load:
  *
  * <ol>
- *   <li><b>Hilos virtuales para las respuestas.</b> El cliente HTTP del JDK necesita un
- *       ejecutor para completar las peticiones; con hilos virtuales, cada llamada en vuelo
- *       cuesta unos cientos de bytes en lugar del megabyte de pila de un hilo de plataforma.
- *       Es lo que permite tener cientos de llamadas concurrentes sin dimensionar un pool.
- *   <li><b>HTTP/1.1 explícito.</b> Por defecto el cliente intenta HTTP/2, y contra un servidor
- *       en claro que solo habla HTTP/1.1 eso gasta un viaje de ida y vuelta en un intento de
- *       actualización de protocolo que va a fracasar. El simulador de la prueba es uno de
- *       esos servidores.
- *   <li><b>Límites de tiempo separados.</b> Conectar y leer son fallos distintos: una conexión
- *       rechazada se sabe al instante, mientras que un origen lento puede tardar lo que quiera.
+ *   <li><b>Virtual threads for the responses.</b> The JDK HTTP client needs an executor to complete
+ *       requests; with virtual threads, every in-flight call costs a few hundred bytes instead of a
+ *       platform thread's megabyte of stack. That is what allows hundreds of concurrent calls
+ *       without sizing a pool.
+ *   <li><b>HTTP/1.1 explicitly.</b> By default the client attempts HTTP/2, and against a cleartext
+ *       server that only speaks HTTP/1.1 that spends a round trip on an upgrade attempt destined to
+ *       fail. The test's mock service is one of those servers.
+ *   <li><b>Separate timeouts.</b> Connecting and reading are different failures: a refused
+ *       connection is known instantly, whereas a slow source can take as long as it likes.
  * </ol>
  */
 @Configuration

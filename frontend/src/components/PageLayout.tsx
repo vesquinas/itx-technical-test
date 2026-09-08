@@ -5,11 +5,11 @@ import { Header } from './Header.tsx';
 import styles from './PageLayout.module.css';
 
 /**
- * Estructura comun a las dos vistas: cabecera fija y contenido principal.
+ * The structure shared by both views: a sticky header and the main content.
  *
- * El enlace "Saltar al contenido" es el primer elemento enfocable del documento.
- * Quien navega con teclado puede así evitar la cabecera en cada página, en lugar
- * de recorrerla entera con el tabulador cada vez.
+ * The "skip to content" link is the first focusable element of the document. Anyone navigating
+ * with a keyboard can therefore skip the header on every page instead of tabbing all the way
+ * through it every time.
  */
 export function PageLayout({
   trail,

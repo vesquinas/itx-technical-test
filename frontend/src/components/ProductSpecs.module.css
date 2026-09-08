@@ -29,7 +29,7 @@
   color: var(--color-ink-faint);
 }
 
-/* Un atributo obligatorio del que la API no da valor: se dice, no se esconde. */
+/* A required attribute the API gives no value for: we say so, we do not hide it. */
 .missing {
   color: var(--color-ink-faint);
   font-style: italic;
@@ -37,8 +37,8 @@
 
 .value {
   color: var(--color-ink);
-  /* Los valores de la API traen cadenas largas sin espacios; se permite partir
-     para que no desborden la columna. */
+  /* The API values contain long strings with no spaces; breaking is allowed so they do not
+     overflow the column. */
   overflow-wrap: anywhere;
 }
 

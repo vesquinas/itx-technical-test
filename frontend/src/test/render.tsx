@@ -6,12 +6,11 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { CartProvider } from '../cart/CartProvider.tsx';
 
 /**
- * Monta un componente con el contexto que necesita en producción: el proveedor
- * de la cesta y un enrutador en memoria.
+ * Mounts a component with the context it needs in production: the cart provider and an in-memory
+ * router.
  *
- * Se usa `MemoryRouter` en lugar de `BrowserRouter` porque no depende de la API
- * de historial del navegador, con lo que cada test arranca en la ruta que
- * necesita y no interfiere con los demas.
+ * `MemoryRouter` is used instead of `BrowserRouter` because it does not depend on the browser's
+ * history API, so every test starts on the route it needs and does not interfere with the others.
  */
 export function renderWithProviders(
   ui: ReactElement,

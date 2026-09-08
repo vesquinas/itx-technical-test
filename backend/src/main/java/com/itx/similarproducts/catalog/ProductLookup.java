@@ -3,23 +3,22 @@ package com.itx.similarproducts.catalog;
 import com.itx.similarproducts.domain.ProductDetail;
 
 /**
- * Resultado de consultar un producto en la API existente.
+ * Outcome of looking a product up in the existing API.
  *
- * <p>Se modela como tipo sellado en lugar de devolver {@code null} o lanzar una excepción
- * porque hay <b>tres</b> desenlaces con consecuencias distintas, y conviene que quien llame no
- * pueda confundirlos:
+ * <p>It is modelled as a sealed type rather than returning {@code null} or throwing, because there
+ * are <b>three</b> outcomes with different consequences and the caller should not be able to
+ * conflate them:
  *
  * <ul>
- *   <li>{@link Found}: el producto existe.
- *   <li>{@link Missing}: la API responde 404. Es una respuesta legítima y estable, así que se
- *       puede recordar un rato: ese producto no va a aparecer de golpe.
- *   <li>{@link Unavailable}: la llamada falló o tardó demasiado. Es un estado transitorio, así
- *       que se recuerda solo unos segundos y luego se vuelve a intentar.
+ *   <li>{@link Found}: the product exists.
+ *   <li>{@link Missing}: the API answers 404. That is a legitimate and stable answer, so it can be
+ *       remembered for a while: the product is not going to appear out of nowhere.
+ *   <li>{@link Unavailable}: the call failed or took too long. That is a transient state, so it is
+ *       remembered for a few seconds only and then retried.
  * </ul>
  *
- * <p>Esa distinción es la que permite dar a cada caso una expiración de caché propia, que es el
- * mecanismo con el que un producto que tarda 50 segundos deja de castigar a todas las
- * peticiones siguientes.
+ * <p>That distinction is what allows giving each case its own cache expiry, which is the mechanism
+ * that stops a product taking 50 seconds from punishing every subsequent request.
  */
 public sealed interface ProductLookup {
 

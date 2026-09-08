@@ -1,12 +1,11 @@
 import styles from './RouteFallback.module.css';
 
 /**
- * Relleno mientras se descarga el fragmento de una vista.
+ * Filler shown while a view's chunk is downloading.
  *
- * Es deliberadamente sobrio: en una conexión normal está en pantalla unas pocas
- * decenas de milisegundos, y un esqueleto elaborado provocaría un parpadeo más
- * molesto que la propia espera. Los esqueletos detallados se reservan para la
- * carga de datos, que es la espera larga de verdad.
+ * It is deliberately plain: on a normal connection it is on screen for a few tens of
+ * milliseconds, and an elaborate skeleton would cause a flicker more annoying than the wait
+ * itself. Detailed skeletons are reserved for the data loading, which is the genuinely long wait.
  */
 export function RouteFallback() {
   return (

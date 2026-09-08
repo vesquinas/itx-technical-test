@@ -14,8 +14,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Reserva el espacio antes de que llegue la imagen: sin esto la rejilla salta
-     a medida que se van cargando. */
+  /* Reserves the space before the image arrives: without this the grid jumps as they load. */
   aspect-ratio: 3 / 4;
   overflow: hidden;
   background-color: var(--color-surface);

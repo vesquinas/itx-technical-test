@@ -1,12 +1,12 @@
 server:
   port: 5000
-  # No se anuncia el servidor ni su version en las respuestas: es informacion que
-  # solo le sirve a quien busca una vulnerabilidad conocida.
+  # The server and its version are not advertised in the responses: that information only
+  # serves whoever is looking for a known vulnerability.
   server-header: ""
   shutdown: graceful
   tomcat:
-    # Cola de aceptacion holgada: la prueba de carga arranca 200 usuarios de golpe
-    # y no conviene rechazar conexiones durante ese arranque.
+    # Generous accept queue: the load test starts 200 users at once and rejecting
+    # connections during that ramp-up is not helpful.
     accept-count: 200
     max-connections: 10000
 
@@ -14,8 +14,8 @@ spring:
   application:
     name: similar-products
   threads:
-    # Un hilo virtual por peticion. Con esto, el servidor no necesita un pool
-    # dimensionado a mano y bloquearse esperando a la red deja de ser caro.
+    # One virtual thread per request. With this, the server needs no hand-sized pool and
+    # blocking on the network stops being expensive.
     virtual:
       enabled: true
   lifecycle:
@@ -27,64 +27,62 @@ spring:
 existing-api:
   base-url: http://localhost:3001
 
-  # Conectar es rapido o no ocurre: si el origen esta caido conviene saberlo ya.
+  # Connecting is either fast or it does not happen: if the source is down, better to know now.
   connect-timeout: 1s
 
-  # Limite por llamada. Se elige por encima del producto que tarda 5 segundos en el
-  # simulador, para que llegue a responder y quede cacheado; y muy por debajo del que
-  # tarda 50, que nunca merece la espera.
+  # Per-call limit. Chosen above the product that takes 5 seconds in the mock, so that it gets
+  # to answer and be cached; and well below the one that takes 50, which is never worth the wait.
   read-timeout: 6s
 
-  # Presupuesto para toda la peticion, y es corto a proposito. Lo que no llegue en
-  # este plazo se omite de la respuesta, pero su llamada sigue en curso y dejara el
-  # producto en la cache, asi que las peticiones siguientes si lo incluyen.
+  # Budget for the whole request, and deliberately short. Whatever does not arrive within it is
+  # left out of the response, but its call keeps running and will leave the product in the cache
+  # for subsequent requests.
   #
-  # Este valor fija el peor caso del servicio, y por eso se elige por debajo del
-  # segundo: los similares son un complemento de la ficha de producto, no su
-  # contenido principal, y ningun usuario deberia esperar mas de eso por un
-  # complemento.
+  # This value fixes the service's worst case, which is why it is chosen below one second:
+  # similar products are a complement to the product page, not its main content, and no user
+  # should wait longer than that for a complement.
   #
-  # Medido con la prueba de carga, frente a un presupuesto de 1500ms: la media baja
-  # de 123ms a 92ms, el peor caso de 1,53s a 649ms y el throughput sube de 270 a 285
-  # peticiones por segundo. La completitud no se resiente: en cuanto la cache esta
-  # caliente, las respuestas vuelven a traer todos los similares alcanzables.
+  # Measured with the load test, against a 1500ms budget: the mean drops from 123ms to 92ms, the
+  # worst case from 1.53s to 649ms and throughput rises from 270 to 285 requests per second.
+  # Completeness does not suffer: once the cache is warm, responses carry every reachable
+  # similar product again.
   fan-out-timeout: 600ms
 
-  # Cuanto se conserva un resultado bueno.
+  # How long a good result is kept.
   success-ttl: 5m
 
-  # Que un producto no exista es estable, asi que se recuerda un rato.
+  # A product not existing is stable, so it is remembered for a while.
   missing-ttl: 1m
 
-  # Un fallo es transitorio: se recuerda solo unos segundos y se vuelve a intentar.
-  # Es lo que hace de cortacircuitos con granularidad por producto.
+  # A failure is transient: remembered for a few seconds only and then retried. This is what
+  # acts as a circuit breaker with per-product granularity.
   unavailable-ttl: 10s
 
-  # Tope de similares que se resuelven por peticion. Acota la amplificacion: sin el,
-  # UNA peticion a este servicio se convierte en tantas llamadas al origen como
-  # elementos tenga la lista, y ese numero lo decide el origen y no nosotros.
-  # La lista viene ordenada por similitud, asi que el recorte deja los mas parecidos.
+  # Cap on the similar products resolved per request. It bounds the amplification: without it,
+  # ONE request to this service turns into as many calls to the source as the list has entries,
+  # and that number is decided by the source and not by us. The list comes ordered by
+  # similarity, so the trim keeps the closest matches.
   max-similar-products: 50
 
 management:
   server:
-    # Los endpoints de gestion viven en su propio puerto, que en un despliegue real
-    # queda accesible solo desde la red interna. En el puerto publico (5000) no hay
-    # nada mas que la API.
+    # The management endpoints live on their own port, which in a real deployment stays
+    # reachable only from the internal network. The public port (5000) serves nothing but
+    # the API.
     #
-    # Importa mas de lo que parece: /actuator/metrics permite enumerar 44 metricas sin
-    # autenticar, entre ellas espacio libre en disco e interioridades de la JVM. Es
-    # informacion que no le sirve a un cliente y si a quien esta explorando el sistema.
+    # This matters more than it looks: /actuator/metrics lets you enumerate 44 metrics without
+    # authenticating, among them free disk space and JVM internals. That is information no
+    # client needs and someone probing the system does.
     port: 5001
   endpoints:
     web:
       exposure:
-        # Y aun ahi, solo lo necesario: exponerlos todos publica la configuracion, las
-        # variables de entorno y los volcados de hilos y de memoria.
+        # And even there, only what is needed: exposing them all publishes the configuration,
+        # the environment variables and thread and heap dumps.
         include: health,info,metrics
   endpoint:
     health:
-      # Los detalles enumeran los servicios de los que depende el sistema.
+      # The details enumerate the services the system depends on.
       show-details: never
 
 logging:

@@ -35,7 +35,7 @@
   font-weight: 300;
 }
 
-/* Las migas ocupan el hueco central y ceden espacio antes que los extremos. */
+/* The breadcrumbs take the middle gap and give up space before the edges do. */
 .inner > :global(nav) {
   flex: 1 1 auto;
   min-width: 0;

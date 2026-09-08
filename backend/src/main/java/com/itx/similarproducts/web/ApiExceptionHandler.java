@@ -14,22 +14,21 @@ import com.itx.similarproducts.catalog.ExistingApiUnavailableException;
 import com.itx.similarproducts.catalog.ProductNotFoundException;
 
 /**
- * Traducción de errores a respuestas HTTP.
+ * Translation of errors into HTTP responses.
  *
- * <p>Se usa {@link ProblemDetail} (RFC 9457), que es el formato de error que Spring produce por
- * omisión y que un cliente puede interpretar sin acuerdos ad hoc.
+ * <p>It uses {@link ProblemDetail} (RFC 9457), the error format Spring produces by default and one
+ * a client can interpret without ad-hoc agreements.
  *
- * <p>Ningún mensaje incluye la excepción original ni su traza. No es descuido: los mensajes de
- * error son una vía habitual de filtración: rutas del sistema, nombres de host internos o
- * versiones de librerías. El detalle técnico va al registro del servidor, donde le sirve a quien
- * opera el servicio y no a quien llama.
+ * <p>No message carries the original exception or its stack trace. That is not an oversight: error
+ * messages are a common leak channel — system paths, internal host names, library versions. The
+ * technical detail goes to the server log, where it serves whoever operates the service rather than
+ * whoever is calling it.
  *
- * <p>El orden explícito es necesario, no decorativo. Spring Boot registra su propio
- * {@code @ControllerAdvice} de <i>problem details</i> con orden 0, y un advice sin orden queda en
- * la última posición: los manejadores de este fichero para excepciones que Spring también conoce
- * —{@link NoResourceFoundException}, por ejemplo— nunca llegarían a ejecutarse. Se comprobó
- * midiendo: sin esta anotación, una ruta desconocida seguía respondiendo con el mensaje por
- * omisión de Spring.
+ * <p>The explicit ordering is necessary, not decorative. Spring Boot registers its own
+ * <i>problem details</i> {@code @ControllerAdvice} with order 0, and an advice with no order ends up
+ * last: the handlers in this file for exceptions Spring also knows about — {@link
+ * NoResourceFoundException}, for instance — would never run. This was found by measuring: without
+ * the annotation, an unknown path still answered with Spring's default message.
  */
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @RestControllerAdvice
@@ -39,28 +38,27 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(ProductNotFoundException.class)
     ProblemDetail handleNotFound(ProductNotFoundException exception) {
-        log.debug("Producto no encontrado: {}", exception.getMessage());
-        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "El producto no existe");
+        log.debug("Product not found: {}", exception.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "The product does not exist");
     }
 
     /**
-     * Ruta desconocida.
+     * Unknown path.
      *
-     * <p>Sin este manejador, Spring responde con el detalle {@code "No static resource <ruta>."},
-     * que revela que detrás hay un servidor de recursos estáticos y devuelve al cliente la ruta
-     * que él mismo envió. Ninguna de las dos cosas le sirve a nadie más que a quien está
-     * explorando el servicio.
+     * <p>Without this handler, Spring answers with the detail {@code "No static resource <path>."},
+     * which reveals that there is a static resource server behind and hands the client back the path
+     * it sent. Neither of those serves anyone but someone probing the service.
      */
     @ExceptionHandler(NoResourceFoundException.class)
     ProblemDetail handleUnknownPath(NoResourceFoundException exception) {
-        log.debug("Ruta desconocida: {}", exception.getMessage());
-        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "Recurso no encontrado");
+        log.debug("Unknown path: {}", exception.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "Resource not found");
     }
 
     @ExceptionHandler(ExistingApiUnavailableException.class)
     ProblemDetail handleUpstreamFailure(ExistingApiUnavailableException exception) {
-        log.warn("Dependencia no disponible: {}", exception.getMessage());
+        log.warn("Dependency unavailable: {}", exception.getMessage());
         return ProblemDetail.forStatusAndDetail(
-                HttpStatus.BAD_GATEWAY, "El servicio de productos no está disponible");
+                HttpStatus.BAD_GATEWAY, "The product service is unavailable");
     }
 }

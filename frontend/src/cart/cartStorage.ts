@@ -5,13 +5,12 @@ import { asPositiveInteger } from '../lib/parse.ts';
 const STORAGE_KEY = 'itx-cart-count';
 
 /**
- * El almacén se resuelve una sola vez y se recuerda.
+ * The store is resolved once and remembered.
  *
- * `resolveStorage` comprueba que se puede escribir de verdad, y para eso escribe y borra una
- * clave de sondeo. Llamarlo en cada lectura y en cada escritura del contador convertía dos
- * operaciones en seis, y dejaba una escritura de sondeo por cada vez que se pinta la cabecera.
- * Se resuelve de forma perezosa, en el primer uso, para no tocar el almacenamiento al importar
- * el modulo.
+ * `resolveStorage` checks that writing really works, and to do that it writes and removes a probe
+ * key. Calling it on every read and every write of the counter turned two operations into six, and
+ * left a probe write behind every time the header rendered. It is resolved lazily, on first use, so
+ * importing the module does not touch storage.
  */
 let resolved: KeyValueStorage | undefined;
 
@@ -21,16 +20,14 @@ function storage(): KeyValueStorage {
 }
 
 /**
- * Persistencia del contador de la cesta.
+ * Persistence of the cart counter.
  *
- * El enunciado pide que el número de artículos se muestre en la cabecera en
- * cualquier vista y que el dato se persista. Se guarda aparte de la caché de
- * productos porque no caduca: no es información cacheada de la API, es el estado
- * de la sesión del usuario.
+ * The brief asks for the number of items to be shown in the header on every view and for the value
+ * to be persisted. It is stored separately from the product cache because it does not expire: it is
+ * not cached API information, it is the state of the user's session.
  *
- * Se valida al leer por el mismo motivo que en la caché: el contenido de
- * `localStorage` es editable por el usuario y `"abc"` o `-5` no son contadores
- * validos.
+ * It is validated on read for the same reason as in the cache: the contents of `localStorage` are
+ * editable by the user, and `"abc"` or `-5` are not valid counters.
  */
 export function readCartCount(): number {
   const raw = storage().getItem(STORAGE_KEY);

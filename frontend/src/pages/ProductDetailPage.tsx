@@ -13,13 +13,13 @@ import { formatPrice } from '../lib/format.ts';
 import styles from './ProductDetailPage.module.css';
 
 /**
- * Vista de detalle del producto.
+ * The product detail view.
  *
- * Dos columnas, como indica el wireframe: la imagen a la izquierda, y a la
- * derecha las caracteristicas y las acciones. En movil se apilan.
+ * Two columns, as the wireframe shows: the image on the left, and the specs and the actions on the
+ * right. On mobile they stack.
  *
- * El enlace de vuelta conserva la búsqueda que traia el usuario (`?q=...`), de
- * modo que regresa a su lista filtrada y no al catálogo completo.
+ * The back link carries along the search the user arrived with (`?q=…`), so they return to their
+ * filtered list rather than to the whole catalogue.
  */
 export function ProductDetailPage() {
   const { productId = '' } = useParams<{ productId: string }>();
@@ -37,8 +37,8 @@ export function ProductDetailPage() {
 
   const trail: Crumb[] = [
     { label: 'Productos', to: `/${search}` },
-    // Mientras carga se muestra un rotulo genérico: el nombre no se conoce hasta
-    // que llega la respuesta, y dejar la miga vacía haría saltar la cabecera.
+    // While loading, a generic label is shown: the name is not known until the response
+    // arrives, and leaving the crumb empty would make the header jump.
     { label: productName.length > 0 ? productName : 'Producto' },
   ];
 
@@ -81,15 +81,15 @@ export function ProductDetailPage() {
           </header>
 
           <div className={styles.layout}>
-            {/* Primera columna: la imagen del producto. */}
+            {/* First column: the product image. */}
             <div className={styles.media}>
               {state.data.imageUrl.length > 0 ? (
                 <img
                   alt={productName}
                   className={styles.image}
                   decoding="async"
-                  // Sin `lazy`: es la imagen principal de la vista y esta visible
-                  // desde el primer instante, así que diferirla solo la retrasa.
+                  // No `lazy`: this is the view's main image and it is visible from the very
+                  // first moment, so deferring it would only delay it.
                   src={state.data.imageUrl}
                 />
               ) : (
@@ -100,13 +100,12 @@ export function ProductDetailPage() {
             </div>
 
             {/*
-              Segunda columna: detalles y acciones, en ese orden.
+              Second column: details and actions, in that order.
 
-              El orden lo fija el wireframe del enunciado, que sitúa el bloque de
-              descripción sobre el de acciones. Comercialmente se defendería lo
-              contrario —el botón de compra cuanto más arriba, mejor— pero el
-              enunciado pide seguir la estructura de las capturas, y eso manda
-              sobre la preferencia propia.
+              The order comes from the brief's wireframe, which places the description block above
+              the actions one. Commercially the opposite is arguable — the buy button as high as
+              possible — but the brief asks to follow the structure of the screenshots, and that
+              outranks personal preference.
             */}
             <div className={styles.column}>
               <ProductSpecs product={state.data} />

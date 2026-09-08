@@ -1,23 +1,22 @@
 /**
- * Modelo de dominio de la aplicación.
+ * The application's domain model.
  *
- * Deliberadamente NO es la forma que devuelve la API. La API tiene nombres mal
- * escritos, dos campos con el contenido intercambiado y campos que a veces son
- * texto y a veces lista de textos. Traducir a este modelo en el borde
- * (`src/api/schema.ts`) mantiene esos defectos en un único sitio en lugar de
- * repartirlos por todos los componentes.
+ * Deliberately NOT the shape the API returns. The API has misspelled names, two fields with their
+ * contents swapped, and fields that are sometimes text and sometimes a list of texts. Translating
+ * into this model at the edge (`src/api/schema.ts`) keeps those defects in one single place
+ * instead of spreading them across every component.
  */
 
 export interface ProductSummary {
   id: string;
   brand: string;
   model: string;
-  /** `null` cuando la API no da precio, que ocurre en 6 de los 100 productos. */
+  /** `null` when the API gives no price, which happens in 6 of the 100 products. */
   price: number | null;
   imageUrl: string;
 }
 
-/** Opción seleccionable: la interfaz muestra `name`, la API espera `code`. */
+/** A selectable option: the interface shows `name`, the API expects `code`. */
 export interface ProductOption {
   code: number;
   name: string;
@@ -29,9 +28,8 @@ export interface ProductOptions {
 }
 
 /**
- * Caracteristicas tecnicas ya normalizadas: los campos de valor único son
- * `string` (cadena vacía si no hay dato) y los de valor multiple son `string[]`
- * (lista vacía si no hay dato).
+ * Technical specs, already normalised: single-valued fields are `string` (empty when there is no
+ * data) and multi-valued ones are `string[]` (empty list when there is no data).
  */
 export interface ProductSpecs {
   cpu: string[];
@@ -39,16 +37,16 @@ export interface ProductSpecs {
   operatingSystem: string[];
   chipset: string;
   gpu: string;
-  /** Resolución en píxeles. Ojo: la API la publica bajo `displaySize`. */
+  /** Resolution in pixels. Careful: the API publishes it under `displaySize`. */
   screenResolution: string;
-  /** Tamaño físico en pulgadas. Ojo: la API lo publica bajo `displayResolution`. */
+  /** Physical size in inches. Careful: the API publishes it under `displayResolution`. */
   screenSize: string;
   screenType: string;
   battery: string;
   primaryCamera: string[];
   secondaryCamera: string[];
   dimensions: string;
-  /** Peso en gramos, sin unidad; la interfaz la añade. */
+  /** Weight in grams, with no unit; the interface adds it. */
   weight: string;
   internalMemory: string[];
   externalMemory: string;
@@ -80,7 +78,7 @@ export interface CartSelection {
   storageCode: number;
 }
 
-/** Texto que se busca al filtrar: marca y modelo, como pide el enunciado. */
+/** The text searched when filtering: brand and model, as the brief asks. */
 export function searchableText(product: ProductSummary): string {
   return `${product.brand} ${product.model}`;
 }

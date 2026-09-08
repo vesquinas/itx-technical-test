@@ -1,316 +1,311 @@
-# Prueba frontend — Tienda de dispositivos móviles
+# Frontend test — Mobile device store
 
-Miniaplicación para comprar teléfonos móviles: listado de productos con búsqueda y ficha de
-detalle con selección de opciones y añadido a la cesta.
+Small shopping application for mobile phones: a product list with search, and a detail page with
+option selection and add-to-cart.
 
-SPA con enrutado en cliente, sin renderizado en servidor y sin navegación entre documentos.
+Single-page application with client-side routing, no server rendering and no document navigation.
 
-## Cómo ejecutarlo
+## Language
 
-Requiere **Node `^20.19.0` o `>=22.12.0`**, que es lo que exige Vite 8. Node 20.0–20.18 y toda la
-rama 21 no sirven: el requisito está declarado en `engines` del `package.json`, así que `npm
-install` avisa antes de que falle nada.
+Code, comments and documentation are in English. **The user-facing copy is in Spanish**, because
+that is the language of the market and of the specification, which names the controls in Spanish
+("botón de Añadir", "añadir a la cesta"). In a real project that copy would live behind an i18n
+layer instead of being embedded in the components.
+
+## How to run it
+
+Requires **Node `^20.19.0` or `>=22.12.0`**, which is what Vite 8 demands. Node 20.0–20.18 and the
+whole 21 branch will not work: the requirement is declared in `engines` in `package.json`, so
+`npm install` warns before anything breaks.
 
 ```bash
 npm install
-npm start          # modo desarrollo, en http://localhost:5173
+npm start          # development mode, on http://localhost:5173
 ```
 
-> **La primera carga tarda unos 40 segundos.** No es la aplicación: la API de la prueba está
-> alojada en el plan gratuito de Render, que apaga el servicio cuando no recibe tráfico, y la
-> primera petición tiene que arrancarlo. La aplicación lo explica en pantalla mientras espera,
-> y guarda la respuesta en caché para no repetir la espera. Está medido, no estimado.
+> **The first load takes about 40 seconds.** That is not the application: the test API is hosted on
+> Render's free tier, which shuts the service down when it receives no traffic, and the first
+> request has to start it back up. The application explains this on screen while it waits, and
+> caches the response so the wait is not repeated. This is measured, not estimated.
 
 ### Scripts
 
-| Script | Qué hace |
+| Script | What it does |
 | --- | --- |
-| `npm start` | Modo desarrollo con recarga en caliente |
-| `npm run build` | Compilación para producción (comprueba tipos y empaqueta) |
-| `npm test` | Ejecuta la batería de tests una vez |
-| `npm run lint` | Comprobación de código (falla ante cualquier aviso) |
-| `npm run test:watch` | Tests en modo continuo |
-| `npm run test:coverage` | Tests con informe de cobertura |
-| `npm run typecheck` | Solo comprobación de tipos |
-| `npm run check:csp` | Verifica la Content-Security-Policy del HTML compilado |
-| `npm run check:api` | Valida los parsers contra la API real, los 100 productos (necesita red) |
+| `npm start` | Development mode with hot reload |
+| `npm run build` | Production build (type-checks and bundles) |
+| `npm test` | Runs the test suite once |
+| `npm run lint` | Code checks (fails on any warning) |
+| `npm run test:watch` | Tests in watch mode |
+| `npm run test:coverage` | Tests with a coverage report |
+| `npm run typecheck` | Type checking only |
+| `npm run check:csp` | Verifies the Content-Security-Policy of the built HTML |
+| `npm run check:api` | Validates the parsers against the real API, all 100 products (needs network) |
 
-La URL de la API se puede cambiar con `VITE_API_BASE_URL`; ver [`.env.example`](./.env.example).
+The API URL can be changed with `VITE_API_BASE_URL`; see [`.env.example`](./.env.example).
 
 ## Stack
 
-| Pieza | Elección | Motivo |
+| Piece | Choice | Why |
 | --- | --- | --- |
-| Framework | React 19 | Exigido por el enunciado |
-| Lenguaje | TypeScript en modo estricto | La API devuelve datos irregulares; los tipos son lo que obliga a tratarlos |
-| Empaquetador | Vite 8 | Arranque inmediato en desarrollo y configuración mínima |
-| Enrutado | React Router 8 | Estándar de facto para SPA |
-| Estilos | CSS Modules + variables CSS | Ámbito local sin dependencias ni tiempo de ejecución |
-| Tests | Vitest + Testing Library | Comparte configuración con Vite, sin un segundo pipeline |
-| Linter | oxlint | El que instala Vite por defecto; incluye reglas de accesibilidad |
+| Framework | React 19 | Required by the brief |
+| Language | TypeScript in strict mode | The API returns irregular data; types are what force you to deal with it |
+| Bundler | Vite 8 | Instant start in development and minimal configuration |
+| Routing | React Router 8 | The de facto standard for SPAs |
+| Styling | CSS Modules + CSS custom properties | Local scope, no dependencies and no runtime |
+| Tests | Vitest + Testing Library | Shares configuration with Vite, so there is no second build pipeline |
+| Linter | oxlint | The one Vite installs by default; ships accessibility rules |
 
-**Sin librería de componentes ni de estado.** El enunciado valora el nivel de detalle de la
-propuesta de diseño, y con Material UI el diseño sería el de la librería. Para el estado,
-React basta: el de la cesta es un contador y el del catálogo lo resuelve la capa de datos.
+**No component library and no state library.** The brief says the level of detail of the design
+proposal is taken into account, and with Material UI the design would be the library's. As for
+state, React is enough: the cart's state is a counter and the catalogue's is handled by the data
+layer.
 
-## Cómo está organizado
+## How the code is organised
 
 ```
 src/
-├── api/          Cliente HTTP, validación de respuestas y capa de datos con caché
-├── cart/         Estado de la cesta y su persistencia
-├── components/   Componentes de interfaz reutilizables
-├── domain/       Modelo de dominio y lógica de búsqueda (sin React ni red)
-├── hooks/        Hooks de carga asíncrona y de retardo
-├── lib/          Caché con expiración, formateo y utilidades de validación
-├── pages/        Las dos vistas, cargadas en diferido
-└── test/         Utilidades de test y fixtures con respuestas reales de la API
+├── api/          HTTP client, response validation and the cached data layer
+├── cart/         Cart state and its persistence
+├── components/   Reusable interface components
+├── domain/       Domain model and search logic (no React, no network)
+├── hooks/        Async loading and delay hooks
+├── lib/          Expiring cache, formatting and validation helpers
+├── pages/        The two views, lazily loaded
+└── test/         Test helpers and fixtures holding real API responses
 ```
 
-El criterio es que **nada de React entre en `domain/` ni en `lib/`**: son funciones puras y
-clases sin dependencias de la interfaz, lo que las hace triviales de probar y reutilizables.
+The rule is that **no React may enter `domain/` or `lib/`**: they are pure functions and classes
+with no interface dependencies, which makes them trivial to test and to reuse.
 
-## Decisiones que merecen explicación
+## Decisions worth explaining
 
-### La caché de cliente con expiración de una hora
+### The one-hour client-side cache
 
-Es el requisito más específico del enunciado, así que está implementada como una pieza propia
-y aislada en [`src/lib/cache/`](./src/lib/cache).
+This is the most specific requirement of the brief, so it is built as its own isolated unit in
+[`src/lib/cache/`](./src/lib/cache).
 
-Cada entrada se guarda en un sobre con la versión del formato, el instante de expiración y los
-datos. Cuatro decisiones de diseño:
+Every entry is stored in an envelope carrying the format version, the expiry instant and the data.
+Four design decisions:
 
-1. **Se valida al leer, no solo al escribir.** `get()` exige un parser. Lo que sale de
-   `localStorage` es texto que el usuario puede editar desde la consola del navegador, o que
-   escribió una versión anterior de la aplicación: tratarlo como dato de confianza es lo que
-   convierte una caché en un problema de seguridad.
-2. **Al expirar se descarta y se revalida** contra la API, que es literalmente lo que pide el
-   enunciado. Se consideró servir el dato caducado mientras se revalida en segundo plano
-   (*stale-while-revalidate*), pero eso muestra información vencida.
-3. **Las claves llevan namespace y versión.** Subir la versión invalida de golpe todo lo
-   cacheado en los navegadores, que es lo que hay que poder hacer cuando cambia la forma de los
-   datos: sin esto, quien ya tuviera datos guardados seguiría leyendo el formato antiguo.
-4. **Ningún fallo del almacén se propaga.** La caché es una optimización. Cuando se agota la
-   cuota libera lo suyo y reintenta una vez; si `localStorage` no está disponible —navegación
-   privada de Safari, cookies de terceros bloqueadas— degrada a memoria y la aplicación sigue
-   funcionando.
+1. **Validation happens on read, not only on write.** `get()` demands a parser. What comes out of
+   `localStorage` is text the user can edit from the browser console, or that an earlier version of
+   the application wrote: treating it as trusted data is what turns a cache into a security problem.
+2. **On expiry the entry is discarded and revalidated** against the API, which is literally what
+   the brief asks for. Serving the stale value while revalidating in the background
+   (*stale-while-revalidate*) was considered, but that shows out-of-date information.
+3. **Keys carry a namespace and a version.** Bumping the version invalidates everything cached in
+   every browser at once, which is what you need to be able to do when the shape of the data
+   changes: without it, anyone who already had data stored would keep reading the old format.
+4. **No storage failure ever propagates.** The cache is an optimisation. When the quota runs out it
+   frees its own entries and retries once; if `localStorage` is unavailable — Safari private
+   browsing, third-party cookies blocked — it degrades to memory and the application keeps working.
 
-El reloj es inyectable, así que los tests comprueban la expiración avanzando un reloj falso en
-lugar de esperar una hora: sirve justo antes de cumplirse, caduca al cumplirse, y tras
-revalidar vuelve a contar una hora nueva.
+The clock is injectable, so the tests check expiry by advancing a fake clock instead of waiting an
+hour: it serves just before the hour, expires on the hour, and after revalidating starts counting a
+fresh hour.
 
-### La API y sus sorpresas
+### The API and its surprises
 
-Los datos de la API tienen defectos reales. Se corrigen **en un único punto**
-([`src/api/schema.ts`](./src/api/schema.ts)), traduciendo a un modelo de dominio propio, en
-lugar de repartir esos arreglos por los componentes:
+The API's data has real defects. They are fixed **in a single place**
+([`src/api/schema.ts`](./src/api/schema.ts)), translating into a domain model of our own, rather
+than scattering those workarounds across the components:
 
-| Qué pasa | Detalle | Cómo se resuelve |
+| What happens | Detail | How it is handled |
 | --- | --- | --- |
-| Dos campos con el contenido intercambiado | `displayResolution` trae las **pulgadas** y `displaySize` los **píxeles**, al revés de lo que dicen sus nombres | Se cruzan al traducir, a `screenSize` y `screenResolution` |
-| Nombres mal escritos en el origen | `dimentions` y `secondaryCmera` | Se leen con su nombre real y se exponen bien escritos |
-| Diez campos cambian de tipo según el producto | `cpu`, `os`, `sim`, `primaryCamera`, `wlan`, `sensors`… llegan como texto o como lista | Se normalizan siempre a `string[]` |
-| Precio vacío | `price` es texto y viene `""` en 6 de los 100 productos | Se traduce a `null`, y la interfaz muestra «Precio no disponible» |
-| Direcciones de imagen | Llegan como texto sin validar | Se aceptan solo URLs absolutas `http`/`https`; el resto se descarta y se muestra «Sin imagen» |
-| Opciones sin nombre | `M900` y `DX650` traen su única capacidad como `{ code: 2000, name: " " }` | Se conserva la opción, porque el código es válido y es lo único que se envía a la cesta; la interfaz pone el rótulo «Estándar» |
+| Two fields with swapped contents | `displayResolution` carries **inches** and `displaySize` carries **pixels**, the opposite of what their names say | They are crossed back when translating, into `screenSize` and `screenResolution` |
+| Misspelled names at the source | `dimentions` and `secondaryCmera` | Read under their real names and exposed spelled correctly |
+| Ten fields change type per product | `cpu`, `os`, `sim`, `primaryCamera`, `wlan`, `sensors`… arrive as text or as a list | Always normalised to `string[]` |
+| Empty price | `price` is text and comes as `""` in 6 of the 100 products | Translated to `null`, and the interface shows "Precio no disponible" |
+| Empty fields | `nfc` arrives empty in every product of the catalogue | Rows with no value are dropped from the optional part of the spec sheet |
+| Options with no name | `M900` and `DX650` deliver their only storage as `{ code: 2000, name: " " }` | The option is kept, because the code is valid and the code is all that is sent to the cart; the interface labels it "Estándar" |
 
-Estas particularidades no se descubrieron leyendo la API sino recorriéndola entera. Hay un script,
-`npm run check:api`, que pasa **los 100 productos del catálogo** por los mismos parsers que usa la
-aplicación y avisa de dos cosas: de un producto que no se pueda traducir, y de que alguna de estas
-particularidades haya dejado de cumplirse, lo que significaría que la API se ha corregido y hay que
-revisar la traducción a propósito. No está en integración continua porque necesita red y la API
-tarda unos 40 segundos en despertar.
-| Campos vacíos | `nfc` viene vacío en todos los productos muestreados | Las filas sin valor se omiten de la ficha |
-
-Lo del tipo variable no es cosmético: **React renderiza un array concatenando sus elementos
-sin separador**, así que una implementación que pinte `product.cpu` directamente muestra
+The type-changing one is not cosmetic: **React renders an array by concatenating its elements with
+no separator**, so an implementation that prints `product.cpu` directly shows
 `"Deca-core (2x2.3 GHz Cortex-A724x1.9 GHz Cortex-A53"`.
 
-Las fixtures de los tests son respuestas reales copiadas tal cual, de modo que los tests valen
-como documentación ejecutable: si algún día la API se corrige, fallarán y habrá que ajustar la
-traducción a propósito.
+These quirks were not found by reading the API but by walking through all of it. The script
+`npm run check:api` pushes **the whole 100-product catalogue** through the same parsers the
+application uses and reports two things: a product that cannot be translated, and any of these
+quirks no longer holding — which would mean the API has been fixed and the translation needs
+revisiting on purpose. It is not in continuous integration because it needs network and the API
+takes about 40 seconds to wake up.
 
-### El contador de la cesta
+The test fixtures are real responses copied verbatim, so the tests double as executable
+documentation: if the API is ever corrected, they will fail and the translation will have to be
+adjusted deliberately.
 
-El enunciado pide mostrar en la cabecera **el valor que devuelve la API** al añadir, y
-persistirlo. Es lo que hace la aplicación: la API es la fuente de la verdad y no se lleva una
-cuenta paralela en el cliente.
+### The cart counter
 
-Conviene saber que **`POST /api/cart` de la prueba responde siempre `{"count": 1}`**, también
-al añadir el segundo o el tercer producto (comprobado con peticiones sucesivas). Por eso el
-contador se queda en 1 al usar la aplicación: es el comportamiento del simulador, no un fallo
-de la implementación. Contra una API real que informara el tamaño verdadero de la cesta, el
-código funcionaría sin cambios.
+The brief asks to display **the value returned by the API** on add, and to persist it. That is what
+the application does: the API is the source of truth and no parallel count is kept on the client.
 
-### El término de búsqueda vive en la URL
+Worth knowing: **`POST /api/cart` in this test always answers `{"count": 1}`**, including when
+adding the second or third product (checked with successive requests). That is why the counter
+stays at 1 while using the application: it is the mock's behaviour, not an implementation defect.
+Against a real API reporting the true basket size, the code would work unchanged.
 
-Se refleja en el parámetro `?q=`, lo que da tres cosas gratis: la búsqueda se puede compartir
-por enlace, el botón de atrás del navegador se comporta como el usuario espera, y volver desde
-la ficha recupera la lista filtrada tal y como estaba.
+### The search term lives in the URL
 
-El campo mantiene además su propio estado local para que escribir sea instantáneo; solo la
-escritura en la URL lleva retardo, y con `replace` para no dejar una entrada de historial por
-cada letra. El filtrado **no** se retrasa: los productos ya están en memoria y retrasarlo solo
-añadiría latencia artificial.
+It is reflected in the `?q=` parameter, which buys three things for free: the search can be shared
+as a link, the browser's back button behaves as the user expects, and coming back from a detail
+page restores the filtered list exactly as it was.
 
-La búsqueda ignora los acentos y exige todas las palabras en cualquier orden, así que «liquid
-acer» encuentra el «Acer Liquid Z6».
+The input also keeps its own local state so typing is instant; only the URL write is delayed, and
+with `replace` so no history entry is left behind for every keystroke. Filtering is **not** delayed:
+the products are already in memory and delaying it would only add artificial latency.
 
-### La ficha técnica muestra los atributos obligatorios aunque no haya dato
+The search ignores accents and requires every word, in any order, so "liquid acer" finds the "Acer
+Liquid Z6".
 
-El enunciado pide mostrar «al menos» once atributos concretos. Ocultar uno porque la API no lo
-trae incumple el requisito, y **no es un caso raro**: sobre los 100 productos del catálogo, 1 de
-cada 5 tiene al menos uno de esos once vacío (el peso falta en 7 productos, la RAM en 4, la cámara
-frontal en 4, la batería y el procesador en 1 cada uno).
+### The spec sheet shows the required attributes even with no data
 
-Así que las once filas obligatorias se muestran siempre, y cuando no hay dato se dice «No
-disponible». Informa más que hacer desaparecer la fila, que deja al usuario sin saber si el dato
-no existe o si la página está incompleta. Los atributos **adicionales** sí se omiten cuando vienen
-vacíos: `nfc`, por ejemplo, llega vacío en los 100 productos, y una etiqueta sin valor al lado no
-aporta nada.
+The brief asks to display "at least" eleven specific attributes. Hiding one because the API does not
+provide it breaks the requirement, and **it is not a rare case**: across the 100 products of the
+catalogue, 1 in 5 has at least one of those eleven empty (weight is missing in 7 products, RAM in 4,
+the front camera in 4, battery and CPU in 1 each).
 
-### El orden de la segunda columna lo fija el wireframe
+So the eleven required rows are always rendered, and when there is no data they say "No disponible".
+That informs more than making the row disappear, which leaves the user unsure whether the data does
+not exist or the page is incomplete. The **additional** attributes are dropped when empty: `nfc`,
+for instance, arrives empty in all 100 products, and a label with nothing next to it adds nothing.
 
-En la ficha, la descripción va sobre las acciones. Comercialmente se defendería lo contrario —el
-botón de compra cuanto más arriba, mejor— pero el enunciado pide seguir la estructura de las
-capturas, y eso manda sobre la preferencia propia. Hay un test que comprueba el orden en el DOM,
-para que un refactor no lo invierta sin darse cuenta.
+### The order of the second column comes from the wireframe
 
-### Los selectores de opciones
+On the detail page, the description sits above the actions. Commercially the opposite is arguable —
+the buy button as high as possible — but the brief asks to follow the structure of the screenshots,
+and that outranks personal preference. A test asserts the order in the DOM so a refactor cannot
+silently flip it.
 
-Grupos de radios dentro de un `fieldset` con `legend`, no listas de botones ni `<select>`. Es
-el elemento que corresponde a una elección excluyente: el lector de pantalla anuncia «Color,
-grupo, opción 1 de 2» y el teclado se mueve con las flechas sin necesidad de escribir código.
+### The option pickers
 
-Con una sola opción se preselecciona, como pide el enunciado. Con varias **no** se
-preselecciona ninguna y el botón permanece deshabilitado, con una explicación al lado: el
-color y la capacidad determinan qué producto se compra, y elegirlos por el usuario invita a
-añadir a la cesta algo distinto de lo que quería.
+Radio groups inside a `fieldset` with a `legend`, not lists of buttons and not a `<select>`. That is
+the element that matches a mutually exclusive choice: a screen reader announces "Color, group,
+option 1 of 2" and the keyboard moves with the arrow keys without a line of code.
 
-## Rendimiento
+With a single option it is preselected, as the brief asks. With several, **none** is preselected and
+the button stays disabled with an explanation next to it: colour and capacity determine which
+product is being bought, and choosing on the user's behalf invites adding something other than what
+they wanted.
 
-- **Carga diferida por ruta.** Cada vista acaba en su propio fragmento, así que quien abre el
-  listado no descarga el código de la ficha. Es el motivo por el que no hace falta configurar
-  el troceado manual del empaquetador.
-- **Imágenes en diferido y con espacio reservado.** El contenedor declara su proporción en
-  CSS, de modo que la rejilla no se desplaza a medida que llegan las fotos.
-- **Filtrado memoizado** y una referencia estable cuando no hay búsqueda, para no rehacer la
-  rejilla sin motivo.
-- **Deduplicación de peticiones en vuelo.** Si dos componentes piden el mismo recurso a la
-  vez, la caché no ayuda porque ninguna petición ha terminado; un registro de promesas en
-  curso hace que la segunda espere a la primera.
-- **Formateadores de `Intl` creados una sola vez** a nivel de módulo, no en cada tarjeta.
+## Performance
 
-**No se virtualiza la lista, a propósito.** Son 100 productos. Virtualizar añadiría una
-dependencia, rompería la búsqueda del navegador y complicaría la accesibilidad para resolver
-un problema que a esta escala no existe. A partir de unos miles de elementos la respuesta
-correcta no es virtualizar, es paginar en el servidor.
+- **Route-level lazy loading.** Each view ends up in its own chunk, so opening the list does not
+  download the detail page's code. That is why no manual chunking needs configuring.
+- **Lazy images with space reserved.** The container declares its aspect ratio in CSS, so the grid
+  does not shift as the photos arrive.
+- **Memoised filtering** and a stable reference when there is no search, so the grid is not rebuilt
+  for nothing.
+- **In-flight request deduplication.** If two components ask for the same resource at once the cache
+  cannot help, because no request has finished; a registry of pending promises makes the second one
+  wait for the first.
+- **`Intl` formatters created once** at module level, not per card.
 
-## Accesibilidad
+**The list is deliberately not virtualised.** There are 100 products. Virtualising would add a
+dependency, break the browser's find-in-page and complicate accessibility, all to solve a problem
+that does not exist at this scale. Past a few thousand items the right answer is not virtualisation,
+it is server-side pagination.
 
-- Enlace «Saltar al contenido» como primer elemento enfocable.
-- Estructura semántica: migas de pan como `nav` + lista ordenada con `aria-current`, ficha
-  técnica como lista de definiciones, catálogo como lista con nombre accesible.
-- Regiones vivas que anuncian el número de resultados al filtrar, el estado de carga y el
-  resultado de añadir a la cesta.
-- Radios nativos ocultos visualmente pero presentes en el árbol de accesibilidad y en el orden
-  de tabulación, de modo que se conserva todo el comportamiento nativo con el diseño propio.
-- Un único estilo de foco visible, con `:focus-visible`, en modo claro y oscuro.
-- Se respeta `prefers-reduced-motion`: el movimiento puede provocar mareo y migraña.
-- Las reglas de `jsx-a11y` están activas en el linter, que falla ante cualquier aviso.
+## Accessibility
 
-**Y está comprobado, no afirmado.** Hay una auditoría automática con `axe-core` —el motor que
-usan las herramientas de accesibilidad habituales— sobre las dos vistas y en los estados que se
-suelen dejar sin revisar: cargando, con error y con la búsqueda sin resultados. Cero violaciones.
-El linter revisa el código estático; axe revisa el árbol resultante, que es donde aparecen los
-problemas de verdad. (La regla de contraste se desactiva porque jsdom no calcula estilos ni
-geometría; el contraste se eligió a mano en el sistema de diseño.)
+- "Skip to content" link as the first focusable element of the document.
+- Semantic structure: breadcrumbs as a `nav` plus an ordered list with `aria-current`, the spec sheet
+  as a definition list, the catalogue as a list with an accessible name.
+- Live regions announcing the number of results while filtering, the loading state and the outcome
+  of adding to the cart.
+- Native radios hidden visually but present in the accessibility tree and in the tab order, so all
+  the native behaviour is kept alongside a custom design.
+- One single focus style across the application, with `:focus-visible`, in both light and dark mode.
+- `prefers-reduced-motion` is honoured: motion can cause nausea and migraine.
+- The `jsx-a11y` rules are enabled in the linter, which fails on any warning.
 
-## Seguridad
+**And it is verified, not claimed.** There is an automated audit with `axe-core` — the engine behind
+the usual accessibility tooling — over both views and in the states normally left unchecked: loading,
+errored, and search with no results. Zero violations. The linter checks static code; axe checks the
+resulting tree, which is where the real problems show up. (The contrast rule is disabled because
+jsdom computes neither styles nor geometry; contrast was chosen by hand in the design system.)
 
-El alcance real es limitado y conviene decirlo: es una SPA estática contra una API pública sin
-autenticación, sin sesiones ni datos personales. Lo que sí aplica:
+## Security
 
-- **Content-Security-Policy** en la compilación de producción, generada a partir del origen de la
-  API configurado. Es estricta —`script-src 'self'` y `style-src 'self'`, sin `unsafe-inline`—
-  porque se comprobó que la aplicación no tiene ni un script ni un estilo en línea: los estilos
-  son CSS Modules, que salen como ficheros enlazados, y no se usa el atributo `style` en ningún
-  componente. Se inyecta solo al compilar, porque el servidor de desarrollo necesita scripts en
-  línea para la recarga en caliente.
+The real attack surface is limited and it is worth saying so: this is a static SPA against a public
+API with no authentication, no sessions and no personal data. What does apply:
 
-  Con una limitación que conviene decir: `frame-ancestors`, `report-uri` y `sandbox` **se ignoran**
-  cuando la política llega en una etiqueta `<meta>` y no en una cabecera HTTP. La protección contra
-  clickjacking y el HSTS tiene que configurarlos quien sirva los ficheros; no se incluye una
-  directiva que no haría nada.
+- **Content-Security-Policy** on the production build, generated from the configured API origin. It
+  is strict — `script-src 'self'` and `style-src 'self'`, no `unsafe-inline` — because the
+  application was verified to contain not a single inline script or style: the styles are CSS
+  Modules, which come out as linked files, and the `style` attribute is not used in any component.
+  It is injected at build time only, because the development server needs inline scripts for hot
+  reload.
 
-  **La política se verifica en cada compilación** con `npm run check:csp`, que corre también en
-  integración continua. Comprueba sobre el HTML compilado que la política existe y trae sus ocho
-  directivas, que no hay ni un script ni un estilo en línea —la condición que permite prescindir
-  de `unsafe-inline`—, que el documento no referencia orígenes sin declarar y que el origen de la
-  API está permitido para conectarse y para imágenes. Son 18 comprobaciones. Existe porque una CSP
-  mal ajustada no avisa: el navegador bloquea el recurso en silencio, y la política no se aplica
-  en desarrollo, así que el fallo aparecería en producción y en el navegador del usuario.
-- **No se usa `dangerouslySetInnerHTML` en ningún sitio**, y el linter lo prohíbe por
-  configuración. React escapa el texto por defecto; el riesgo de XSS aparece justo al salirse
-  de ese camino.
-- **No se confía en ningún dato externo**: ni en las respuestas de la API ni en el contenido de
-  `localStorage`, que es editable por el usuario. Todo pasa por validación en ejecución. Es la
-  medida más real de este proyecto.
-- **Las URLs se construyen codificando cada segmento**, de modo que un identificador que
-  contenga `../` o `?` no pueda alterar la ruta ni añadir parámetros. Hay un test que lo
-  comprueba.
-- **Las direcciones de imagen que da la API se validan**: solo se aceptan URLs absolutas con
-  esquema `http` o `https`. Esas direcciones acaban en el atributo `src` de una imagen, y
-  comprobar el esquema evita que un origen comprometido —o simplemente equivocado— cuele un
-  `javascript:`, un `data:` o un `blob:` donde debería haber una foto. Los navegadores actuales no
-  ejecutan `javascript:` en un `<img>`, pero apoyarse en eso es apoyarse en el navegador y no en
-  el código propio.
-- **Enlaces externos con `rel="noreferrer"`**, obligado por el linter.
-- **Dependencias mínimas**: react, react-dom y react-router en producción. Menos dependencias,
-  menos superficie de cadena de suministro. Se auditan en integración continua.
-- No se guarda nada sensible en el navegador: solo el catálogo, que es público, y el contador
-  de la cesta.
+  With one limitation worth stating: `frame-ancestors`, `report-uri` and `sandbox` **are ignored**
+  when the policy arrives in a `<meta>` tag rather than an HTTP header. Clickjacking protection and
+  HSTS have to be configured by whoever serves the files; a directive that would do nothing is not
+  included.
+
+  **The policy is verified on every build** with `npm run check:csp`, which also runs in continuous
+  integration. Against the built HTML it checks that the policy exists with its eight directives,
+  that there is no inline script or style — the condition that allows doing without `unsafe-inline`
+  — that the document references no undeclared origin, and that the API origin is allowed both for
+  connections and for images. Eighteen checks. It exists because a badly tuned CSP does not warn:
+  the browser blocks the resource silently, and the policy is not applied in development, so the
+  failure would show up in production and in the user's browser.
+- **`dangerouslySetInnerHTML` is not used anywhere**, and the linter forbids it by configuration.
+  React escapes text by default; the XSS risk appears precisely when you step off that path.
+- **No external data is trusted**: neither the API responses nor the contents of `localStorage`,
+  which the user can edit. Everything goes through runtime validation. This is the most real measure
+  in the project.
+- **URLs are built by encoding each segment**, so an identifier containing `../` or `?` cannot alter
+  the path or add parameters. A test checks it.
+- **Image URLs from the API are validated**: only absolute `http` or `https` URLs are accepted. Those
+  URLs end up in an image's `src` attribute, and checking the scheme prevents a compromised — or
+  simply mistaken — source from slipping in a `javascript:`, a `data:` or a `blob:` where a photo
+  should be. Current browsers do not execute `javascript:` in an `<img>`, but relying on that is
+  relying on the browser rather than on your own code.
+- **External links carry `rel="noreferrer"`**, enforced by the linter.
+- **Minimal dependencies**: react, react-dom and react-router in production. Fewer dependencies mean
+  less supply-chain surface. They are audited in continuous integration.
+- Nothing sensitive is stored in the browser: only the catalogue, which is public, and the cart
+  counter.
 
 ## Tests
 
-151 tests. 97% de cobertura de sentencias y 100% de funciones.
+151 tests. 97% statement coverage and 100% function coverage.
 
-**La cobertura dice qué líneas se ejecutan, no si los tests servirían de algo.** Para comprobar
-eso se inyectaron diez fallos realistas en el código —caducar la caché un milisegundo tarde,
-dejar de cruzar los campos intercambiados de la API, exigir una palabra de la búsqueda en vez de
-todas, dejar de codificar los segmentos de la URL, enviar a la cesta el nombre de la opción en
-lugar de su código— y se comprobó cuáles rompían la suite. Nueve de diez. El que se escapó fue
-**quitar la persistencia del contador de la cesta**: nada lo comprobaba, y persistirlo es un
-requisito del enunciado, así que se podía perder en un refactor sin que nadie se enterara. Con el
-test que faltaba, diez de diez.
+**Coverage tells you which lines run, not whether the tests would notice a break.** To check that,
+ten realistic defects were injected into the code — expiring the cache one millisecond late, no
+longer crossing back the API's swapped fields, requiring one search word instead of all of them, no
+longer encoding URL segments, sending the option's name to the cart instead of its code — and it was
+measured which of them broke the suite. Nine out of ten. The one that slipped through was **removing
+the persistence of the cart counter**: nothing checked it, and persisting it is a requirement of the
+brief, so it could have been lost in a refactor without anyone noticing. With the missing test, ten
+out of ten.
 
 ```bash
 npm test
 npm run test:coverage
 ```
 
-Se reparten en tres niveles:
+They come in three layers:
 
-- **Unitarios** sobre la caché con expiración, los parsers, la búsqueda y el formateo.
-- **De contrato** sobre la traducción de la API, con fixtures reales, que documentan sus
-  defectos y avisarán si cambian.
-- **De integración** sobre las dos vistas con Testing Library, recorriendo los flujos de
-  verdad: filtrar, no encontrar nada y salir del estado vacío, seleccionar opciones, añadir a
-  la cesta y ver el contador en la cabecera, y los fallos de red, 404 y respuesta malformada
-  con su reintento.
+- **Unit tests** over the expiring cache, the parsers, the search and the formatting.
+- **Contract tests** over the API translation, with real fixtures, documenting its defects and
+  warning if they change.
+- **Integration tests** over both views with Testing Library, walking the real flows: filtering,
+  finding nothing and getting out of the empty state, selecting options, adding to the cart and
+  seeing the counter in the header, plus network, 404 and malformed-response failures with their
+  retry.
 
-Uno de ellos merece mención porque cubre una carrera real que apareció en la revisión final: si el
-usuario cambiaba de color con la petición de añadir en vuelo, al llegar la respuesta se anunciaba
-«producto añadido» para una selección distinta de la que se había enviado. Los selectores ahora se
-bloquean mientras se envía, y el test lo comprueba dejando la petición sin resolver.
+One of them deserves a mention because it covers a real race that showed up in the final review: if
+the user changed colour while the add request was in flight, the arrival of the response announced
+"product added" for a selection other than the one that had been sent. The pickers are now disabled
+while sending, and the test checks it by leaving the request unresolved.
 
-Las consultas se hacen por rol y por nombre accesible, no por clase CSS ni por identificador
-de test: si un test encuentra el botón como lo encontraría un lector de pantalla, la
-accesibilidad queda comprobada de paso.
+Queries go by role and accessible name, not by CSS class or test id: if a test finds the button the
+way a screen reader would, accessibility is checked along the way.
 
-## Qué haría con más tiempo
+## What I would do with more time
 
-- Tests de extremo a extremo con Playwright sobre los dos recorridos completos.
-- Internacionalización: los textos están incrustados en los componentes.
-- Mover la caché a IndexedDB si el catálogo creciera, porque `localStorage` es sincrónico y
-  serializar bloquea el hilo principal.
+- End-to-end tests with Playwright over both complete journeys.
+- Internationalisation: the copy is embedded in the components.
+- Move the cache to IndexedDB if the catalogue grew, because `localStorage` is synchronous and
+  serialising blocks the main thread.

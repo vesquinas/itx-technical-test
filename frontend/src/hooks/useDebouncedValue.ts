@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 
 /**
- * Devuelve el valor con retardo, actualizandolo solo cuando deja de cambiar.
+ * Returns the value with a delay, updating it only once it stops changing.
  *
- * En esta aplicación NO se usa para retrasar el filtrado: los productos ya están
- * en memoria y filtrarlos es instantaneo, así que retrasarlo solo empeoraría la
- * experiencia. Se usa para sincronizar el termino de búsqueda con la URL, que si
- * conviene no reescribir en cada pulsación de tecla.
+ * In this application it is NOT used to delay the filtering: the products are already in memory
+ * and filtering them is instantaneous, so delaying it would only make the experience worse. It is
+ * used to sync the search term with the URL, which is what is better not rewritten on every
+ * keystroke.
  */
 export function useDebouncedValue<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);

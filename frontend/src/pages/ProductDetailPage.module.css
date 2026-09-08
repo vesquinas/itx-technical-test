@@ -92,7 +92,7 @@
   padding-top: var(--space-4);
 }
 
-/* Esqueleto de carga, con la misma forma que el contenido real. */
+/* Loading skeleton, with the same shape as the real content. */
 .mediaSkeleton {
   aspect-ratio: 3 / 4;
 }
@@ -129,7 +129,7 @@
   }
 }
 
-/* Dos columnas a partir de tableta, como el wireframe. */
+/* Two columns from tablet width up, as in the wireframe. */
 @media (min-width: 48rem) {
   .layout {
     grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);

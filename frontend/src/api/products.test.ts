@@ -7,7 +7,7 @@ import { ONE_HOUR_MS } from '../lib/cache/index.ts';
 import { ApiError } from './client.ts';
 import { addToCart, clearProductCache, fetchProductDetail, fetchProductList } from './products.ts';
 
-/** Firma acotada de `fetch`: solo lo que la aplicación usa de verdad. */
+/** A narrowed signature of `fetch`: only what the application actually uses. */
 type FetchStub = (url: string, init?: RequestInit) => Promise<Response>;
 
 function jsonResponse(payload: unknown, status = 200): Response {
@@ -17,7 +17,7 @@ function jsonResponse(payload: unknown, status = 200): Response {
   });
 }
 
-describe('capa de datos de producto', () => {
+describe('product data layer', () => {
   let fetchMock: Mock<FetchStub>;
   let clock: number;
 
@@ -37,7 +37,7 @@ describe('capa de datos de producto', () => {
   });
 
   describe('fetchProductList', () => {
-    it('pide el listado a la API y lo devuelve traducido', async () => {
+    it('requests the list from the API and returns it translated', async () => {
       const products = await fetchProductList();
 
       expect(products).toHaveLength(productListFixture.length);
@@ -48,14 +48,14 @@ describe('capa de datos de producto', () => {
       );
     });
 
-    it('sirve de caché la segunda vez, sin volver a la red', async () => {
+    it('serves from cache the second time, without going back to the network', async () => {
       await fetchProductList();
       await fetchProductList();
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
-    it('revalida contra la API cuando la entrada cacheada cumple una hora', async () => {
+    it('revalidates against the API once the cached entry turns one hour old', async () => {
       await fetchProductList();
 
       clock += ONE_HOUR_MS;
@@ -64,7 +64,7 @@ describe('capa de datos de producto', () => {
       expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
-    it('sigue usando la caché justo antes de la hora', async () => {
+    it('still uses the cache just before the hour', async () => {
       await fetchProductList();
 
       clock += ONE_HOUR_MS - 1;
@@ -73,14 +73,14 @@ describe('capa de datos de producto', () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
     });
 
-    it('lanza una sola petición cuando dos llamadas coinciden en el tiempo', async () => {
+    it('fires a single request when two calls overlap in time', async () => {
       const [primera, segunda] = await Promise.all([fetchProductList(), fetchProductList()]);
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(primera).toEqual(segunda);
     });
 
-    it('vuelve a pedir a la API después de vaciar la caché', async () => {
+    it('asks the API again after clearing the cache', async () => {
       await fetchProductList();
       clearProductCache();
       await fetchProductList();
@@ -94,7 +94,7 @@ describe('capa de datos de producto', () => {
       fetchMock.mockImplementation(() => Promise.resolve(jsonResponse(productDetailFixture)));
     });
 
-    it('pide el detalle por identificador', async () => {
+    it('requests the detail by identifier', async () => {
       const detail = await fetchProductDetail('abc123');
 
       expect(detail.model).toBe('X960');
@@ -103,7 +103,7 @@ describe('capa de datos de producto', () => {
       );
     });
 
-    it('cachea cada producto por separado', async () => {
+    it('caches each product separately', async () => {
       await fetchProductDetail('abc');
       await fetchProductDetail('abc');
       await fetchProductDetail('xyz');
@@ -111,7 +111,7 @@ describe('capa de datos de producto', () => {
       expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
-    it('codifica el identificador para que no pueda alterar la ruta', async () => {
+    it('encodes the identifier so it cannot alter the path', async () => {
       await fetchProductDetail('../cart');
 
       expect(fetchMock.mock.calls[0]?.[0]).toBe(
@@ -119,7 +119,7 @@ describe('capa de datos de producto', () => {
       );
     });
 
-    it('traduce un 404 a un error de recurso inexistente', async () => {
+    it('translates a 404 into a resource-not-found error', async () => {
       fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({}, 404)));
 
       await expect(fetchProductDetail('noexiste')).rejects.toMatchObject({
@@ -128,13 +128,13 @@ describe('capa de datos de producto', () => {
       });
     });
 
-    it('traduce una respuesta con forma inesperada a un error de formato', async () => {
+    it('translates an unexpectedly shaped response into a format error', async () => {
       fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ nada: true })));
 
       await expect(fetchProductDetail('abc')).rejects.toMatchObject({ kind: 'malformed' });
     });
 
-    it('no cachea una respuesta fallida', async () => {
+    it('does not cache a failed response', async () => {
       fetchMock.mockImplementationOnce(() => Promise.resolve(jsonResponse({}, 500)));
 
       await expect(fetchProductDetail('abc')).rejects.toBeInstanceOf(ApiError);
@@ -149,7 +149,7 @@ describe('capa de datos de producto', () => {
       fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({ count: 2 })));
     });
 
-    it('envia identificador, color y capacidad, y devuelve el contador', async () => {
+    it('sends identifier, colour and capacity, and returns the counter', async () => {
       const count = await addToCart({ id: 'abc', colorCode: 1000, storageCode: 2001 });
 
       expect(count).toBe(2);
@@ -164,7 +164,7 @@ describe('capa de datos de producto', () => {
       });
     });
 
-    it('no se cachea: dos pulsaciones son dos peticiones', async () => {
+    it('is not cached: two presses are two requests', async () => {
       await addToCart({ id: 'abc', colorCode: 1000, storageCode: 2000 });
       await addToCart({ id: 'abc', colorCode: 1000, storageCode: 2000 });
 

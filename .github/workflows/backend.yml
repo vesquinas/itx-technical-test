@@ -15,7 +15,7 @@ defaults:
 
 jobs:
   verify:
-    name: Tests y empaquetado
+    name: Tests and packaging
     runs-on: ubuntu-latest
 
     steps:
@@ -30,7 +30,7 @@ jobs:
       - name: Tests
         run: ./mvnw -B verify
 
-      # La imagen se construye en cada cambio para que un fallo en el Dockerfile se
-      # detecte aqui y no en el momento de despliegue.
-      - name: Imagen de contenedor
+      # The image is built on every change so that a broken Dockerfile is caught here and not
+      # at deployment time.
+      - name: Container image
         run: docker build -t similar-products:ci .

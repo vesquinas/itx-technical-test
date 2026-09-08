@@ -39,7 +39,7 @@
   outline: none;
 }
 
-/* El anillo de foco se traslada al contenedor para no romper el subrayado. */
+/* The focus ring moves to the container so it does not break the underline. */
 .field:focus-within {
   outline: 2px solid var(--color-focus);
   outline-offset: 4px;
@@ -79,6 +79,6 @@
 .status {
   color: var(--color-ink-faint);
   font-size: var(--text-xs);
-  /* Altura reservada para que la rejilla no salte al aparecer el texto. */
+  /* Height reserved so the grid does not jump when the text appears. */
   min-height: 1rem;
 }

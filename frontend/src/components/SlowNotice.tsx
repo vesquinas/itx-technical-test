@@ -1,18 +1,18 @@
 import styles from './SlowNotice.module.css';
 
 /**
- * Aviso de espera larga durante la primera carga.
+ * Long-wait notice during the first load.
  *
- * La API de la prueba está alojada en un plan gratuito que apaga el servicio
- * cuando no recibe tráfico: medido, la primera petición tarda unos 40 segundos
- * en arrancarlo, y las siguientes responden en milisegundos.
+ * The test API is hosted on a free tier that shuts the service down when it receives no traffic:
+ * measured, the first request takes about 40 seconds to start it, and the following ones answer in
+ * milliseconds.
  *
- * Sin este aviso la aplicación parece colgada durante casi un minuto. Explicar
- * la causa cuesta dos líneas y cambia por completo la percepcion de la espera.
+ * Without this notice the application looks frozen for almost a minute. Explaining the cause costs
+ * two lines and completely changes how the wait is perceived.
  */
 export function SlowNotice() {
-  // `aria-live` en lugar de `role="status"`: el mismo comportamiento de anuncio,
-  // sin darle a un parrafo informativo el rol de resultado de un formulario.
+  // `aria-live` rather than `role="status"`: the same announcement behaviour, without giving an
+  // informational paragraph the role of a form result.
   return (
     <p aria-live="polite" className={styles.notice}>
       Estamos despertando el servidor de la prueba, que se apaga cuando no recibe

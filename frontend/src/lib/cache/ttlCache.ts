@@ -3,20 +3,19 @@ import { isRecord } from '../parse.ts';
 import type { KeyValueStorage } from './storage.ts';
 import { resolveStorage } from './storage.ts';
 
-/** Expiración exigida por el enunciado. */
+/** The expiry the brief requires. */
 export const ONE_HOUR_MS = 60 * 60 * 1000;
 
 /**
- * Lo que se guarda realmente en el almacén. Los nombres son cortos porque esto
- * se serializa una vez por producto y `localStorage` tiene una cuota pequeña
- * (unos 5 MB por origen).
+ * What actually gets written to the store. The names are short because this is serialised once
+ * per product and `localStorage` has a small quota (about 5 MB per origin).
  */
 interface Envelope {
-  /** Versión del formato de los datos. */
+  /** Version of the data format. */
   v: number;
-  /** Instante, en epoch ms, a partir del cual la entrada deja de valer. */
+  /** Instant, in epoch ms, from which the entry stops being valid. */
   e: number;
-  /** Carga útil, sin validar. */
+  /** Payload, unvalidated. */
   d: unknown;
 }
 
@@ -30,39 +29,37 @@ function isEnvelope(value: unknown): value is Envelope {
 }
 
 export interface TtlCacheOptions {
-  /** Prefijo de las claves, para no pisar otros datos del mismo origen. */
+  /** Key prefix, so we do not step on other data of the same origin. */
   namespace: string;
-  /** Tiempo de vida de cada entrada. Por defecto, una hora. */
+  /** Time to live of each entry. One hour by default. */
   ttlMs?: number;
   /**
-   * Versión del formato. Subirla inválida de golpe todo lo cacheado, que es lo
-   * que hay que hacer cuando cambia la forma de los datos: sin esto, un usuario
-   * que ya tuviera la versión anterior en su navegador seguiría leyéndola.
+   * Version of the format. Bumping it invalidates everything cached at once, which is what you
+   * have to do when the shape of the data changes: without it, a user who already had the previous
+   * version in their browser would keep reading it.
    */
   version?: number;
   storage?: KeyValueStorage;
-  /** Reloj inyectable, para poder probar la expiración sin esperar una hora. */
+  /** Injectable clock, so expiry can be tested without waiting an hour. */
   now?: () => number;
 }
 
 /**
- * Caché de cliente con expiración por entrada.
+ * Client-side cache with per-entry expiry.
  *
- * Tres decisiones que merecen explicación:
+ * Three decisions worth explaining:
  *
- * - **Se valida al leer, no solo al escribir.** Lo que sale de `localStorage` es
- *   texto que el usuario puede haber editado, o que escribió una versión
- *   anterior de la aplicación. Tratarlo como dato de confianza es el error que
- *   convierte una caché en un fallo de seguridad, así que `get` exige un parser.
+ * - **Validation happens on read, not only on write.** What comes out of `localStorage` is text the
+ *   user may have edited, or that an earlier version of the application wrote. Treating it as
+ *   trusted data is the mistake that turns a cache into a security hole, so `get` demands a parser.
  *
- * - **Al expirar se borra y se devuelve `undefined`**, de modo que quien llama
- *   revalida contra la API. Es exactamente lo que pide el enunciado. Se valoro
- *   servir el dato caducado mientras se revalida en segundo plano
- *   (stale-while-revalidate), pero eso muestra datos vencidos y el requisito
- *   dice que la información "deberá revalidarse".
+ * - **On expiry the entry is deleted and `undefined` is returned**, so the caller revalidates
+ *   against the API. That is exactly what the brief asks for. Serving the stale value while
+ *   revalidating in the background (stale-while-revalidate) was considered, but that shows
+ *   out-of-date data and the requirement says the information "deberá revalidarse".
  *
- * - **Ningún fallo del almacén se propaga.** La caché es una optimización; si no
- *   puede escribir, la aplicación tiene que seguir funcionando.
+ * - **No storage failure propagates.** The cache is an optimisation; if it cannot write, the
+ *   application has to keep working.
  */
 export class TtlCache {
   private readonly storage: KeyValueStorage;
@@ -75,9 +72,9 @@ export class TtlCache {
     this.storage = options.storage ?? resolveStorage();
     this.ttlMs = options.ttlMs ?? ONE_HOUR_MS;
     this.version = options.version ?? 1;
-    // Closure en lugar de `Date.now` a secas: guardar la referencia directa la
-    // congela en el momento de construir la caché, y entonces sustituir el reloj
-    // (en un test, o con una librería de tiempo virtual) ya no tiene efecto.
+    // A closure rather than a bare `Date.now`: storing the direct reference freezes it at the
+    // moment the cache is built, and then replacing the clock (in a test, or with a virtual-time
+    // library) has no effect any more.
     this.now = options.now ?? (() => Date.now());
     this.prefix = `${options.namespace}/v${String(this.version)}/`;
   }
@@ -87,9 +84,8 @@ export class TtlCache {
   }
 
   /**
-   * Devuelve el valor cacheado, o `undefined` si no hay, está caducado o no
-   * supera la validación. Las entradas inválidas se eliminan al leerlas para no
-   * dejar basura acumulada en el navegador.
+   * Returns the cached value, or `undefined` if there is none, it has expired, or it does not pass
+   * validation. Invalid entries are deleted on read so no rubbish accumulates in the browser.
    */
   get<T>(key: string, parse: Parser<T>): T | undefined {
     const storageKey = this.storageKey(key);
@@ -129,7 +125,7 @@ export class TtlCache {
     return parsed;
   }
 
-  /** Guarda un valor con la expiración configurada contada desde ahora. */
+  /** Stores a value with the configured expiry, counted from now. */
   set(key: string, data: unknown): void {
     const envelope: Envelope = { v: this.version, e: this.now() + this.ttlMs, d: data };
     const serialized = JSON.stringify(envelope);
@@ -137,13 +133,13 @@ export class TtlCache {
     try {
       this.storage.setItem(this.storageKey(key), serialized);
     } catch {
-      // Lo habitual aquí es haber agotado la cuota. Liberamos lo que es nuestro
-      // y probamos una sola vez más; si vuelve a fallar, seguimos sin cachear.
+      // The usual cause here is having run out of quota. We free what is ours and try exactly
+      // once more; if it fails again, we carry on without caching.
       this.clear();
       try {
         this.storage.setItem(this.storageKey(key), serialized);
       } catch {
-        // Sin caché. La aplicación sigue: irá a la API en cada petición.
+        // No cache. The application carries on: it will hit the API on every request.
       }
     }
   }
@@ -152,18 +148,18 @@ export class TtlCache {
     try {
       this.storage.removeItem(this.storageKey(key));
     } catch {
-      // Nada que hacer.
+      // Nothing to do.
     }
   }
 
-  /** Elimina únicamente las entradas de este namespace y versión. */
+  /** Removes only the entries of this namespace and version. */
   clear(): void {
     try {
       for (const key of this.storage.keys()) {
         if (key.startsWith(this.prefix)) this.storage.removeItem(key);
       }
     } catch {
-      // Nada que hacer.
+      // Nothing to do.
     }
   }
 }

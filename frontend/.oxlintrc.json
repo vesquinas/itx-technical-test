@@ -19,11 +19,11 @@
     "react/rules-of-hooks": "error",
     "react/only-export-components": ["warn", { "allowConstantExport": true }],
 
-    // Innecesaria con el JSX transform moderno (`jsx: "react-jsx"`).
+    // Unnecessary with the modern JSX transform (`jsx: "react-jsx"`).
     "react/react-in-jsx-scope": "off",
 
-    // Seguridad: React escapa el texto por defecto y el riesgo aparece justo
-    // cuando se sale de ese camino, asi que se cierra por configuracion.
+    // Security: React escapes text by default and the risk appears precisely when you step off
+    // that path, so it is closed by configuration.
     "react/no-danger": "error",
     "react/jsx-no-script-url": "error",
     "react/jsx-no-target-blank": "error",
@@ -35,7 +35,7 @@
     "typescript/no-explicit-any": "error",
     "typescript/consistent-type-imports": "error",
 
-    // Accesibilidad. Vienen incluidas en oxlint, sin dependencias adicionales.
+    // Accessibility. Bundled with oxlint, no extra dependencies needed.
     "jsx-a11y/alt-text": "error",
     "jsx-a11y/anchor-has-content": "error",
     "jsx-a11y/anchor-is-valid": "error",
@@ -47,20 +47,19 @@
     "jsx-a11y/no-autofocus": "warn",
     "jsx-a11y/role-has-required-aria-props": "error",
 
-    // Desactivadas a proposito: solo tienen efecto cuando la prop llega a un
-    // componente memoizado con React.memo. Pasar una funcion en linea a un
-    // elemento del DOM (<input onChange>) no provoca ningun renderizado extra.
-    // Aplicadas a todo obligan a envolver cada manejador en useCallback, lo que
-    // anade ruido y asignaciones sin mejorar nada medible.
+    // Disabled on purpose: they only have an effect when the prop reaches a component memoised
+    // with React.memo. Passing an inline function to a DOM element (<input onChange>) causes no
+    // extra render at all. Applied everywhere they force wrapping every handler in useCallback,
+    // which adds noise and allocations without improving anything measurable.
     "react-perf/jsx-no-new-function-as-prop": "off",
     "react-perf/jsx-no-new-object-as-prop": "off",
     "react-perf/jsx-no-new-array-as-prop": "off",
 
-    // React Router exige pasar el elemento por prop (`<Route element={...}>`),
-    // asi que esta regla no tiene forma de cumplirse en la definicion de rutas.
+    // React Router requires passing the element as a prop (`<Route element={...}>`), so this
+    // rule has no way of being satisfied in the route definitions.
     "react-perf/jsx-no-jsx-as-prop": "off",
 
-    // Reglas de estilo de unicorn que chocan con el idioma habitual de React.
+    // Unicorn style rules that clash with the usual React idiom.
     "unicorn/no-array-for-each": "off",
     "unicorn/prefer-query-selector": "off"
   },
@@ -70,20 +69,18 @@
       // interfaz, no una traza olvidada.
       "files": ["scripts/**"],
       "rules": {
-        // Los scripts de línea de comandos informan por la salida estándar: es su
-        // interfaz, no una traza olvidada.
+        // Command-line scripts report on standard output: that is their interface, not a
+        // forgotten trace.
         "no-console": "off",
-        // El `await` secuencial por lotes es el mecanismo con el que se limita la
-        // concurrencia contra la API. Lo que sugiere la regla —esperar todas las
-        // promesas a la vez— lanzaría cien peticiones simultáneas, que es justo lo
-        // que se quiere evitar.
+        // Sequential awaiting per batch is the mechanism that limits concurrency against the
+        // API. What the rule suggests — awaiting every promise at once — would fire a hundred
+        // simultaneous requests, which is exactly what we want to avoid.
         "no-await-in-loop": "off"
       }
     },
     {
-      // La asercion vive en `expectNoAccessibilityViolations`, un ayudante compartido,
-      // asi que la regla no la ve dentro del cuerpo del test. Se le ensena el nombre
-      // en lugar de desactivar la comprobacion.
+      // The assertion lives in `expectNoAccessibilityViolations`, a shared helper, so the rule
+      // cannot see it inside the test body. We teach it the name instead of disabling the check.
       "files": ["**/accessibility.test.tsx"],
       "rules": {
         "vitest/expect-expect": [
@@ -93,9 +90,9 @@
       }
     },
     {
-      // En los tests, una URL `javascript:` es el dato de entrada de la comprobacion:
-      // son justamente los tests que verifican que esas URLs se rechazan. La regla
-      // busca `javascript:` en atributos que el navegador ejecuta, no en datos de test.
+      // In the tests a `javascript:` URL is the input of the check: these are precisely the
+      // tests verifying that such URLs are rejected. The rule looks for `javascript:` in
+      // attributes the browser executes, not in test data.
       "files": ["**/*.test.ts", "**/*.test.tsx"],
       "rules": {
         "no-script-url": "off"

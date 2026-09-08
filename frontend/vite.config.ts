@@ -9,47 +9,47 @@ function originOf(baseUrl: string): string {
   try {
     return new URL(baseUrl).origin;
   } catch {
-    // Falla la compilacion en lugar de emitir una politica silenciosamente incompleta:
-    // una CSP mal formada no protege y no avisa.
+    // Fail the build rather than emitting a silently incomplete policy: a malformed CSP does not
+    // protect and does not warn.
     throw new Error(
-      `VITE_API_BASE_URL no es una URL absoluta valida: ${baseUrl}. ` +
-        'Se necesita para construir la Content-Security-Policy.',
+      `VITE_API_BASE_URL is not a valid absolute URL: ${baseUrl}. ` +
+        'It is needed to build the Content-Security-Policy.',
     );
   }
 }
 
 /**
- * Inyecta la Content-Security-Policy en el HTML compilado.
+ * Injects the Content-Security-Policy into the built HTML.
  *
- * Es la segunda linea de defensa frente a XSS: la primera es que React escapa el texto por
- * defecto y que el linter prohibe `dangerouslySetInnerHTML`. Si aun asi se colara una
- * inyeccion, la politica impide que el navegador ejecute el script.
+ * It is the second line of defence against XSS: the first is that React escapes text by default
+ * and that the linter forbids `dangerouslySetInnerHTML`. Should an injection still get through,
+ * the policy stops the browser from executing the script.
  *
- * ## Por que se puede ser estricto aqui
+ * ## Why we can be strict here
  *
- * `script-src 'self'` y `style-src 'self'` (sin `unsafe-inline`) solo son viables si la
- * aplicacion no tiene ni un script ni un estilo en linea. Se comprobo sobre el HTML compilado
- * y sobre el codigo fuente: no hay ninguno. Los estilos son CSS Modules, que salen como
- * ficheros enlazados, y no se usa el atributo `style` en ningun componente.
+ * `script-src 'self'` and `style-src 'self'` (without `unsafe-inline`) are only viable if the
+ * application has not a single inline script or style. That was checked against the built HTML and
+ * against the source: there is none. The styles are CSS Modules, which come out as linked files,
+ * and the `style` attribute is not used in any component.
  *
- * ## Por que solo en la compilacion de produccion
+ * ## Why only in the production build
  *
- * El servidor de desarrollo inyecta scripts en linea para la recarga en caliente. Aplicar la
- * politica tambien ahi la rompe, asi que el plugin declara `apply: 'build'`.
+ * The development server injects inline scripts for hot reload. Applying the policy there breaks
+ * it, so the plugin declares `apply: 'build'`.
  *
- * ## Lo que una CSP en `<meta>` NO puede hacer
+ * ## What a `<meta>` CSP CANNOT do
  *
- * `frame-ancestors`, `report-uri` y `sandbox` se ignoran cuando la politica llega en una
- * etiqueta y no en una cabecera HTTP. La proteccion contra clickjacking, por tanto, tiene que
- * configurarla quien sirva los ficheros. Queda anotado en el README en lugar de incluir una
- * directiva que no haria nada.
+ * `frame-ancestors`, `report-uri` and `sandbox` are ignored when the policy arrives in a tag
+ * rather than in an HTTP header. Clickjacking protection therefore has to be configured by
+ * whoever serves the files. That is noted in the README instead of including a directive that
+ * would do nothing.
  */
 function contentSecurityPolicy(apiOrigin: string): Plugin {
   const policy = [
     "default-src 'self'",
     "script-src 'self'",
     "style-src 'self'",
-    // Las fotos del catalogo se sirven desde el mismo origen que la API.
+    // The catalogue photos are served from the same origin as the API.
     `img-src 'self' ${apiOrigin}`,
     `connect-src 'self' ${apiOrigin}`,
     "font-src 'self'",
@@ -79,11 +79,19 @@ export default defineConfig(({ mode }) => {
   const apiOrigin = originOf(env['VITE_API_BASE_URL'] ?? DEFAULT_API_BASE_URL);
 
   return {
+    /**
+     * Base path of the deployment.
+     *
+     * It stays at `/` unless `VITE_BASE_PATH` says otherwise, so `npm run build` behaves the same
+     * for anyone running it locally. Only the GitHub Pages workflow sets it, because there the
+     * application is served from a repository sub-path.
+     */
+    base: process.env['VITE_BASE_PATH'] ?? '/',
     plugins: [react(), contentSecurityPolicy(apiOrigin)],
     build: {
       target: 'es2022',
-      // No se configura troceado manual: las rutas se cargan con `React.lazy`,
-      // asi que el bundler ya genera un fragmento por vista.
+      // No manual chunking is configured: the routes are loaded with `React.lazy`, so the
+      // bundler already produces one chunk per view.
       sourcemap: true,
     },
     test: {

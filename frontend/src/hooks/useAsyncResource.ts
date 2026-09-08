@@ -7,26 +7,25 @@ export type AsyncState<T> =
   | { status: 'ready'; data: T }
   | { status: 'error'; error: ApiError };
 
-/** Resultado ya resuelto, sea con datos o con error. */
+/** An already-settled result, whether with data or with an error. */
 type SettledState<T> = Exclude<AsyncState<T>, { status: 'loading' }>;
 
 export interface AsyncResource<T> {
   state: AsyncState<T>;
   /**
-   * `true` cuando la carga se esta alargando más de lo normal.
+   * `true` when the load is taking longer than usual.
    *
-   * La API de la prueba está en un plan gratuito que apaga el servicio sin
-   * tráfico: la primera petición tarda unos 40 segundos en arrancarlo y las
-   * siguientes responden en milisegundos. Con esta senal la interfaz puede
-   * explicar la espera larga sin hacer parpadear un mensaje alarmante en cada
-   * carga rapida.
+   * The test API sits on a free tier that shuts the service down without traffic: the first
+   * request takes about 40 seconds to start it and the following ones answer in milliseconds. With
+   * this signal the interface can explain the long wait without flashing an alarming message on
+   * every fast load.
    */
   isSlow: boolean;
-  /** Vuelve a intentar la carga. Se usa desde el boton de reintento. */
+  /** Tries the load again. Used by the retry button. */
   reload: () => void;
 }
 
-/** Margen antes de avisar de que la espera se esta alargando. */
+/** Grace period before warning that the wait is getting long. */
 const SLOW_REQUEST_MS = 3_000;
 
 function toApiError(cause: unknown): ApiError {
@@ -36,33 +35,31 @@ function toApiError(cause: unknown): ApiError {
 }
 
 /**
- * Carga un recurso asincrono y expone su estado como una union discriminada.
+ * Loads an async resource and exposes its state as a discriminated union.
  *
- * El tipo `AsyncState` es lo que hace que un componente no pueda olvidarse de un
- * caso: no existe un estado en el que `data` y `error` estén ambos definidos, ni
- * uno en el que se pinte la vista con los datos todavía sin llegar.
+ * The `AsyncState` type is what keeps a component from forgetting a case: there is no state in
+ * which `data` and `error` are both defined, nor one in which the view is painted with the data
+ * still on its way.
  *
- * ## Por que hay un `requestId`
+ * ## Why there is a `requestId`
  *
- * El estado de carga se **deriva** durante el renderizado comparando el
- * identificador de la petición en curso con el del último resultado guardado. La
- * alternativa evidente —poner el estado a "cargando" dentro del efecto— provoca
- * un renderizado extra en cada cambio y deja una ventana en la que la vista
- * muestra datos del producto anterior.
+ * The loading state is **derived** during render by comparing the identifier of the in-flight
+ * request with that of the last stored result. The obvious alternative — setting the state to
+ * "loading" inside the effect — causes an extra render on every change and leaves a window in
+ * which the view shows the previous product's data.
  *
- * Además resuelve el problema de las respuestas que llegan desordenadas: si el
- * usuario navega de un producto a otro y la primera respuesta llega después de la
- * segunda, su identificador ya no coincide y se descarta.
+ * It also solves out-of-order responses: if the user navigates from one product to another and the
+ * first response arrives after the second, its identifier no longer matches and it is discarded.
  *
- * `load` tiene que ser estable (envuelta en `useCallback` por quien llama), y `key` tiene que
- * cambiar **siempre** que cambie `load`. Es el contrato del hook: el estado de carga se deriva
- * comparando identificadores, así que si `load` pasara a apuntar a otro recurso sin cambiar la
- * clave, la vista mostraría los datos del recurso anterior mientras llega el nuevo. Las dos
- * llamadas de esta aplicación lo cumplen por construcción, porque `key` se compone de las mismas
- * dependencias que la `useCallback` de `load`.
+ * `load` has to be stable (wrapped in `useCallback` by the caller), and `key` has to change
+ * **whenever** `load` changes. That is the hook's contract: the loading state is derived by
+ * comparing identifiers, so if `load` started pointing at a different resource without the key
+ * changing, the view would show the previous resource's data while the new one arrived. Both call
+ * sites in this application satisfy it by construction, because `key` is composed of the same
+ * dependencies as `load`'s `useCallback`.
  */
 export function useAsyncResource<T>(
-  /** Identifica el recurso pedido. Al cambiar, se vuelve a cargar. */
+  /** Identifies the requested resource. When it changes, the resource is loaded again. */
   key: string,
   load: (signal: AbortSignal) => Promise<T>,
 ): AsyncResource<T> {
@@ -85,8 +82,8 @@ export function useAsyncResource<T>(
           setResult({ id: requestId, state: { status: 'ready', data } });
         }
       } catch (cause) {
-        // Una petición cancelada no es un error que mostrar: la vista que la
-        // pidió ya no está en pantalla.
+        // An aborted request is not an error to show: the view that asked for it is no longer on
+        // screen.
         if (!controller.signal.aborted) {
           setResult({ id: requestId, state: { status: 'error', error: toApiError(cause) } });
         }
@@ -108,8 +105,8 @@ export function useAsyncResource<T>(
   const state: AsyncState<T> =
     result?.id === requestId ? result.state : { status: 'loading' };
 
-  // Se derivan durante el renderizado, comparando con la petición en curso: así
-  // el aviso desaparece por si solo al empezar una carga nueva.
+  // Derived during render by comparing against the in-flight request, so the warning disappears
+  // on its own when a new load starts.
   const isSlow = state.status === 'loading' && slowRequestId === requestId;
 
   return { state, isSlow, reload };

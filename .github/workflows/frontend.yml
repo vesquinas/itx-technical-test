@@ -5,7 +5,7 @@ on:
     branches: [main]
   pull_request:
 
-# Cancela la ejecucion anterior de la misma rama: solo interesa el ultimo commit.
+# Cancels the previous run of the same branch: only the latest commit is of interest.
 concurrency:
   group: frontend-${{ github.ref }}
   cancel-in-progress: true
@@ -16,7 +16,7 @@ defaults:
 
 jobs:
   verify:
-    name: Lint, tipos, tests y build
+    name: Lint, types, tests and build
     runs-on: ubuntu-latest
 
     steps:
@@ -28,30 +28,29 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      # `npm ci` en lugar de `npm install`: instala exactamente lo que fija el
-      # lockfile y falla si no coincide con package.json.
+      # `npm ci` rather than `npm install`: it installs exactly what the lockfile pins and fails
+      # if that does not match package.json.
       - run: npm ci
 
-      - name: Comprobacion de codigo
+      - name: Code checks
         run: npm run lint
 
-      - name: Comprobacion de tipos
+      - name: Type checks
         run: npm run typecheck
 
-      - name: Tests con cobertura
+      - name: Tests with coverage
         run: npm run test:coverage
 
-      - name: Compilacion de produccion
+      - name: Production build
         run: npm run build
 
-      # La CSP solo se aplica en la compilacion de produccion, asi que un error en
-      # ella no aparece en desarrollo: se rompe en el navegador del usuario y en
-      # silencio. Este paso comprueba sobre el HTML compilado que la politica cubre
-      # todo lo que la pagina carga de verdad.
-      - name: Verificacion de la Content-Security-Policy
+      # The CSP only applies to the production build, so a mistake in it does not show up in
+      # development: it breaks in the user's browser, silently. This step checks against the
+      # built HTML that the policy covers everything the page actually loads.
+      - name: Content-Security-Policy verification
         run: npm run check:csp
 
-      # Vulnerabilidades conocidas en las dependencias. Se limita a las de
-      # produccion: un aviso en una herramienta de desarrollo no llega al usuario.
-      - name: Auditoria de dependencias
+      # Known vulnerabilities in the dependencies. Limited to production ones: a warning in a
+      # development tool never reaches the user.
+      - name: Dependency audit
         run: npm audit --omit=dev --audit-level=high

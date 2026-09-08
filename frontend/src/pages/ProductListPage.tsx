@@ -18,12 +18,12 @@ import styles from './ProductListPage.module.css';
 const TRAIL: Crumb[] = [{ label: 'Productos' }];
 
 /**
- * Constante a nivel de modulo en lugar de un `[]` en línea: un array nuevo en
- * cada renderizado invalidaria la memoizacion del filtrado.
+ * A module-level constant rather than an inline `[]`: a new array on every render would
+ * invalidate the memoisation of the filtering.
  */
 const NO_PRODUCTS: readonly ProductSummary[] = [];
 
-/** Retardo con el que el termino de búsqueda se escribe en la URL. */
+/** Delay with which the search term is written into the URL. */
 const URL_SYNC_DELAY_MS = 350;
 
 function describeResults(total: number, visible: number, query: string): string {
@@ -35,18 +35,17 @@ function describeResults(total: number, visible: number, query: string): string 
 }
 
 /**
- * Vista principal: listado de productos con buscador.
+ * The main view: the product list with its search field.
  *
- * ## El termino de búsqueda vive en la URL
+ * ## The search term lives in the URL
  *
- * Se guarda en el parámetro `?q=`, lo que aporta tres cosas gratis: la búsqueda
- * se puede compartir por enlace, el boton de atrás del navegador funciona como
- * el usuario espera, y volver desde la ficha de un producto recupera la lista
- * filtrada tal y como estaba.
+ * It is stored in the `?q=` parameter, which buys three things for free: the search can be shared
+ * as a link, the browser's back button behaves the way the user expects, and coming back from a
+ * product's detail page restores the filtered list exactly as it was.
  *
- * El campo mantiene además su propio estado local para que la escritura sea
- * inmediata, y solo la escritura en la URL va con retardo. Al reves —leer el
- * campo directamente de la URL— cada tecla provocaría una navegación.
+ * The field also keeps its own local state so typing is instant, and only the URL write is
+ * delayed. The other way round — reading the field straight from the URL — would trigger a
+ * navigation on every keystroke.
  */
 export function ProductListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -69,8 +68,8 @@ export function ProductListPage() {
         else next.set('q', trimmed);
         return next;
       },
-      // `replace` para no dejar una entrada en el historial por cada búsqueda:
-      // el boton de atrás tiene que salir de la lista, no deshacer letra a letra.
+      // `replace` so no history entry is left behind for every search: the back button has to
+      // leave the list, not undo it letter by letter.
       { replace: true },
     );
   }, [debouncedQuery, setSearchParams]);
@@ -88,7 +87,7 @@ export function ProductListPage() {
           </p>
         </div>
 
-        {/* El buscador solo tiene sentido cuando hay catalogo que filtrar. */}
+        {/* The search field only makes sense once there is a catalogue to filter. */}
         {state.status === 'ready' ? (
           <SearchBar
             onChange={setQuery}
@@ -101,7 +100,7 @@ export function ProductListPage() {
       {state.status === 'loading' ? (
         <>
           {isSlow ? <SlowNotice /> : null}
-          {/* Un unico anuncio del estado de carga, en lugar de uno por hueco. */}
+          {/* One single announcement of the loading state, instead of one per placeholder. */}
           <p aria-live="polite" className="visually-hidden">
             Cargando el catálogo de productos
           </p>

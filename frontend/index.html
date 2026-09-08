@@ -11,14 +11,14 @@
     />
 
     <!--
-      Se abre la conexión con la API antes de que el código la necesite: ahorra
-      la resolución de DNS y la negociación TLS del camino crítico. Con esta API
-      cuenta el doble, porque su primera respuesta ya es lenta de por sí.
+      The connection to the API is opened before the code needs it: it saves the DNS resolution
+      and the TLS negotiation from the critical path. With this API it counts double, because its
+      first response is slow to begin with.
     -->
     <link rel="preconnect" href="https://itx-frontend-test.onrender.com" crossorigin />
     <link rel="dns-prefetch" href="https://itx-frontend-test.onrender.com" />
 
-    <!-- Tiñe la interfaz del navegador en móvil, en cada modo. -->
+    <!-- Tints the browser interface on mobile, in each mode. -->
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#121212" />
 

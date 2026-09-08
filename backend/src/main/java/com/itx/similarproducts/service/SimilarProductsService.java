@@ -18,23 +18,22 @@ import com.itx.similarproducts.config.ExistingApiProperties;
 import com.itx.similarproducts.domain.ProductDetail;
 
 /**
- * Resuelve el detalle de los productos similares a uno dado.
+ * Resolves the detail of the products similar to a given one.
  *
- * <p>Los detalles se piden <b>en paralelo</b>, cada uno en un hilo virtual: en serie la latencia
- * sería la suma de las llamadas y en paralelo es el máximo. Con los retardos del simulador
- * (100 ms, 1 s y 5 s para un mismo producto) la diferencia es de más de seis segundos a cinco.
+ * <p>The details are requested <b>in parallel</b>, each on a virtual thread: serially the latency
+ * would be the sum of the calls, in parallel it is the maximum. With the mock's delays (100 ms, 1 s
+ * and 5 s for the same product) that is the difference between more than six seconds and five.
  *
- * <p>Hay un presupuesto de tiempo corto para toda la petición, y lo que no llega dentro de él se
- * omite de la respuesta: un solo producto lento no debe decidir la latencia de la respuesta
- * entera. Se omiten igualmente los similares que no existen y los que fallan, porque que uno
- * haya desaparecido del catálogo no invalida los demás.
+ * <p>There is a short time budget for the whole request, and whatever does not arrive within it is
+ * left out of the response: a single slow product must not decide the latency of the entire
+ * response. Similar products that do not exist and those that fail are left out too, because one of
+ * them having disappeared from the catalogue does not invalidate the others.
  *
- * <p><b>La llamada descartada no se cancela</b>, y esto es deliberado: sigue su curso y deja el
- * producto en la caché, así que las peticiones siguientes sí lo incluyen. Cancelarla —la primera
- * versión lo hacía— tira justamente el trabajo que iba a acelerar todo lo demás.
+ * <p><b>The abandoned call is not cancelled</b>, and that is deliberate: it runs to completion and
+ * leaves the product in the cache, so subsequent requests do include it. Cancelling it — the first
+ * version did — throws away exactly the work that was about to speed everything else up.
  *
- * <p>El razonamiento completo, con las mediciones que llevaron a elegir el presupuesto, está en
- * el README.
+ * <p>The full reasoning, with the measurements that led to the chosen budget, is in the README.
  */
 @Service
 public class SimilarProductsService {
@@ -50,22 +49,23 @@ public class SimilarProductsService {
     }
 
     /**
-     * Detalle de los productos similares al indicado, en el mismo orden de similitud que informa
-     * la API existente.
+     * Detail of the products similar to the given one, in the same order of similarity the existing
+     * API reports.
      *
-     * @throws com.itx.similarproducts.catalog.ProductNotFoundException si el producto no existe
+     * @throws com.itx.similarproducts.catalog.ProductNotFoundException if the product does not exist
      */
     public List<ProductDetail> findSimilarProducts(String productId) {
-        // La lista llega ya saneada del catálogo: sin nulos ni vacíos, sin duplicados, en orden
-        // de similitud y acotada en número. Se normaliza allí y no aquí para que lo que se
-        // cachea sea lo ya saneado, y para que el tope acote también lo que se guarda en memoria.
+        // The list arrives already sanitised from the catalogue: no nulls, no blanks, no duplicates,
+        // in order of similarity and bounded in size. It is normalised there and not here so that
+        // what gets cached is the sanitised version, and so that the cap also bounds what is held in
+        // memory.
         List<String> ids = catalog.similarIds(productId);
         if (ids.isEmpty()) {
             return List.of();
         }
 
-        // Pedir todos los detalles a la vez: lanzar la carga no bloquea, cada una devuelve su
-        // futuro y la espera viene después.
+        // Ask for every detail at once: starting the load does not block, each one returns its
+        // future and the waiting comes afterwards.
         List<CompletableFuture<ProductLookup>> pending = ids.stream()
                 .map(catalog::lookupDetail)
                 .toList();
@@ -74,12 +74,16 @@ public class SimilarProductsService {
     }
 
     /**
-     * Recoge los resultados que lleguen dentro del presupuesto de tiempo.
+     * Collects whatever arrives within the time budget.
      *
-     * <p>El presupuesto es único para toda la petición y no por llamada: si el primer detalle
-     * consume casi todo el tiempo, a los siguientes les queda poco, que es exactamente el
-     * comportamiento que se quiere. Un límite por llamada permitiría que tres llamadas lentas
-     * sumaran tres veces el límite.
+     * <p>The budget covers the whole request rather than each call: if the first detail eats almost
+     * all of the time, the rest get very little, which is exactly the intended behaviour. A per-call
+     * limit would let three slow calls add up to three times the limit.
+     *
+     * <p>The budget is also what fixes the service's worst case: no response can take longer than
+     * it. Measured with the exercise's load test, the observed maximum is 649 ms for a 600 ms
+     * budget. The requests that reach it are the ones landing in the window where a slow product is
+     * not cached yet.
      */
     private List<ProductDetail> collectWithinBudget(
             String productId, List<String> ids, List<CompletableFuture<ProductLookup>> pending) {
@@ -97,17 +101,17 @@ public class SimilarProductsService {
                     products.add(found.product());
                 }
             } catch (TimeoutException e) {
-                // Deliberadamente NO se cancela: que termine y deje el producto en la caché.
-                // Esta respuesta va sin él, pero las siguientes lo tendrán.
-                log.debug("Se agotó el presupuesto de {} esperando el detalle de {}",
+                // Deliberately NOT cancelled: let it finish and leave the product in the cache. This
+                // response goes without it, but the next ones will have it.
+                log.debug("The budget of {} ran out waiting for the detail of {}",
                         productId, ids.get(index));
             } catch (InterruptedException e) {
-                // Se restaura la marca de interrupción y se devuelve lo obtenido: tragarse la
-                // interrupción impediría que el servidor apagara la petición al cerrarse.
+                // Restore the interrupt flag and return what was gathered: swallowing the interrupt
+                // would prevent the server from shutting the request down on close.
                 Thread.currentThread().interrupt();
                 break;
             } catch (Exception e) {
-                log.debug("Falló el detalle de {}: {}", ids.get(index), e.toString());
+                log.debug("The detail of {} failed: {}", ids.get(index), e.toString());
             }
         }
 

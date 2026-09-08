@@ -25,10 +25,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * Comportamiento del acceso a la API existente, sin levantar Spring.
+ * Behaviour of the access to the existing API, without booting Spring.
  *
- * <p>Se construye el componente a mano para poder crear una instancia nueva en cada test, con su
- * propia caché vacía. Es lo que permite comprobar el cacheo sin que un test contamine a otro.
+ * <p>The component is built by hand so that a fresh instance with its own empty cache can be
+ * created per test. That is what makes it possible to check the caching without one test
+ * contaminating another.
  */
 class ProductCatalogTest {
 
@@ -68,23 +69,23 @@ class ProductCatalogTest {
     }
 
     @Test
-    void traduce_un_404_del_detalle_a_producto_inexistente() {
+    void translates_a_404_of_the_detail_into_product_not_found() {
         existingApi.stubFor(get(urlEqualTo("/product/x")).willReturn(aResponse().withStatus(404)));
 
         assertThat(catalog.lookupDetail("x").join()).isInstanceOf(ProductLookup.Missing.class);
     }
 
     @Test
-    void traduce_un_500_del_detalle_a_no_disponible() {
+    void translates_a_500_of_the_detail_into_unavailable() {
         existingApi.stubFor(get(urlEqualTo("/product/y")).willReturn(aResponse().withStatus(500)));
 
         assertThat(catalog.lookupDetail("y").join()).isInstanceOf(ProductLookup.Unavailable.class);
     }
 
     @Test
-    void trata_un_429_del_detalle_como_no_disponible_y_no_como_inexistente() {
-        // La diferencia importa porque cada caso se recuerda en cache un tiempo distinto:
-        // "no existe" un minuto, "ha fallado" solo unos segundos.
+    void treats_a_429_of_the_detail_as_unavailable_and_not_as_missing() {
+        // The difference matters because each case is cached for a different length of time:
+        // "does not exist" for a minute, "it failed" for a few seconds only.
         existingApi.stubFor(get(urlEqualTo("/product/t")).willReturn(aResponse().withStatus(429)));
 
         assertThat(catalog.lookupDetail("t").join())
@@ -92,7 +93,7 @@ class ProductCatalogTest {
     }
 
     @Test
-    void trata_un_403_del_detalle_como_no_disponible() {
+    void treats_a_403_of_the_detail_as_unavailable() {
         existingApi.stubFor(get(urlEqualTo("/product/s")).willReturn(aResponse().withStatus(403)));
 
         assertThat(catalog.lookupDetail("s").join())
@@ -100,7 +101,7 @@ class ProductCatalogTest {
     }
 
     @Test
-    void traduce_un_agotamiento_de_tiempo_a_no_disponible() {
+    void translates_a_timeout_into_unavailable() {
         existingApi.stubFor(get(urlEqualTo("/product/z"))
                 .willReturn(aResponse().withStatus(200).withFixedDelay(2_000)));
 
@@ -108,7 +109,7 @@ class ProductCatalogTest {
     }
 
     @Test
-    void devuelve_el_producto_cuando_la_api_responde() {
+    void returns_the_product_when_the_api_answers() {
         existingApi.stubFor(get(urlEqualTo("/product/w")).willReturn(aResponse()
                 .withStatus(200)
                 .withHeader("Content-Type", "application/json")
@@ -121,23 +122,23 @@ class ProductCatalogTest {
     }
 
     @Test
-    void consultas_simultaneas_del_mismo_producto_generan_una_sola_llamada() throws Exception {
+    void concurrent_lookups_of_the_same_product_produce_a_single_call() throws Exception {
         // Es el comportamiento que evita que el arranque de una prueba de carga se convierta en
         // doscientas llamadas identicas a un origen lento: la carga de la cache es atomica por
-        // clave, asi que una hace el trabajo y las demas esperan su resultado.
+        // clave, asi que una hace el trabajo y las demas esperan su result.
         existingApi.stubFor(get(urlEqualTo("/product/comun")).willReturn(aResponse()
                 .withStatus(200)
                 .withHeader("Content-Type", "application/json")
                 .withFixedDelay(300)
                 .withBody("{\"id\":\"comun\",\"name\":\"Shirt\",\"price\":9.99,\"availability\":true}")));
 
-        ProductCatalog concurrente = newCatalog(Duration.ofSeconds(5));
-        List<Callable<ProductLookup>> consultas = IntStream.range(0, 20)
-                .mapToObj(ignored -> (Callable<ProductLookup>) () -> concurrente.lookupDetail("comun").join())
+        ProductCatalog isolatedCatalog = newCatalog(Duration.ofSeconds(5));
+        List<Callable<ProductLookup>> lookups = IntStream.range(0, 20)
+                .mapToObj(ignored -> (Callable<ProductLookup>) () -> isolatedCatalog.lookupDetail("comun").join())
                 .toList();
 
         try (ExecutorService pool = Executors.newFixedThreadPool(20)) {
-            for (var future : pool.invokeAll(consultas)) {
+            for (var future : pool.invokeAll(lookups)) {
                 assertThat(future.get()).isInstanceOf(ProductLookup.Found.class);
             }
         }
@@ -147,7 +148,7 @@ class ProductCatalogTest {
     }
 
     @Test
-    void lanza_producto_inexistente_cuando_no_hay_lista_de_similares() {
+    void throws_product_not_found_when_there_is_no_similar_ids_list() {
         existingApi.stubFor(get(urlEqualTo("/product/v/similarids"))
                 .willReturn(aResponse().withStatus(404)));
 
@@ -156,7 +157,7 @@ class ProductCatalogTest {
     }
 
     @Test
-    void lanza_dependencia_no_disponible_cuando_los_similares_fallan() {
+    void throws_dependency_unavailable_when_the_similar_ids_fail() {
         existingApi.stubFor(get(urlEqualTo("/product/u/similarids"))
                 .willReturn(aResponse().withStatus(500)));
 

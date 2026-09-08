@@ -21,22 +21,22 @@ import com.itx.similarproducts.config.ExistingApiProperties;
 import com.itx.similarproducts.domain.ProductDetail;
 
 /**
- * Acceso a la API existente, con caché.
+ * Access to the existing API, with caching.
  *
- * <p>La caché hace dos trabajos: evita repetir llamadas ya resueltas y, sobre todo,
- * <b>deduplica</b>, porque guarda la llamada en curso y no solo su resultado. Doscientas
- * peticiones simultáneas del mismo producto generan una sola llamada al origen.
+ * <p>The cache does two jobs: it avoids repeating calls that are already resolved and, above all,
+ * it <b>deduplicates</b>, because it stores the in-flight call and not just its result. Two hundred
+ * simultaneous requests for the same product produce a single call to the source.
  *
- * <p><b>Tiene que ser {@link AsyncCache} y no la variante sincrónica.</b> La sincrónica ejecuta
- * su función de carga dentro de un bloque {@code synchronized} de {@code ConcurrentHashMap}, y
- * en Java 21 un hilo virtual bloqueado dentro de un monitor fija su hilo portador. Con llamadas
- * de red de varios segundos, unas pocas cargas clavan el planificador entero: medido, la prueba
- * de carga pasó de completar <b>1 petición en 90 segundos</b> a 16.400 a 272/s solo con este
- * cambio. No volver a la caché sincrónica.
+ * <p><b>It has to be an {@link AsyncCache} and not the synchronous variant.</b> The synchronous one
+ * runs its loading function inside a {@code synchronized} block of {@code ConcurrentHashMap}, and in
+ * Java 21 a virtual thread blocked inside a monitor pins its carrier thread. With network calls
+ * taking seconds, a handful of loads pins the whole scheduler: measured, the load test went from
+ * completing <b>1 request in 90 seconds</b> to 16,400 at 272/s with this change alone. Do not go
+ * back to the synchronous cache.
  *
- * <p>Los fallos se recuerdan con expiración corta ({@link ProductLookup.Unavailable}), lo que
- * funciona como un cortacircuitos con granularidad por producto. El razonamiento completo, y por
- * qué no se usa una librería de cortacircuitos, está en el README.
+ * <p>Failures are remembered with a short expiry ({@link ProductLookup.Unavailable}), which works as
+ * a circuit breaker with per-product granularity. The full reasoning, and why no circuit-breaker
+ * library is used, is in the README.
  */
 @Component
 public class ProductCatalog {
@@ -71,38 +71,38 @@ public class ProductCatalog {
     }
 
     /**
-     * Identificadores de los productos similares, ordenados por similitud.
+     * Identifiers of the similar products, ordered by similarity.
      *
-     * @throws ProductNotFoundException si el producto de la petición no existe
+     * @throws ProductNotFoundException if the requested product does not exist
      */
     public List<String> similarIds(String productId) {
         try {
             return load(similarIdsCache, productId, this::fetchSimilarIds).join();
         } catch (CompletionException e) {
-            // Se desenvuelve para que el manejador de errores vea la excepción real y no el
-            // envoltorio que añade el futuro.
+            // Unwrapped so the error handler sees the real exception and not the wrapper the future
+            // adds.
             Throwable cause = e.getCause();
             throw cause instanceof RuntimeException runtime ? runtime : e;
         }
     }
 
     /**
-     * Consulta el detalle de un producto.
+     * Looks a product's detail up.
      *
-     * <p>Devuelve un futuro a propósito: quien llama pide varios detalles a la vez y decide
-     * cuánto está dispuesto a esperar por el conjunto. Un método que devolviera el valor ya
-     * resuelto obligaría a resolverlos de uno en uno.
+     * <p>It returns a future on purpose: the caller asks for several details at once and decides how
+     * long it is willing to wait for the set. A method returning the resolved value would force
+     * resolving them one at a time.
      */
     public CompletableFuture<ProductLookup> lookupDetail(String productId) {
         return load(detailCache, productId, this::fetchDetail);
     }
 
     /**
-     * Sirve el valor de la caché o lanza su carga en el ejecutor de hilos virtuales.
+     * Serves the value from the cache or starts its load on the virtual-thread executor.
      *
-     * <p>La función de carga solo <i>crea</i> el futuro, que es lo que se guarda en el mapa. El
-     * trabajo de red ocurre después y fuera del monitor del mapa, que es justo lo que evita fijar
-     * hilos portadores.
+     * <p>The loading function only <i>creates</i> the future, and the future is what gets stored in
+     * the map. The network work happens afterwards and outside the map's monitor, which is exactly
+     * what avoids pinning carrier threads.
      */
     private static <T> CompletableFuture<T> load(
             AsyncCache<String, T> cache,
@@ -117,11 +117,11 @@ public class ProductCatalog {
             List<String> ids = client.get()
                     .uri("/product/{productId}/similarids", productId)
                     .retrieve()
-                    // SOLO el 404 significa "este producto no existe". Un 429 o un 403 son
-                    // problemas de la dependencia, y traducirlos a 404 le diria al cliente que
-                    // el producto no existe cuando lo que pasa es que no hemos podido preguntar.
-                    // Los demas errores caen al manejador por omision, que lanza, y se traducen
-                    // a 502 en el catch de abajo.
+                    // ONLY a 404 means "this product does not exist". A 429 or a 403 are problems of
+                    // the dependency, and turning them into a 404 would tell the client the product
+                    // does not exist when what happened is that we could not ask. Every other error
+                    // falls through to the default handler, which throws, and is turned into a 502
+                    // in the catch below.
                     .onStatus(status -> status.value() == 404, (request, response) -> {
                         throw new ProductNotFoundException(productId);
                     })
@@ -130,29 +130,29 @@ public class ProductCatalog {
         } catch (ProductNotFoundException e) {
             throw e;
         } catch (RuntimeException e) {
-            // Un fallo al obtener la lista sí es un fallo de la petición: sin ella no hay nada
-            // que devolver. Se propaga y el manejador de errores lo traduce a un 502.
-            log.warn("No se han podido obtener los similares de {}: {}", productId, e.toString());
+            // Failing to obtain the list *is* a failure of the request: without it there is nothing
+            // to return. It propagates and the error handler turns it into a 502.
+            log.warn("Could not obtain the similar products of {}: {}", productId, e.toString());
             throw new ExistingApiUnavailableException(productId, e);
         }
     }
 
     /**
-     * Deja la lista de similares en un estado utilizable antes de cachearla.
+     * Leaves the similar-ids list in a usable state before caching it.
      *
-     * <p>Hace tres cosas, y las tres responden a un problema concreto:
+     * <p>It does three things, each answering a concrete problem:
      *
      * <ul>
-     *   <li><b>Descarta nulos y cadenas vacías.</b> Un {@code null} dentro del array JSON llega
-     *       como elemento nulo, y {@code List.copyOf} los rechaza con
-     *       {@code NullPointerException}: un solo nulo en el origen tumbaba la petición con un
-     *       500. Un identificador vacío, además, produciría una llamada a {@code /product/}.
-     *   <li><b>Elimina duplicados conservando el orden</b>, que son los dos requisitos que el
-     *       contrato pide de la lista.
-     *   <li><b>Pone un tope al número de similares.</b> Sin él, una petición a este servicio se
-     *       convierte en tantas llamadas al origen como elementos tenga la lista. Es una
-     *       amplificación que decide el origen, no nosotros, y conviene acotarla. Como la lista
-     *       viene ordenada por similitud, el recorte se queda con los más parecidos.
+     *   <li><b>Drops nulls and blank strings.</b> A {@code null} inside the JSON array arrives as a
+     *       null list element, and {@code List.copyOf} rejects nulls with {@code
+     *       NullPointerException}: a single null at the source brought the request down with a 500.
+     *       A blank identifier would additionally produce a call to {@code /product/}.
+     *   <li><b>Removes duplicates while preserving order</b>, which are the two things the contract
+     *       asks of the list.
+     *   <li><b>Caps the number of similar products.</b> Without it, one request to this service
+     *       turns into as many calls to the source as the list has entries. That is an amplification
+     *       the source decides, not us, and it is worth bounding. Since the list comes ordered by
+     *       similarity, the trim keeps the closest matches.
      * </ul>
      */
     private List<String> normalize(String productId, List<String> ids) {
@@ -172,7 +172,7 @@ public class ProductCatalog {
         }
 
         if (unique.size() < ids.size()) {
-            log.debug("La lista de similares de {} se ha reducido de {} a {} identificadores",
+            log.debug("The similar-ids list of {} was reduced from {} to {} identifiers",
                     productId, ids.size(), unique.size());
         }
         return List.copyOf(unique);
@@ -183,26 +183,26 @@ public class ProductCatalog {
             ProductDetail detail = client.get()
                     .uri("/product/{productId}", productId)
                     .retrieve()
-                    // Igual que arriba: solo el 404 es "no existe". La diferencia importa porque
-                    // cada caso se recuerda en cache un tiempo distinto, un minuto frente a diez
-                    // segundos, y recordar un 429 durante un minuto alarga el corte innecesariamente.
+                    // Same as above: only a 404 means "does not exist". The difference matters
+                    // because each case is cached for a different length of time, one minute versus
+                    // ten seconds, and remembering a 429 for a minute prolongs the outage for no
+                    // reason.
                     .onStatus(status -> status.value() == 404, (request, response) -> {
                         throw new ProductMissingSignal();
                     })
                     .body(ProductDetail.class);
 
-            // Un detalle sin los campos que el contrato declara obligatorios no es utilizable:
-            // devolverlo nos convertiria en el origen del incumplimiento para nuestros clientes.
+            // A detail missing the fields the contract declares mandatory is not usable: returning
+            // it would make us the origin of the breach for our own clients.
             return isUsable(detail)
                     ? new ProductLookup.Found(detail)
                     : new ProductLookup.Unavailable();
         } catch (ProductMissingSignal e) {
             return new ProductLookup.Missing();
         } catch (RuntimeException e) {
-            // Se registra en debug y no en warn a propósito: bajo carga, un origen caído
-            // generaría miles de líneas por segundo y el propio registro se convertiría en el
-            // cuello de botella.
-            log.debug("El detalle del producto {} no está disponible: {}", productId, e.toString());
+            // Logged at debug rather than warn on purpose: under load, a downed source would produce
+            // thousands of lines per second and the logging itself would become the bottleneck.
+            log.debug("The detail of product {} is unavailable: {}", productId, e.toString());
             return new ProductLookup.Unavailable();
         }
     }
@@ -215,7 +215,7 @@ public class ProductCatalog {
                 && detail.price() != null;
     }
 
-    /** Señal interna para salir del callback de estado; no sale de esta clase. */
+    /** Internal signal to break out of the status callback; it never leaves this class. */
     private static final class ProductMissingSignal extends RuntimeException {
         private ProductMissingSignal() {
             super(null, null, false, false);
@@ -223,11 +223,11 @@ public class ProductCatalog {
     }
 
     /**
-     * Expiración distinta según el desenlace.
+     * A different expiry depending on the outcome.
      *
-     * <p>Un producto encontrado se conserva minutos; que no exista se recuerda un rato porque es
-     * estable; y un fallo se recuerda solo unos segundos, porque es transitorio y hay que darle
-     * la oportunidad de recuperarse.
+     * <p>A found product is kept for minutes; a product not existing is remembered for a while
+     * because that is stable; and a failure is remembered for a few seconds only, because it is
+     * transient and deserves the chance to recover.
      */
     private record LookupExpiry(ExistingApiProperties properties)
             implements Expiry<String, ProductLookup> {
@@ -255,8 +255,8 @@ public class ProductCatalog {
         @Override
         public long expireAfterRead(
                 String key, ProductLookup value, long currentTime, long currentDuration) {
-            // La lectura no prolonga la vida de la entrada: el enunciado de la caché es
-            // "cuánto tiempo puede estar desactualizado este dato", no "cuándo se usó".
+            // Reading does not extend the entry's life: the question the cache answers is "how long
+            // may this value be out of date", not "when was it last used".
             return currentDuration;
         }
     }

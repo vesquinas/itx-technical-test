@@ -5,24 +5,23 @@ import { formatPrice } from '../lib/format.ts';
 import styles from './ProductCard.module.css';
 
 /**
- * Tarjeta de producto del listado: imagen, marca, modelo y precio.
+ * A product card in the list: image, brand, model and price.
  *
- * ## Decisiones
+ * ## Decisions
  *
- * - **Un solo enlace envuelve toda la tarjeta.** Es un único destino, así que
- *   partirlo en dos enlaces (imagen y titulo) obligaria a tabular dos veces por
- *   producto para llegar al mismo sitio.
+ * - **A single link wraps the whole card.** It is one destination, so splitting it into two links
+ *   (image and title) would force tabbing twice per product to reach the same place.
  *
- * - **La imagen se carga en diferido y declara su proporcion** en CSS. Sin
- *   reservar el espacio, cada imagen que llega desplaza la rejilla hacia abajo:
- *   es el defecto que mide la metrica de estabilidad visual (CLS).
+ * - **The image is lazily loaded and declares its aspect ratio** in CSS. Without reserving the
+ *   space, every image that arrives pushes the grid downwards: that is the defect the visual
+ *   stability metric (CLS) measures.
  *
- * - **El texto alternativo es "marca + modelo", no "foto de ...".** El lector de
- *   pantalla ya anuncia que es una imagen; repetirlo es ruido.
+ * - **The alternative text is "brand + model", not "photo of…".** The screen reader already
+ *   announces it is an image; repeating it is noise.
  *
- * - **El enlace arrastra la búsqueda actual** (`?q=...`). Así el enlace de vuelta
- *   de la ficha puede devolver al usuario a su lista filtrada en lugar de al
- *   catálogo entero, y la URL del producto sigue siendo compartible.
+ * - **The link carries the current search along** (`?q=…`). That way the detail page's back link
+ *   can return the user to their filtered list rather than to the whole catalogue, and the
+ *   product URL stays shareable.
  */
 export function ProductCard({ product }: { product: ProductSummary }) {
   const { search } = useLocation();
@@ -36,8 +35,8 @@ export function ProductCard({ product }: { product: ProductSummary }) {
             <img
               alt={name}
               className={styles.image}
-              // `lazy` más `async` deja fuera del camino critico las imagenes que
-              // aun no se ven y no bloquea el renderizado con su decodificacion.
+              // `lazy` plus `async` keeps the images that are not visible yet off the critical
+              // path and stops their decoding from blocking the render.
               decoding="async"
               loading="lazy"
               src={product.imageUrl}

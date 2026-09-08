@@ -1,20 +1,19 @@
 import styles from './ProductGridSkeleton.module.css';
 
-/** Número de huecos que se dibujan: llena una pantalla de escritorio. */
+/** Number of placeholders drawn: enough to fill a desktop screen. */
 const PLACEHOLDER_COUNT = 8;
 
 const PLACEHOLDERS = Array.from({ length: PLACEHOLDER_COUNT }, (_, index) => index);
 
 /**
- * Esqueleto de la rejilla mientras carga el catálogo.
+ * Skeleton of the grid while the catalogue loads.
  *
- * Reproduce la forma y el número de columnas de la rejilla real, de modo que al
- * llegar los datos el contenido no se desplaza. Un indicador giratorio centrado
- * sería más sencillo, pero provoca justo el salto que se quiere evitar.
+ * It mirrors the shape and column count of the real grid, so that when the data arrives the
+ * content does not shift. A centred spinner would be simpler, but it causes exactly the jump we
+ * are trying to avoid.
  *
- * Todo el bloque va con `aria-hidden` y el estado de carga se anuncia una sola
- * vez desde la vista: para un lector de pantalla, ocho tarjetas vacías no
- * aportan nada y son ocho anuncios de ruido.
+ * The whole block is `aria-hidden` and the loading state is announced once from the view: to a
+ * screen reader, eight empty cards contribute nothing and are eight announcements of noise.
  */
 export function ProductGridSkeleton() {
   return (

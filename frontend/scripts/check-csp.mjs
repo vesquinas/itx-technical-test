@@ -1,19 +1,19 @@
 /**
- * Verifica que la Content-Security-Policy del HTML compilado cubre todo lo que la
- * página carga de verdad.
+ * Verifies that the Content-Security-Policy of the built HTML covers everything the page actually
+ * loads.
  *
- * Existe porque una CSP mal ajustada no avisa: el navegador bloquea el recurso en
- * silencio y la aplicación se rompe en producción y no en desarrollo, donde la
- * política ni se aplica. Este script cierra ese hueco sin necesidad de un
- * navegador, comprobando cuatro cosas sobre el resultado real de la compilación:
+ * It exists because a badly tuned CSP does not warn: the browser blocks the resource silently, and
+ * the application breaks in production and not in development, where the policy is not even
+ * applied. This script closes that gap without needing a browser, by checking four things against
+ * the real result of the build:
  *
- *   1. Que la política existe y trae las directivas que se esperan.
- *   2. Que no hay ni un script ni un estilo en línea, que es lo único que
- *      justifica poder prescindir de `unsafe-inline`.
- *   3. Que todo lo que la página referencia es del mismo origen.
- *   4. Que el origen de la API está permitido para conectarse y para imágenes.
+ *   1. That the policy exists and carries the directives we expect.
+ *   2. That there is not a single inline script or style, which is the only thing that justifies
+ *      being able to do without `unsafe-inline`.
+ *   3. That everything the page references is same-origin.
+ *   4. That the API origin is allowed both for connections and for images.
  *
- * Se ejecuta en integración continua después de compilar.
+ * It runs in continuous integration, after the build.
  */
 
 import { readFileSync, readdirSync } from 'node:fs';
@@ -22,37 +22,37 @@ import { join } from 'node:path';
 const DIST = 'dist';
 const DEFAULT_API_BASE_URL = 'https://itx-frontend-test.onrender.com';
 
-const problemas = [];
-const comprobaciones = [];
+const problems = [];
+const passed = [];
 
-function comprobar(descripcion, condicion, detalle = '') {
-  if (condicion) {
-    comprobaciones.push(descripcion);
+function check(description, condition, detail = '') {
+  if (condition) {
+    passed.push(description);
   } else {
-    problemas.push(`${descripcion}${detalle ? ` — ${detalle}` : ''}`);
+    problems.push(`${description}${detail ? ` — ${detail}` : ''}`);
   }
 }
 
 const html = readFileSync(join(DIST, 'index.html'), 'utf8');
 
-// 1. La política existe y se puede leer.
+// 1. The policy exists and can be read.
 const meta = /<meta\s+http-equiv="Content-Security-Policy"\s+content="([^"]*)"/i.exec(html);
-comprobar('el HTML compilado declara una Content-Security-Policy', meta !== null);
+check('the built HTML declares a Content-Security-Policy', meta !== null);
 
 if (meta !== null) {
   const policy = meta[1].replaceAll('&#39;', "'").replaceAll('&amp;', '&');
-  const directivas = new Map(
+  const directives = new Map(
     policy
       .split(';')
-      .map((parte) => parte.trim())
+      .map((part) => part.trim())
       .filter(Boolean)
-      .map((parte) => {
-        const [nombre, ...valores] = parte.split(/\s+/);
-        return [nombre, valores];
+      .map((part) => {
+        const [name, ...values] = part.split(/\s+/);
+        return [name, values];
       }),
   );
 
-  for (const esperada of [
+  for (const expected of [
     'default-src',
     'script-src',
     'style-src',
@@ -62,90 +62,88 @@ if (meta !== null) {
     'base-uri',
     'form-action',
   ]) {
-    comprobar(`la política declara ${esperada}`, directivas.has(esperada));
+    check(`the policy declares ${expected}`, directives.has(expected));
   }
 
-  comprobar(
-    "script-src no permite 'unsafe-inline'",
-    !(directivas.get('script-src') ?? []).includes("'unsafe-inline'"),
+  check(
+    "script-src does not allow 'unsafe-inline'",
+    !(directives.get('script-src') ?? []).includes("'unsafe-inline'"),
   );
-  comprobar(
-    "style-src no permite 'unsafe-inline'",
-    !(directivas.get('style-src') ?? []).includes("'unsafe-inline'"),
+  check(
+    "style-src does not allow 'unsafe-inline'",
+    !(directives.get('style-src') ?? []).includes("'unsafe-inline'"),
   );
 
-  // 4. El origen de la API tiene que estar permitido, o la aplicación no carga datos.
+  // 4. The API origin has to be allowed, or the application loads no data at all.
   const apiOrigin = new URL(process.env['VITE_API_BASE_URL'] ?? DEFAULT_API_BASE_URL).origin;
-  for (const directiva of ['connect-src', 'img-src']) {
-    comprobar(
-      `${directiva} permite el origen de la API (${apiOrigin})`,
-      (directivas.get(directiva) ?? []).includes(apiOrigin),
+  for (const directive of ['connect-src', 'img-src']) {
+    check(
+      `${directive} allows the API origin (${apiOrigin})`,
+      (directives.get(directive) ?? []).includes(apiOrigin),
     );
   }
 }
 
-// 2. Nada en línea. Es la condición que permite prescindir de `unsafe-inline`.
-const scriptsEnLinea = [...html.matchAll(/<script(?![^>]*\ssrc=)[^>]*>([\s\S]*?)<\/script>/gi)]
-  .map((coincidencia) => coincidencia[1].trim())
+// 2. Nothing inline. That is the condition that allows doing without `unsafe-inline`.
+const inlineScripts = [...html.matchAll(/<script(?![^>]*\ssrc=)[^>]*>([\s\S]*?)<\/script>/gi)]
+  .map((match) => match[1].trim())
   .filter(Boolean);
-comprobar('no hay scripts en línea', scriptsEnLinea.length === 0, `${scriptsEnLinea.length} encontrados`);
+check('there are no inline scripts', inlineScripts.length === 0, `${inlineScripts.length} found`);
 
-const estilosEnLinea = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)]
-  .map((coincidencia) => coincidencia[1].trim())
+const inlineStyles = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)]
+  .map((match) => match[1].trim())
   .filter(Boolean);
-comprobar('no hay estilos en línea', estilosEnLinea.length === 0, `${estilosEnLinea.length} encontrados`);
+check('there are no inline styles', inlineStyles.length === 0, `${inlineStyles.length} found`);
 
-comprobar('ningún elemento usa el atributo style', !/\sstyle="/i.test(html));
+check('no element uses the style attribute', !/\sstyle="/i.test(html));
 
-// 3. Lo que referencia el documento es del mismo origen o de un origen permitido.
+// 3. What the document references is same-origin or an allowed origin.
 //
-// El origen de la API sí aparece, en las etiquetas `preconnect` y `dns-prefetch`, y es
-// correcto: son sugerencias de conexión, no cargas de recursos, y además está permitido en
-// la política. Lo que se busca aquí es un tercer origen que se hubiera colado sin declarar.
-const apiOriginPermitido = new URL(
+// The API origin does appear, in the `preconnect` and `dns-prefetch` tags, and that is correct:
+// they are connection hints, not resource loads, and that origin is allowed by the policy. What we
+// are looking for here is a third origin that slipped in undeclared.
+const allowedApiOrigin = new URL(
   process.env['VITE_API_BASE_URL'] ?? DEFAULT_API_BASE_URL,
 ).origin;
-const referencias = [...html.matchAll(/\s(?:src|href)="([^"]+)"/gi)].map(
-  (coincidencia) => coincidencia[1],
-);
-const externasNoDeclaradas = referencias.filter((referencia) => {
-  if (!/^[a-z]+:/i.test(referencia) || referencia.startsWith('data:')) return false;
+const references = [...html.matchAll(/\s(?:src|href)="([^"]+)"/gi)].map((match) => match[1]);
+const undeclaredExternal = references.filter((reference) => {
+  if (!/^[a-z]+:/i.test(reference) || reference.startsWith('data:')) return false;
   try {
-    return new URL(referencia).origin !== apiOriginPermitido;
+    return new URL(reference).origin !== allowedApiOrigin;
   } catch {
     return true;
   }
 });
-comprobar(
-  'el documento no referencia orígenes sin declarar en la política',
-  externasNoDeclaradas.length === 0,
-  externasNoDeclaradas.join(', '),
+check(
+  'the document references no origin undeclared in the policy',
+  undeclaredExternal.length === 0,
+  undeclaredExternal.join(', '),
 );
 
-// Y lo mismo para las hojas de estilo compiladas: un `url()` externo lo bloquearía img-src.
+// And the same for the built stylesheets: an external `url()` would be blocked by img-src.
 const assets = join(DIST, 'assets');
-const urlsExternasEnCss = readdirSync(assets)
-  .filter((nombre) => nombre.endsWith('.css'))
-  .flatMap((nombre) =>
-    [...readFileSync(join(assets, nombre), 'utf8').matchAll(/url\(\s*['"]?([^'")]+)/gi)]
-      .map((coincidencia) => coincidencia[1])
-      .filter((referencia) => /^[a-z]+:\/\//i.test(referencia)),
+const externalCssUrls = readdirSync(assets)
+  .filter((name) => name.endsWith('.css'))
+  .flatMap((name) =>
+    [...readFileSync(join(assets, name), 'utf8').matchAll(/url\(\s*['"]?([^'")]+)/gi)]
+      .map((match) => match[1])
+      .filter((reference) => /^[a-z]+:\/\//i.test(reference)),
   );
-comprobar(
-  'el CSS compilado no carga recursos de otro origen',
-  urlsExternasEnCss.length === 0,
-  urlsExternasEnCss.join(', '),
+check(
+  'the built CSS loads no cross-origin resources',
+  externalCssUrls.length === 0,
+  externalCssUrls.join(', '),
 );
 
-for (const descripcion of comprobaciones) {
-  console.log(`  ok  ${descripcion}`);
+for (const description of passed) {
+  console.log(`  ok  ${description}`);
 }
-for (const problema of problemas) {
-  console.error(`  FALLO  ${problema}`);
+for (const problem of problems) {
+  console.error(`  FAIL  ${problem}`);
 }
 
-if (problemas.length > 0) {
-  console.error(`\n${problemas.length} comprobación(es) de CSP han fallado.`);
+if (problems.length > 0) {
+  console.error(`\n${problems.length} CSP check(s) failed.`);
   process.exit(1);
 }
-console.log(`\n${comprobaciones.length} comprobaciones de CSP superadas.`);
+console.log(`\n${passed.length} CSP checks passed.`);

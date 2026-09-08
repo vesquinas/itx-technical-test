@@ -2,15 +2,14 @@ import { useCart } from '../cart/useCart.ts';
 import styles from './CartIndicator.module.css';
 
 /**
- * Número de artículos en la cesta, visible en la cabecera de cualquier vista.
+ * Number of items in the cart, visible in the header of every view.
  *
- * Dos detalles de accesibilidad:
+ * Two accessibility details:
  *
- * - El icono es decorativo (`aria-hidden`) y el significado va en el texto, de
- *   modo que un lector de pantalla anuncia "Cesta: 2 artículos" y no "imagen".
- * - Se usa `aria-live="polite"` para que el cambio del contador se anuncie al
- *   añadir un producto: sin eso, quien no ve la pantalla no recibe confirmacion
- *   de que la acción ha surtido efecto.
+ * - The icon is decorative (`aria-hidden`) and the meaning lives in the text, so a screen reader
+ *   announces "Cesta: 2 artículos" and not "image".
+ * - `aria-live="polite"` makes the change of the counter announced when a product is added:
+ *   without it, someone who cannot see the screen gets no confirmation the action took effect.
  */
 export function CartIndicator() {
   const { count } = useCart();
@@ -18,7 +17,7 @@ export function CartIndicator() {
   return (
     <p className={styles.cart}>
       <span aria-hidden="true" className={styles.icon}>
-        {/* Bolsa de la compra, dibujada en linea para no pedir un fichero mas. */}
+        {/* Shopping bag, drawn inline so as not to request one more file. */}
         <svg fill="none" height="18" viewBox="0 0 18 18" width="18">
           <path
             d="M3.5 5.5h11l-.9 10.2a1 1 0 0 1-1 .8H5.4a1 1 0 0 1-1-.8L3.5 5.5Z"

@@ -5,20 +5,19 @@ import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Configuración de la API existente que este servicio consume.
+ * Configuration of the existing API this service consumes.
  *
- * <p>Los valores están en {@code application.yaml} y no incrustados en el código: los tiempos
- * de espera son justamente lo que hay que poder ajustar sin recompilar cuando cambia el
- * comportamiento del origen.
+ * <p>The values live in {@code application.yaml} rather than being hard-coded: the timeouts are
+ * exactly what you want to be able to tune without recompiling when the source's behaviour changes.
  *
- * @param baseUrl        raíz de la API existente
- * @param connectTimeout límite para establecer la conexión
- * @param readTimeout    límite para recibir la respuesta de una llamada
- * @param fanOutTimeout  presupuesto total para resolver todos los detalles de una petición
- * @param successTtl     cuánto se conserva en caché un producto encontrado
- * @param missingTtl     cuánto se recuerda que un producto no existe
- * @param unavailableTtl cuánto se recuerda que un producto falló o tardó demasiado
- * @param maxSimilarProducts tope de similares que se resuelven por petición
+ * @param baseUrl            root of the existing API
+ * @param connectTimeout     limit for establishing the connection
+ * @param readTimeout        limit for receiving the response of one call
+ * @param fanOutTimeout      total budget for resolving every detail of one request
+ * @param successTtl         how long a found product is kept in the cache
+ * @param missingTtl         how long the absence of a product is remembered
+ * @param unavailableTtl     how long a failed or timed-out product is remembered
+ * @param maxSimilarProducts cap on the similar products resolved per request
  */
 @ConfigurationProperties(prefix = "existing-api")
 public record ExistingApiProperties(

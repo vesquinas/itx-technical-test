@@ -8,27 +8,26 @@ interface Row {
   label: string;
   value: string;
   /**
-   * Las filas obligatorias se muestran siempre, incluso sin valor.
+   * Required rows are always shown, even with no value.
    *
-   * El enunciado pide mostrar «al menos» once atributos concretos, así que
-   * ocultar uno porque la API no lo trae incumple el requisito. Y no es un caso
-   * raro: sobre los 100 productos del catálogo, 1 de cada 5 tiene al menos uno
-   * de esos once vacío (el peso falta en 7 productos, la RAM en 4, la cámara
-   * frontal en 4). Cuando no hay dato se dice explícitamente, que además informa
-   * más que hacer desaparecer la fila.
+   * The brief asks to display "at least" eleven specific attributes, so hiding one because the API
+   * does not provide it breaks the requirement. And it is not a rare case: across the 100 products
+   * of the catalogue, 1 in 5 has at least one of those eleven empty (weight is missing in 7
+   * products, RAM in 4, the front camera in 4). When there is no data we say so explicitly, which
+   * also informs more than making the row disappear.
    */
   required: boolean;
 }
 
-/** Texto para un atributo obligatorio del que la API no da valor. */
+/** Copy for a required attribute the API gives no value for. */
 const NOT_AVAILABLE = 'No disponible';
 
-/** Atributo exigido por el enunciado: se muestra siempre, con valor o sin él. */
+/** An attribute the brief requires: always shown, with a value or without one. */
 function required(label: string, value: string): Row {
   return { label, value: value.length > 0 ? value : NOT_AVAILABLE, required: true };
 }
 
-/** Atributos adicionales: se omiten los que la API deja vacíos. */
+/** Additional attributes: the ones the API leaves empty are dropped. */
 function optional(entries: readonly (readonly [string, string])[]): Row[] {
   return entries
     .filter(([, value]) => value.length > 0)
@@ -36,12 +35,11 @@ function optional(entries: readonly (readonly [string, string])[]): Row[] {
 }
 
 /**
- * Construye las filas de la ficha técnica.
+ * Builds the rows of the spec sheet.
  *
- * Las once primeras son las que exige el enunciado. El resto amplía la ficha con
- * lo demás que ofrece la API, y esas sí se omiten cuando vienen vacías: `nfc`,
- * por ejemplo, llega vacío en los 100 productos del catálogo, y una etiqueta sin
- * valor al lado no informa de nada.
+ * The first eleven are the ones the brief requires. The rest extend the sheet with everything else
+ * the API offers, and those are dropped when empty: `nfc`, for instance, arrives empty across all
+ * 100 products of the catalogue, and a label with nothing next to it informs no one.
  */
 function buildRows(product: ProductDetail): Row[] {
   const { specs } = product;
@@ -87,17 +85,16 @@ function buildRows(product: ProductDetail): Row[] {
 
 
 /**
- * Ficha tecnica del producto.
+ * The product's spec sheet.
  *
- * Es una lista de definiciones (`dl`/`dt`/`dd`), que es el elemento que
- * corresponde a un conjunto de pares etiqueta-valor. Una tabla implicaria dos
- * dimensiones que aquí no existen, y una lista de parrafos perderia la relación
- * entre cada etiqueta y su valor para un lector de pantalla.
+ * It is a definition list (`dl`/`dt`/`dd`), which is the element that matches a set of
+ * label-value pairs. A table would imply two dimensions that do not exist here, and a list of
+ * paragraphs would lose the relationship between each label and its value for a screen reader.
  */
 export function ProductSpecs({ product }: { product: ProductDetail }) {
-  // `useId` en lugar de un identificador fijo: dos fichas en la misma página producirian
-  // identificadores duplicados, que es un error de accesibilidad y hace que `aria-labelledby`
-  // apunte al elemento equivocado.
+  // `useId` rather than a fixed identifier: two spec sheets on the same page would produce
+  // duplicate identifiers, which is an accessibility error and makes `aria-labelledby` point at
+  // the wrong element.
   const headingId = useId();
   const rows = buildRows(product);
 

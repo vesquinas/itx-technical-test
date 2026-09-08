@@ -4,18 +4,17 @@ import styles from './Breadcrumbs.module.css';
 
 export interface Crumb {
   label: string;
-  /** Sin `to`, la miga es la página actual y no se enlaza. */
+  /** With no `to`, the crumb is the current page and is not linked. */
   to?: string;
 }
 
 /**
- * Ruta de migas de pan.
+ * Breadcrumb trail.
  *
- * Se marca con `<nav aria-label>` y una lista ordenada, que es el patron que
- * esperan los lectores de pantalla: sin el, se anuncia como un puñado de enlaces
- * sueltos sin relación jerarquica.
+ * It is marked up as a `<nav aria-label>` with an ordered list, which is the pattern screen
+ * readers expect: without it, it is announced as a handful of unrelated links with no hierarchy.
  *
- * La última miga es la página actual: no se enlaza y lleva `aria-current="page"`.
+ * The last crumb is the current page: it is not linked and carries `aria-current="page"`.
  */
 export function Breadcrumbs({ trail }: { trail: readonly Crumb[] }) {
   return (
@@ -35,8 +34,8 @@ export function Breadcrumbs({ trail }: { trail: readonly Crumb[] }) {
                 </Link>
               )}
               {isLast ? null : (
-                // El separador es decorativo: se oculta al lector de pantalla
-                // para que no lea "barra" entre cada nivel.
+                // The separator is decorative: it is hidden from the screen reader so it does
+                // not read out "slash" between every level.
                 <span aria-hidden="true" className={styles.separator}>
                   /
                 </span>

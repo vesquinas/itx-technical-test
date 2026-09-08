@@ -17,7 +17,7 @@
  */
 
 :root {
-  /* Escala de grises, del papel a la tinta. */
+  /* Greyscale, from paper to ink. */
   --color-paper: #fff;
   --color-surface: #fafafa;
   --color-surface-strong: #f2f2f2;
@@ -37,7 +37,7 @@
 
   --color-focus: #0b57d0;
 
-  /* Espaciado en una escala de 4 px. */
+  /* Spacing on a 4 px scale. */
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -104,7 +104,7 @@
 }
 
 html {
-  /* Compensa el salto horizontal al aparecer la barra de desplazamiento. */
+  /* Compensates for the horizontal jump when the scrollbar appears. */
   scrollbar-gutter: stable;
 }
 
@@ -188,7 +188,7 @@ input {
   }
 }
 
-/* Contenido disponible para lectores de pantalla y oculto visualmente. */
+/* Content available to screen readers and hidden visually. */
 .visually-hidden {
   position: absolute;
   width: 1px;

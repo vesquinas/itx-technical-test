@@ -6,7 +6,7 @@ import type { KeyValueStorage } from './storage.ts';
 import { createMemoryStorage } from './storage.ts';
 import { ONE_HOUR_MS, TtlCache } from './ttlCache.ts';
 
-/** Parser de juguete: acepta `{ name: string }` y rechaza cualquier otra cosa. */
+/** A toy parser: it accepts `{ name: string }` and rejects anything else. */
 const parseNamed: Parser<{ name: string }> = (input) => {
   if (!isRecord(input) || typeof input['name'] !== 'string') return undefined;
   return { name: input['name'] };
@@ -25,19 +25,19 @@ describe('TtlCache', () => {
     clock = 1_700_000_000_000;
   });
 
-  it('devuelve undefined cuando la clave no existe', () => {
+  it('returns undefined when the key does not exist', () => {
     expect(createCache().get('ausente', parseNamed)).toBeUndefined();
   });
 
-  it('guarda y recupera un valor dentro de su tiempo de vida', () => {
+  it('stores and retrieves a value within its time to live', () => {
     const cache = createCache();
     cache.set('producto', { name: 'Iconia' });
 
     expect(cache.get('producto', parseNamed)).toEqual({ name: 'Iconia' });
   });
 
-  describe('expiración', () => {
-    it('sigue sirviendo el valor justo antes de la hora', () => {
+  describe('expiry', () => {
+    it('still serves the value just before the hour', () => {
       const cache = createCache();
       cache.set('producto', { name: 'Iconia' });
 
@@ -46,7 +46,7 @@ describe('TtlCache', () => {
       expect(cache.get('producto', parseNamed)).toEqual({ name: 'Iconia' });
     });
 
-    it('caduca exactamente al cumplirse la hora', () => {
+    it('expires exactly on the hour', () => {
       const cache = createCache();
       cache.set('producto', { name: 'Iconia' });
 
@@ -55,7 +55,7 @@ describe('TtlCache', () => {
       expect(cache.get('producto', parseNamed)).toBeUndefined();
     });
 
-    it('usa una hora como tiempo de vida por defecto', () => {
+    it('uses one hour as the default time to live', () => {
       const cache = new TtlCache({ namespace: 'test', storage, now });
       cache.set('producto', { name: 'Iconia' });
 
@@ -66,7 +66,7 @@ describe('TtlCache', () => {
       expect(cache.get('producto', parseNamed)).toBeUndefined();
     });
 
-    it('respeta un tiempo de vida personalizado', () => {
+    it('honours a custom time to live', () => {
       const cache = createCache({ ttlMs: 5_000 });
       cache.set('producto', { name: 'Iconia' });
 
@@ -75,7 +75,7 @@ describe('TtlCache', () => {
       expect(cache.get('producto', parseNamed)).toBeUndefined();
     });
 
-    it('elimina del almacén la entrada caducada, para no acumular basura', () => {
+    it('removes the expired entry from the store, so no rubbish accumulates', () => {
       const cache = createCache();
       cache.set('producto', { name: 'Iconia' });
       clock += ONE_HOUR_MS;
@@ -85,7 +85,7 @@ describe('TtlCache', () => {
       expect(storage.keys()).toEqual([]);
     });
 
-    it('vuelve a cachear con una expiración nueva tras revalidar', () => {
+    it('caches again with a fresh expiry after revalidating', () => {
       const cache = createCache();
       cache.set('producto', { name: 'Iconia' });
       clock += ONE_HOUR_MS;
@@ -98,8 +98,8 @@ describe('TtlCache', () => {
     });
   });
 
-  describe('datos que no son de fiar', () => {
-    it('descarta una entrada que no es JSON valido', () => {
+  describe('untrusted data', () => {
+    it('drops an entry that is not valid JSON', () => {
       const cache = createCache();
       storage.setItem('test/v1/producto', 'esto no es json');
 
@@ -107,7 +107,7 @@ describe('TtlCache', () => {
       expect(storage.keys()).toEqual([]);
     });
 
-    it('descarta una entrada cuya carga útil no supera la validación', () => {
+    it('drops an entry whose payload does not pass validation', () => {
       const cache = createCache();
       cache.set('producto', { nombre: 'campo equivocado' });
 
@@ -115,28 +115,28 @@ describe('TtlCache', () => {
       expect(storage.keys()).toEqual([]);
     });
 
-    it('descarta una entrada sin la estructura de sobre esperada', () => {
+    it('drops an entry without the expected envelope structure', () => {
       const cache = createCache();
       storage.setItem('test/v1/producto', JSON.stringify({ name: 'sin sobre' }));
 
       expect(cache.get('producto', parseNamed)).toBeUndefined();
     });
 
-    it('ignora lo escrito por una versión anterior del formato', () => {
+    it('ignores what an earlier version of the format wrote', () => {
       createCache({ version: 1 }).set('producto', { name: 'Iconia' });
 
       expect(createCache({ version: 2 }).get('producto', parseNamed)).toBeUndefined();
     });
   });
 
-  describe('aislamiento y limpieza', () => {
-    it('no lee las claves de otro namespace', () => {
+  describe('isolation and clean-up', () => {
+    it('does not read the keys of another namespace', () => {
       new TtlCache({ namespace: 'otro', storage, now }).set('producto', { name: 'Iconia' });
 
       expect(createCache().get('producto', parseNamed)).toBeUndefined();
     });
 
-    it('clear() solo borra las claves propias', () => {
+    it('clear() only removes its own keys', () => {
       createCache().set('producto', { name: 'Iconia' });
       storage.setItem('ajeno', 'no tocar');
 
@@ -145,7 +145,7 @@ describe('TtlCache', () => {
       expect(storage.keys()).toEqual(['ajeno']);
     });
 
-    it('delete() elimina una sola entrada', () => {
+    it('delete() removes a single entry', () => {
       const cache = createCache();
       cache.set('a', { name: 'A' });
       cache.set('b', { name: 'B' });
@@ -157,8 +157,8 @@ describe('TtlCache', () => {
     });
   });
 
-  describe('resiliencia del almacén', () => {
-    it('no propaga el error cuando se agota la cuota, y reintenta tras liberar', () => {
+  describe('store resilience', () => {
+    it('does not propagate the error when the quota runs out, and retries after freeing', () => {
       const failing = createMemoryStorage();
       let rejectWrites = true;
       const setItem = vi.spyOn(failing, 'setItem').mockImplementation((key, value) => {
@@ -177,7 +177,7 @@ describe('TtlCache', () => {
       expect(setItem).toHaveBeenCalledTimes(2);
     });
 
-    it('no propaga el error cuando la lectura falla', () => {
+    it('does not propagate the error when the read fails', () => {
       const failing = createMemoryStorage();
       vi.spyOn(failing, 'getItem').mockImplementation(() => {
         throw new DOMException('sin acceso', 'SecurityError');

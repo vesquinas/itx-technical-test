@@ -25,9 +25,8 @@
 }
 
 /*
- * El radio se oculta visualmente pero sigue en el arbol de accesibilidad y sigue
- * recibiendo el foco: `display: none` lo sacaria del orden de tabulacion y
- * rompería la navegacion con teclado.
+ * The radio is hidden visually but stays in the accessibility tree and keeps receiving focus:
+ * `display: none` would take it out of the tab order and break keyboard navigation.
  */
 .input {
   position: absolute;
@@ -73,7 +72,7 @@
   color: var(--color-accent-contrast);
 }
 
-/* El anillo de foco se dibuja sobre la etiqueta, que es lo que se ve. */
+/* The focus ring is drawn on the label, which is what is visible. */
 .input:focus-visible + .chip {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;

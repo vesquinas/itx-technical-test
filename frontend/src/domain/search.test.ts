@@ -16,64 +16,64 @@ const catalogo: ProductSummary[] = [
 ];
 
 describe('normalizeForSearch', () => {
-  it('pasa a minusculas', () => {
+  it('lowercases', () => {
     expect(normalizeForSearch('Acer')).toBe('acer');
   });
 
-  it('quita los diacriticos', () => {
+  it('strips diacritics', () => {
     expect(normalizeForSearch('Teléfono')).toBe('telefono');
     expect(normalizeForSearch('ñandú')).toBe('nandu');
   });
 });
 
 describe('filterProducts', () => {
-  it('devuelve el catálogo completo sin termino de búsqueda', () => {
+  it('returns the whole catalogue with no search term', () => {
     expect(filterProducts(catalogo, '')).toHaveLength(catalogo.length);
     expect(filterProducts(catalogo, '   ')).toHaveLength(catalogo.length);
   });
 
-  it('devuelve la misma referencia sin termino, para no renderizar de más', () => {
+  it('returns the same reference with no term, to avoid rendering for nothing', () => {
     expect(filterProducts(catalogo, '')).toBe(catalogo);
   });
 
-  it('filtra por marca', () => {
+  it('filters by brand', () => {
     expect(filterProducts(catalogo, 'acer')).toHaveLength(3);
   });
 
-  it('filtra por modelo', () => {
+  it('filters by model', () => {
     const resultado = filterProducts(catalogo, 'iconia');
 
     expect(resultado).toHaveLength(1);
     expect(resultado[0]?.model).toBe('Iconia Talk S');
   });
 
-  it('encuentra una marca que la API escribe en minusculas', () => {
+  it('finds a brand the API writes in lowercase', () => {
     expect(filterProducts(catalogo, 'Alcatel')).toHaveLength(1);
   });
 
-  it('ignora los acentos, en los datos y en la búsqueda', () => {
+  it('ignores accents, both in the data and in the search', () => {
     expect(filterProducts(catalogo, 'telefono')).toHaveLength(1);
     expect(filterProducts(catalogo, 'teléfono')).toHaveLength(1);
   });
 
-  it('exige todas las palabras, en cualquier orden', () => {
+  it('requires every word, in any order', () => {
     expect(filterProducts(catalogo, 'acer liquid')).toHaveLength(2);
     expect(filterProducts(catalogo, 'liquid acer')).toHaveLength(2);
     expect(filterProducts(catalogo, 'acer nokia')).toHaveLength(0);
   });
 
-  it('combina marca y modelo en la misma búsqueda', () => {
+  it('combines brand and model in the same search', () => {
     const resultado = filterProducts(catalogo, 'acer plus');
 
     expect(resultado).toHaveLength(1);
     expect(resultado[0]?.model).toBe('Liquid Z6 Plus');
   });
 
-  it('devuelve lista vacía cuando nada encaja', () => {
+  it('returns an empty list when nothing matches', () => {
     expect(filterProducts(catalogo, 'iphone')).toHaveLength(0);
   });
 
-  it('tolera espacios de sobra alrededor y en medio', () => {
+  it('tolerates extra spaces around and in between', () => {
     expect(filterProducts(catalogo, '  acer   liquid  ')).toHaveLength(2);
   });
 });

@@ -4,7 +4,7 @@
   padding: var(--space-6) var(--space-5) var(--space-8);
 }
 
-/* Fuera de la pantalla hasta que recibe el foco con el tabulador. */
+/* Off screen until it receives focus via Tab. */
 .skipLink {
   position: absolute;
   top: var(--space-2);

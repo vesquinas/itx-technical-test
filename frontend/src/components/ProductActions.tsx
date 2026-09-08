@@ -14,32 +14,29 @@ type SubmitState =
   | { status: 'failed'; message: string };
 
 /**
- * Si hay una sola opción se deja preseleccionada, como pide el enunciado.
+ * If there is a single option it is left preselected, as the brief asks.
  *
- * Con varias no se preselecciona ninguna: el color y la capacidad cambian el
- * producto que se compra, y elegirlos por el usuario invita a añadir a la cesta
- * algo distinto de lo que queria. El boton permanece deshabilitado hasta que ha
- * elegido las dos cosas, y se le explica por que.
+ * With several, none is preselected: colour and capacity change which product is being bought, and
+ * choosing them on the user's behalf invites adding something other than what they wanted to the
+ * cart. The button stays disabled until they have chosen both, and they are told why.
  */
 function defaultCode(options: readonly { code: number }[]): number | undefined {
   return options.length === 1 ? options[0]?.code : undefined;
 }
 
 /**
- * Acciones de la ficha: selección de capacidad y color, y añadir a la cesta.
+ * The detail page's actions: capacity and colour selection, and add to cart.
  *
- * ## El contador de la cesta
+ * ## The cart counter
  *
- * `POST /api/cart` responde con el número de artículos en la cesta y el
- * enunciado pide mostrar **ese** valor en la cabecera, persistido. Es lo que
- * hace este componente: la API es la fuente de la verdad y no se lleva una
- * cuenta propia en el cliente.
+ * `POST /api/cart` answers with the number of items in the cart, and the brief asks to show
+ * **that** value in the header, persisted. That is what this component does: the API is the source
+ * of truth and no separate count is kept on the client.
  *
- * Conviene saber que la API de la prueba es un simulador y responde siempre
- * `{"count": 1}`, también al añadir el segundo o el tercer producto. Por eso el
- * contador de la cabecera se queda en 1 al usar la aplicación: no es un fallo de
- * la implementación, es el comportamiento del servicio. Queda documentado en el
- * README.
+ * Worth knowing that the test API is a mock and always answers `{"count": 1}`, including when
+ * adding the second or third product. That is why the header counter stays at 1 while using the
+ * application: it is not an implementation defect, it is the service's behaviour. Documented in
+ * the README.
  */
 export function ProductActions({ product }: { product: ProductDetail }) {
   const { setCount } = useCart();
@@ -84,15 +81,15 @@ export function ProductActions({ product }: { product: ProductDetail }) {
   return (
     <div className={styles.actions}>
       <OptionPicker
-        // Los selectores se bloquean mientras se envía. Sin esto, cambiar de color con la
-        // petición en vuelo dejaba un mensaje enganoso: al llegar la respuesta se anunciaba
-        // "producto añadido" para una selección que no era la que se habia enviado.
+        // The pickers are locked while sending. Without this, changing colour with the request in
+        // flight left a misleading message: when the response arrived it announced "product added"
+        // for a selection other than the one that had been sent.
         disabled={submit.status === 'sending'}
         legend="Almacenamiento"
         onSelect={(code) => {
           setStorageCode(code);
-          // Cualquier cambio de selección inválida el mensaje anterior: seguir
-          // mostrando "añadido" tras cambiar el color sería enganoso.
+          // Any change of selection invalidates the previous message: keeping "added" on screen
+          // after changing the colour would be misleading.
           setSubmit({ status: 'idle' });
         }}
         options={storages}
@@ -123,9 +120,9 @@ export function ProductActions({ product }: { product: ProductDetail }) {
         </button>
 
         {/*
-          Region viva unica para todos los mensajes de la accion. Al ser siempre
-          el mismo nodo, el lector de pantalla anuncia cada cambio; con nodos
-          distintos que aparecen y desaparecen el anuncio se pierde.
+          One single live region for every message of this action. Because it is always the same
+          node, the screen reader announces each change; with separate nodes appearing and
+          disappearing, the announcement gets lost.
         */}
         <p aria-live="polite" className={styles.feedback}>
           {!isComplete ? (

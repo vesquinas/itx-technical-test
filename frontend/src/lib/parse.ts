@@ -1,33 +1,33 @@
 /**
- * Utilidades para estrechar `unknown` a tipos concretos.
+ * Helpers to narrow `unknown` down to concrete types.
  *
- * Se usan en dos fronteras donde entran datos que no controlamos:
+ * They are used at the two boundaries where data we do not control comes in:
  *
- *  1. Las respuestas de la API.
- *  2. Lo que se lee de `localStorage`, que el usuario puede editar a mano.
+ *  1. The API responses.
+ *  2. Whatever is read from `localStorage`, which the user can edit by hand.
  *
- * En ambos casos TypeScript no ayuda: `strict` protege del código mal escrito,
- * no de un JSON con otra forma. La comprobación tiene que ocurrir en ejecución.
+ * TypeScript is no help in either case: `strict` protects you from badly written code, not from
+ * JSON with a different shape. The check has to happen at runtime.
  */
 
-/** Convierte una entrada desconocida en `T`, o devuelve `undefined` si no encaja. */
+/** Turns an unknown input into `T`, or returns `undefined` if it does not fit. */
 export type Parser<T> = (input: unknown) => T | undefined;
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** Texto saneado: recorta espacios y colapsa los blancos repetidos. */
+/** Sanitised text: trims and collapses repeated whitespace. */
 export function asText(value: unknown): string {
   return typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
 }
 
 /**
- * Normaliza los campos que la API devuelve unas veces como texto y otras como
- * lista de textos (`cpu`, `sim`, `primaryCamera`, `wlan`, `sensors`...).
+ * Normalises the fields the API returns sometimes as text and sometimes as a list of texts
+ * (`cpu`, `sim`, `primaryCamera`, `wlan`, `sensors`…).
  *
- * Sin esta normalización React renderiza el array concatenando sus elementos sin
- * separador ("Quad-core1.3 GHz"), que es un fallo visible en la interfaz.
+ * Without this normalisation React renders the array by concatenating its elements with no
+ * separator ("Quad-core1.3 GHz"), which is a visible defect in the interface.
  */
 export function asTextList(value: unknown): string[] {
   const items = Array.isArray(value) ? value : [value];
@@ -35,9 +35,10 @@ export function asTextList(value: unknown): string[] {
 }
 
 /**
- * La API entrega el precio como cadena y en 6 de los 100 productos viene vacía.
- * Devolvemos `null` en lugar de `NaN` para que la interfaz tenga que decidir
- * explicitamente que mostrar cuando no hay precio.
+ * The API delivers the price as a string, and in 6 of the 100 products it comes empty.
+ *
+ * We return `null` rather than `NaN` so the interface has to decide explicitly what to show when
+ * there is no price.
  */
 export function asPrice(value: unknown): number | null {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null;
@@ -49,16 +50,16 @@ export function asPrice(value: unknown): number | null {
 }
 
 /**
- * Acepta únicamente URLs absolutas con esquema http o https.
+ * Accepts absolute URLs with an http or https scheme only.
  *
- * La API entrega las direcciones de las fotos, y esas direcciones acaban en el atributo `src`
- * de una imagen. Comprobar el esquema evita que un origen comprometido —o simplemente
- * equivocado— cuele un `javascript:`, un `data:` o un `blob:` donde debería haber una foto.
- * Los navegadores actuales no ejecutan `javascript:` en un `<img>`, pero apoyarse en eso es
- * apoyarse en el navegador y no en el código propio.
+ * The API delivers the photo addresses, and those addresses end up in an image's `src` attribute.
+ * Checking the scheme prevents a compromised — or simply mistaken — source from slipping in a
+ * `javascript:`, a `data:` or a `blob:` where a photo should be. Current browsers do not execute
+ * `javascript:` in an `<img>`, but relying on that is relying on the browser rather than on our
+ * own code.
  *
- * Solo se admiten absolutas porque es lo que devuelve esta API en los 100 productos del
- * catálogo. Una relativa se descarta, y la interfaz muestra "Sin imagen" en su lugar.
+ * Only absolute URLs are accepted because that is what this API returns across all 100 products of
+ * the catalogue. A relative one is dropped, and the interface shows "Sin imagen" instead.
  */
 export function asHttpUrl(value: unknown): string {
   const text = asText(value);
@@ -77,7 +78,7 @@ export function asPositiveInteger(value: unknown): number | undefined {
   return value;
 }
 
-/** Aplica un parser a cada elemento y descarta los que no encajen. */
+/** Applies a parser to every element and drops the ones that do not fit. */
 export function asArrayOf<T>(value: unknown, parse: Parser<T>): T[] {
   if (!Array.isArray(value)) return [];
   const result: T[] = [];

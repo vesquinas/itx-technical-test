@@ -6,15 +6,14 @@ import { CartContext } from './cartContext.ts';
 import { readCartCount, writeCartCount } from './cartStorage.ts';
 
 /**
- * Estado de la cesta.
+ * Cart state.
  *
- * La API es la fuente de la verdad: `POST /api/cart` responde con el número de
- * artículos y ese es el valor que se muestra y se persiste. No se lleva una
- * cuenta propia en el cliente, porque entonces habría dos verdades que podrian
- * discrepar.
+ * The API is the source of truth: `POST /api/cart` answers with the number of items and that is
+ * the value shown and persisted. No separate count is kept on the client, because then there would
+ * be two truths that could disagree.
  *
- * El estado inicial se lee de `localStorage` de forma perezosa, pasando la
- * función a `useState`, para no tocar el almacenamiento en cada renderizado.
+ * The initial state is read from `localStorage` lazily, by passing the function to `useState`, so
+ * storage is not touched on every render.
  */
 export function CartProvider({ children }: { children: ReactNode }) {
   const [count, setCountState] = useState<number>(readCartCount);

@@ -1,15 +1,15 @@
 package com.itx.similarproducts.catalog;
 
 /**
- * El producto por el que se pregunta no existe en la API existente.
+ * The requested product does not exist in the existing API.
  *
- * <p>Se traduce a un 404, como indica el contrato. Ojo con la distinción: esto es que <b>el
- * producto de la petición</b> no existe. Que uno de sus similares no exista no es un error de
- * la petición y no produce un 404.
+ * <p>It translates to a 404, as the contract states. Mind the distinction: this means <b>the
+ * product being asked for</b> does not exist. One of its similar products not existing is not an
+ * error of the request and does not produce a 404.
  */
 public class ProductNotFoundException extends RuntimeException {
 
     public ProductNotFoundException(String productId) {
-        super("No existe el producto " + productId);
+        super("Product " + productId + " does not exist");
     }
 }

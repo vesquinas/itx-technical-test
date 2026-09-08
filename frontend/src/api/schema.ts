@@ -1,23 +1,23 @@
 /**
- * Traducción de las respuestas de la API al modelo de dominio.
+ * Translation of the API responses into the domain model.
  *
- * Este modulo es la única frontera donde se acepta `unknown` y se convierte en
- * datos tipados. Todo lo que no encaje se descarta aquí, de modo que ningún
- * componente tenga que defenderse de un JSON inesperado.
+ * This module is the only boundary where `unknown` is accepted and turned into typed data.
+ * Anything that does not fit is dropped here, so that no component has to defend itself against
+ * unexpected JSON.
  *
- * ## Particularidades reales de esta API
+ * ## The real quirks of this API
  *
- * Verificadas contra https://itx-frontend-test.onrender.com sobre los 100
- * productos del listado y una muestra de sus detalles:
+ * Verified against https://itx-frontend-test.onrender.com over the 100 products of the catalogue
+ * and all of their details:
  *
- * 1. `dimentions` y `secondaryCmera` están mal escritos en el origen.
- * 2. `displayResolution` contiene las pulgadas y `displaySize` los píxeles:
- *    su contenido esta intercambiado respecto a lo que dicen sus nombres.
- * 3. Diez campos (`cpu`, `os`, `sim`, `primaryCamera`, `secondaryCmera`, `wlan`,
- *    `bluetooth`, `radio`, `usb`, `sensors`) llegan como texto en unos productos
- *    y como lista de textos en otros.
- * 4. `price` es siempre texto y viene vacío en 6 de los 100 productos.
- * 5. `nfc` viene vacío en todos los productos muestreados.
+ * 1. `dimentions` and `secondaryCmera` are misspelled at the source.
+ * 2. `displayResolution` holds the inches and `displaySize` holds the pixels: their contents are
+ *    swapped with respect to what their names say.
+ * 3. Ten fields (`cpu`, `os`, `sim`, `primaryCamera`, `secondaryCmera`, `wlan`, `bluetooth`,
+ *    `radio`, `usb`, `sensors`) arrive as text in some products and as a list of texts in others.
+ * 4. `price` is always text and comes empty in 6 of the 100 products.
+ * 5. `nfc` comes empty in every product of the catalogue.
+ * 6. Two products deliver their only storage option with a blank name.
  */
 
 import type {
@@ -38,7 +38,7 @@ import {
   isRecord,
 } from '../lib/parse.ts';
 
-/** Un producto sin `id` no es utilizable: no se puede enrutar ni pedir su detalle. */
+/** A product with no `id` is unusable: it can neither be routed to nor looked up. */
 export const parseProductSummary: Parser<ProductSummary> = (input) => {
   if (!isRecord(input)) return undefined;
 
@@ -55,8 +55,8 @@ export const parseProductSummary: Parser<ProductSummary> = (input) => {
 };
 
 /**
- * El listado se acepta siempre que sea un array, descartando los elementos
- * invalidos: un producto corrupto no debe dejar al usuario sin catálogo.
+ * The list is accepted as long as it is an array, dropping the invalid elements: one corrupt
+ * product must not leave the user with no catalogue.
  */
 export const parseProductList: Parser<ProductSummary[]> = (input) => {
   if (!Array.isArray(input)) return undefined;
@@ -64,16 +64,16 @@ export const parseProductList: Parser<ProductSummary[]> = (input) => {
 };
 
 /**
- * Una opción es utilizable si tiene código, y solo si tiene código.
+ * An option is usable if it has a code, and only if it has a code.
  *
- * El nombre es la etiqueta que se muestra; el código es lo que se envía a la cesta. Exigir
- * también el nombre fue un error: dos productos del catálogo (`M900` y `DX650`) traen su única
- * capacidad como `{ "code": 2000, "name": " " }`, con un espacio por nombre. Al descartarla, esos
- * dos productos aparecían como «sin opciones de compra disponibles» aunque la API sí permite
- * comprarlos: se perdía una venta por un problema de etiqueta.
+ * The name is the label that gets displayed; the code is what gets sent to the cart. Requiring the
+ * name as well was a mistake: two products of the catalogue (`M900` and `DX650`) deliver their only
+ * storage as `{ "code": 2000, "name": " " }`, with a space for a name. Dropping it made those two
+ * products show up as "no purchase options available" even though the API does accept the purchase:
+ * a sale lost to a labelling problem.
  *
- * El nombre vacío se propaga tal cual, y es la interfaz la que decide qué rótulo poner. Un valor
- * de relleno es una decisión de presentación y no tiene por qué contaminar el modelo de datos.
+ * The empty name is propagated as is, and it is the interface that decides what label to show. A
+ * filler value is a presentation decision and has no business polluting the data model.
  */
 const parseOption: Parser<ProductOption> = (input) => {
   if (!isRecord(input)) return undefined;
@@ -100,7 +100,7 @@ function parseSpecs(source: Record<string, unknown>): ProductSpecs {
     chipset: asText(source['chipset']),
     gpu: asText(source['gpu']),
 
-    // Intercambio intencionado: ver la nota 2 de la cabecera del modulo.
+    // Intentional swap: see note 2 in this module's header.
     screenResolution: asText(source['displaySize']),
     screenSize: asText(source['displayResolution']),
     screenType: asText(source['displayType']),
@@ -142,8 +142,8 @@ export const parseProductDetail: Parser<ProductDetail> = (input) => {
 };
 
 /**
- * `POST /api/cart` responde `{ "count": n }`. Es el número de artículos que hay
- * en la cesta y es el dato que la cabecera muestra en todas las vistas.
+ * `POST /api/cart` answers `{ "count": n }`. It is the number of items in the cart and it is the
+ * value the header shows on every view.
  */
 export const parseCartCount: Parser<number> = (input) => {
   if (!isRecord(input)) return undefined;

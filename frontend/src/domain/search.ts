@@ -2,14 +2,14 @@ import type { ProductSummary } from './product.ts';
 import { searchableText } from './product.ts';
 
 /**
- * Normaliza un texto para poder compararlo.
+ * Normalises a text so it can be compared.
  *
- * Pasa a minusculas y quita los diacriticos descomponiendo en NFD y eliminando
- * las marcas combinantes. Sin esto, buscar "telefono" no encontraria "teléfono",
- * que en un catálogo en espanol es un fallo que el usuario nota enseguida.
+ * It lowercases and strips diacritics by decomposing to NFD and removing the combining marks.
+ * Without this, searching for "telefono" would not find "teléfono", which in a Spanish catalogue
+ * is a defect the user notices immediately.
  *
- * También resuelve un caso real de estos datos: la marca "alcatel" viene en
- * minusculas mientras que "Acer" viene capitalizada.
+ * It also solves a real case in this data: the brand "alcatel" arrives lowercase while "Acer"
+ * arrives capitalised.
  */
 export function normalizeForSearch(text: string): string {
   return text
@@ -19,15 +19,14 @@ export function normalizeForSearch(text: string): string {
 }
 
 /**
- * Filtra los productos por marca y modelo, como pide el enunciado.
+ * Filters the products by brand and model, as the brief asks.
  *
- * El termino se parte en palabras y **todas** tienen que aparecer, en cualquier
- * orden. Así "acer liquid" encuentra el "Acer Liquid Z6", cosa que una simple
- * búsqueda de subcadena no haría porque el texto completo es "Acer Liquid Z6" y
- * el usuario podría escribir "liquid acer".
+ * The term is split into words and **all** of them have to appear, in any order. That way "acer
+ * liquid" finds the "Acer Liquid Z6", which a plain substring search would not, because the full
+ * text is "Acer Liquid Z6" and the user might type "liquid acer".
  *
- * Es una función pura sobre un array que ya está en memoria: no toca la red ni
- * el estado, lo que la hace trivial de probar y de memoizar.
+ * It is a pure function over an array that is already in memory: it touches neither the network
+ * nor any state, which makes it trivial to test and to memoise.
  */
 export function filterProducts(
   products: readonly ProductSummary[],
@@ -35,8 +34,8 @@ export function filterProducts(
 ): readonly ProductSummary[] {
   const terms = normalizeForSearch(query).split(/\s+/).filter((term) => term.length > 0);
 
-  // Sin terminos se devuelve el mismo array, no una copia: evita que React vea
-  // una referencia nueva y vuelva a renderizar la rejilla sin motivo.
+  // With no terms we return the very same array, not a copy: that keeps React from seeing a new
+  // reference and re-rendering the grid for nothing.
   if (terms.length === 0) return products;
 
   return products.filter((product) => {

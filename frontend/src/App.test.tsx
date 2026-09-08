@@ -18,9 +18,9 @@ function jsonResponse(payload: unknown): Response {
 }
 
 /**
- * Estos tests recorren la aplicación completa, con su enrutador real y las
- * vistas cargadas en diferido. Comprueban el cableado: que cada URL lleva a la
- * vista que le corresponde y que una URL desconocida no deja la página en blanco.
+ * These tests walk the whole application, with its real router and the views lazily loaded. They
+ * check the wiring: that each URL leads to the view it should, and that an unknown URL does not
+ * leave the page blank.
  */
 describe('App', () => {
   let fetchMock: Mock<FetchStub>;
@@ -35,7 +35,7 @@ describe('App', () => {
     vi.stubGlobal('fetch', fetchMock);
   });
 
-  it('muestra el listado en la raiz', async () => {
+  it('renders the list at the root', async () => {
     window.history.pushState({}, '', '/');
 
     render(<App />);
@@ -43,7 +43,7 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Teléfonos' })).toBeInTheDocument();
   });
 
-  it('muestra la ficha en la ruta del producto', async () => {
+  it('renders the detail page on the product route', async () => {
     window.history.pushState({}, '', '/product/abc123');
 
     render(<App />);
@@ -51,7 +51,7 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'X960' })).toBeInTheDocument();
   });
 
-  it('muestra una página de error ante una URL desconocida', async () => {
+  it('renders an error page on an unknown URL', async () => {
     window.history.pushState({}, '', '/una/ruta/inventada');
 
     render(<App />);
@@ -62,7 +62,7 @@ describe('App', () => {
     expect(screen.getByRole('link', { name: 'Ir al listado de productos' })).toBeInTheDocument();
   });
 
-  it('mantiene la cabecera con la cesta en todas las vistas', async () => {
+  it('keeps the header with the cart on every view', async () => {
     window.history.pushState({}, '', '/una/ruta/inventada');
 
     render(<App />);

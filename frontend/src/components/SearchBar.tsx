@@ -3,17 +3,15 @@ import { useId } from 'react';
 import styles from './SearchBar.module.css';
 
 /**
- * Campo de búsqueda del listado.
+ * The search field of the product list.
  *
- * El filtrado es en tiempo real: cada pulsación de tecla actualiza el valor y la
- * vista vuelve a filtrar. No se aplica retardo al filtrado porque los productos
- * ya están en memoria y filtrarlos es inmediato; retrasarlo solo introduciria una
- * latencia artificial. El retardo se aplica únicamente a la escritura del termino
- * en la URL, que es lo que no conviene rehacer en cada tecla.
+ * Filtering is real time: every keystroke updates the value and the view filters again. No delay
+ * is applied to the filtering because the products are already in memory and filtering them is
+ * immediate; delaying it would only introduce artificial latency. The delay applies solely to
+ * writing the term into the URL, which is what is better not redone on every key.
  *
- * `useId` genera el identificador que une etiqueta y campo, en lugar de una
- * constante: si algun dia hubiera dos buscadores en la misma página, los `id`
- * seguirían siendo únicos.
+ * `useId` generates the identifier that ties the label to the field, rather than a constant: if
+ * there were ever two search fields on the same page, the `id`s would still be unique.
  */
 export function SearchBar({
   value,
@@ -22,7 +20,7 @@ export function SearchBar({
 }: {
   value: string;
   onChange: (value: string) => void;
-  /** Resumen del resultado, que se anuncia al lector de pantalla. */
+  /** Summary of the result, announced to the screen reader. */
   resultsLabel: string;
 }) {
   const inputId = useId();
@@ -44,8 +42,8 @@ export function SearchBar({
             onChange(event.target.value);
           }}
           placeholder="Marca o modelo"
-          // `search` en lugar de `text`: en movil el teclado muestra la tecla de
-          // búsqueda y el navegador ofrece el boton de borrado.
+          // `search` rather than `text`: on mobile the keyboard shows the search key and the
+          // browser offers a clear button.
           type="search"
           value={value}
         />
@@ -64,9 +62,8 @@ export function SearchBar({
       </div>
 
       {/*
-        `aria-live="polite"` anuncia cuantos resultados quedan a medida que se
-        escribe. Sin esto, quien usa lector de pantalla no percibe que la lista
-        de abajo ha cambiado.
+        `aria-live="polite"` announces how many results are left as the user types. Without it,
+        someone using a screen reader has no way of noticing the list below has changed.
       */}
       <p aria-live="polite" className={styles.status} id={statusId}>
         {resultsLabel}

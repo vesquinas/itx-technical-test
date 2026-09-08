@@ -3,37 +3,37 @@ import { describe, expect, it } from 'vitest';
 import { formatPrice, formatWeight, joinSpecs, PRICE_UNAVAILABLE } from './format.ts';
 
 describe('formatPrice', () => {
-  it('formatea el precio en euros con la convención española', () => {
+  it('formats the price in euros with the Spanish convention', () => {
     // Se normaliza el espacio: Intl usa un espacio duro antes del simbolo.
     expect(formatPrice(170).replace(/ /g, ' ')).toBe('170,00 €');
     expect(formatPrice(1099.5).replace(/ /g, ' ')).toBe('1099,50 €');
   });
 
-  it('devuelve un texto explícito cuando la API no da precio', () => {
+  it('returns explicit copy when the API gives no price', () => {
     expect(formatPrice(null)).toBe(PRICE_UNAVAILABLE);
   });
 
-  it('formatea el precio cero en lugar de tratarlo como ausente', () => {
+  it('formats a zero price rather than treating it as absent', () => {
     expect(formatPrice(0)).not.toBe(PRICE_UNAVAILABLE);
   });
 });
 
 describe('formatWeight', () => {
-  it('añade la unidad al peso en gramos', () => {
+  it('adds the unit to the weight in grams', () => {
     expect(formatWeight('260')).toBe('260 g');
   });
 
-  it('no inventa unidad cuando no hay peso', () => {
+  it('does not invent a unit when there is no weight', () => {
     expect(formatWeight('')).toBe('');
   });
 });
 
 describe('joinSpecs', () => {
-  it('une los valores múltiples con un separador visible', () => {
+  it('joins multiple values with a visible separator', () => {
     expect(joinSpecs(['13 MP', 'autofocus'])).toBe('13 MP · autofocus');
   });
 
-  it('devuelve cadena vacía sin valores', () => {
+  it('returns an empty string with no values', () => {
     expect(joinSpecs([])).toBe('');
   });
 });

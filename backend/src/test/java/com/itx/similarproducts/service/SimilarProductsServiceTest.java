@@ -25,25 +25,25 @@ import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMoc
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Protege la decisión de <b>no cancelar</b> la llamada que se queda fuera del presupuesto.
+ * Guards the decision <b>not to cancel</b> the call that falls outside the budget.
  *
- * <p>Este test existe porque faltaba. Se inyectaron a propósito nueve fallos realistas en el
- * servicio para ver cuáles detectaban los tests, y este fue el único que pasó desapercibido:
- * volver a añadir {@code future.cancel(true)} no rompía ninguna prueba. Y no es un detalle
- * cosmético, por dos motivos:
+ * <p>This test exists because it was missing. Nine realistic defects were deliberately injected
+ * into the service to see which ones the tests caught, and this was the only one that went
+ * unnoticed: adding {@code future.cancel(true)} back broke no test. And it is not a cosmetic
+ * detail, for two reasons:
  *
  * <ul>
- *   <li>Cancelar tira el trabajo que iba a acelerar las peticiones siguientes, que es justo lo
- *       que se quiere evitar.
- *   <li>El futuro que se cancelaría es <b>el que guarda la caché</b>, porque es el que devuelve
- *       {@code AsyncCache.get}. Cancelarlo no interrumpe la llamada —{@code CompletableFuture}
- *       ignora la petición de interrupción— pero sí deja fallida la entrada de caché, así que
- *       además de perder el trabajo se envenena la caché para todos los que la esperaban.
+ *   <li>Cancelling throws away the work that was about to speed subsequent requests up, which is
+ *       exactly what we want to avoid.
+ *   <li>The future that would be cancelled is <b>the one the cache holds</b>, because it is what
+ *       {@code AsyncCache.get} returns. Cancelling it does not interrupt the call — {@code
+ *       CompletableFuture} ignores the interruption request — but it does leave the cache entry
+ *       failed, so on top of losing the work it poisons the cache for everyone waiting on it.
  * </ul>
  *
- * <p>Se monta a mano, sin contexto de Spring, para poder dar al catálogo y al servicio límites de
- * tiempo distintos: la llamada tiene que poder completarse (2 s de lectura) mucho después de que
- * la petición haya dejado de esperarla (200 ms de presupuesto).
+ * <p>It is wired by hand, without a Spring context, so that the catalogue and the service can be
+ * given different timeouts: the call has to be able to complete (2 s read timeout) long after the
+ * request has stopped waiting for it (200 ms budget).
  */
 class SimilarProductsServiceTest {
 
@@ -52,20 +52,20 @@ class SimilarProductsServiceTest {
             .options(wireMockConfig().dynamicPort())
             .build();
 
-    private static final Duration PRESUPUESTO = Duration.ofMillis(200);
-    private static final int RETARDO_DEL_LENTO_MS = 600;
+    private static final Duration BUDGET = Duration.ofMillis(200);
+    private static final int SLOW_PRODUCT_DELAY_MS = 600;
 
     private SimilarProductsService service;
 
     @BeforeEach
     void setUp() {
-        ExistingApiProperties propiedades = new ExistingApiProperties(
+        ExistingApiProperties properties = new ExistingApiProperties(
                 existingApi.baseUrl(),
                 Duration.ofSeconds(1),
-                // La llamada dispone de mucho más tiempo del que la petición está dispuesta a
-                // esperar: es la situación que hace útil no cancelarla.
+                // The call is given far more time than the request is willing to wait for: that
+                // is the situation that makes not cancelling it useful.
                 Duration.ofSeconds(2),
-                PRESUPUESTO,
+                BUDGET,
                 Duration.ofMinutes(5),
                 Duration.ofMinutes(1),
                 Duration.ofSeconds(10),
@@ -73,67 +73,67 @@ class SimilarProductsServiceTest {
 
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(
                 HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build());
-        factory.setReadTimeout(propiedades.readTimeout());
+        factory.setReadTimeout(properties.readTimeout());
 
         RestClient client = RestClient.builder()
-                .baseUrl(propiedades.baseUrl())
+                .baseUrl(properties.baseUrl())
                 .requestFactory(factory)
                 .build();
 
         ProductCatalog catalog = new ProductCatalog(
-                client, Executors.newVirtualThreadPerTaskExecutor(), propiedades);
-        service = new SimilarProductsService(catalog, propiedades);
+                client, Executors.newVirtualThreadPerTaskExecutor(), properties);
+        service = new SimilarProductsService(catalog, properties);
     }
 
-    private static void stubProducto(String id, int retardoMillis) {
+    private static void stubProduct(String id, int delayMillis) {
         existingApi.stubFor(get(urlEqualTo("/product/" + id)).willReturn(aResponse()
                 .withStatus(200)
                 .withHeader("Content-Type", "application/json")
-                .withFixedDelay(retardoMillis)
+                .withFixedDelay(delayMillis)
                 .withBody("""
                         {"id":"%s","name":"Producto %s","price":9.99,"availability":true}"""
                         .formatted(id, id))));
     }
 
     @Test
-    void la_llamada_descartada_termina_y_deja_el_producto_en_cache() throws InterruptedException {
+    void the_abandoned_call_finishes_and_leaves_the_product_in_the_cache() throws InterruptedException {
         existingApi.stubFor(get(urlEqualTo("/product/base/similarids")).willReturn(aResponse()
                 .withStatus(200)
                 .withHeader("Content-Type", "application/json")
                 .withBody("[\"rapido\",\"lento\"]")));
-        stubProducto("rapido", 0);
-        stubProducto("lento", RETARDO_DEL_LENTO_MS);
+        stubProduct("rapido", 0);
+        stubProduct("lento", SLOW_PRODUCT_DELAY_MS);
 
-        // Primera petición: el lento no cabe en el presupuesto y se omite.
-        List<ProductDetail> primera = service.findSimilarProducts("base");
-        assertThat(primera).extracting(ProductDetail::id).containsExactly("rapido");
+        // First request: the slow one does not fit in the budget and is left out.
+        List<ProductDetail> first = service.findSimilarProducts("base");
+        assertThat(first).extracting(ProductDetail::id).containsExactly("rapido");
 
-        // Si la llamada descartada se hubiese cancelado, no habría dejado nada en la caché y las
-        // peticiones siguientes seguirían devolviendo un solo producto.
-        List<ProductDetail> despues = esperarHastaQueLleguenDos();
+        // Had the abandoned call been cancelled, it would have left nothing in the cache and
+        // subsequent requests would keep returning a single product.
+        List<ProductDetail> afterwards = waitUntilBothArrive();
 
-        assertThat(despues).extracting(ProductDetail::id).containsExactly("rapido", "lento");
-        // Y con una sola llamada al origen: la abandonada es la que llenó la caché.
+        assertThat(afterwards).extracting(ProductDetail::id).containsExactly("rapido", "lento");
+        // And with a single call to the source: the abandoned one is what filled the cache.
         existingApi.verify(1, WireMock.getRequestedFor(urlEqualTo("/product/lento")));
     }
 
     /**
-     * Reintenta hasta que la carga en curso termina de poblar la caché.
+     * Retries until the in-flight load finishes populating the cache.
      *
-     * <p>Se sondea en lugar de dormir un tiempo fijo: dormir lo justo hace el test frágil en una
-     * máquina cargada, y dormir de sobra lo hace lento sin necesidad.
+     * <p>It polls rather than sleeping a fixed amount: sleeping just enough makes the test flaky on
+     * a loaded machine, and sleeping generously makes it slow for no reason.
      */
-    private List<ProductDetail> esperarHastaQueLleguenDos() throws InterruptedException {
-        Instant limite = Instant.now().plusSeconds(5);
-        List<ProductDetail> resultado = List.of();
+    private List<ProductDetail> waitUntilBothArrive() throws InterruptedException {
+        Instant deadline = Instant.now().plusSeconds(5);
+        List<ProductDetail> result = List.of();
 
-        while (Instant.now().isBefore(limite)) {
-            resultado = service.findSimilarProducts("base");
-            if (resultado.size() == 2) {
-                return resultado;
+        while (Instant.now().isBefore(deadline)) {
+            result = service.findSimilarProducts("base");
+            if (result.size() == 2) {
+                return result;
             }
             Thread.sleep(50);
         }
-        return resultado;
+        return result;
     }
 }
