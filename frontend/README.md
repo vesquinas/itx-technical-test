@@ -9,6 +9,12 @@ Single-page application with client-side routing, no server rendering and no doc
 every push to `main`, so it can be tried without installing anything. The API allows cross-origin
 requests, so the demo is fully functional, adding products to the cart included.
 
+One honest caveat about that hosting: a deep link such as `/product/<id>` **renders correctly but
+answers with a 404 status code**. GitHub Pages has no server-side rewrites, so the SPA fallback is
+a copy of `index.html` served as `404.html`: the browser gets the right page and the router
+resolves the route on the client, but the status line cannot be changed. On a host with rewrite
+rules — or behind any real web server — the same build answers 200.
+
 ## Language
 
 Code, comments and documentation are in English. **The user-facing copy is in Spanish**, because
