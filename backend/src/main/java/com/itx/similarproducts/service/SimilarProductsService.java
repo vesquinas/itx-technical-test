@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.itx.similarproducts.catalog.ProductCatalog;
-import com.itx.similarproducts.catalog.ProductLookup;
+import com.itx.similarproducts.catalog.Lookup;
 import com.itx.similarproducts.config.ExistingApiProperties;
 import com.itx.similarproducts.domain.ProductDetail;
 
@@ -70,7 +70,7 @@ public class SimilarProductsService {
 
         // Ask for every detail at once: starting the load does not block, each one returns its
         // future and the waiting comes afterwards.
-        List<CompletableFuture<ProductLookup>> pending = ids.stream()
+        List<CompletableFuture<Lookup<ProductDetail>>> pending = ids.stream()
                 .map(catalog::lookupDetail)
                 .toList();
 
@@ -90,7 +90,7 @@ public class SimilarProductsService {
      * not cached yet.
      */
     private SimilarProducts collectWithinBudget(
-            String productId, List<String> ids, List<CompletableFuture<ProductLookup>> pending) {
+            String productId, List<String> ids, List<CompletableFuture<Lookup<ProductDetail>>> pending) {
 
         Instant deadline = Instant.now().plus(fanOutTimeout);
         List<ProductDetail> products = new ArrayList<>(pending.size());
@@ -99,15 +99,16 @@ public class SimilarProductsService {
         boolean missingSomething = false;
 
         for (int index = 0; index < pending.size(); index++) {
-            CompletableFuture<ProductLookup> future = pending.get(index);
+            CompletableFuture<Lookup<ProductDetail>> future = pending.get(index);
             long remainingMillis = Duration.between(Instant.now(), deadline).toMillis();
 
             try {
-                ProductLookup lookup = future.get(Math.max(remainingMillis, 0), TimeUnit.MILLISECONDS);
+                Lookup<ProductDetail> lookup =
+                        future.get(Math.max(remainingMillis, 0), TimeUnit.MILLISECONDS);
                 switch (lookup) {
-                    case ProductLookup.Found found -> products.add(found.product());
-                    case ProductLookup.Unavailable ignored -> missingSomething = true;
-                    case ProductLookup.Missing ignored -> {
+                    case Lookup.Found<ProductDetail> found -> products.add(found.value());
+                    case Lookup.Unavailable<ProductDetail> ignored -> missingSomething = true;
+                    case Lookup.Missing<ProductDetail> ignored -> {
                         // Gone from the catalogue: the list is complete without it.
                     }
                 }

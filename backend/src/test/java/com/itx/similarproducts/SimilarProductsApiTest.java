@@ -340,6 +340,36 @@ class SimilarProductsApiTest {
     }
 
     @Test
+    void remembers_that_a_product_does_not_exist_instead_of_asking_again() {
+        // Sequential requests, not concurrent: in-flight deduplication does nothing for these.
+        // Without negative caching each one is a fresh call to the source, so anyone hammering a
+        // made-up identifier gets one upstream call per request. And it contradicts the policy the
+        // detail lookup already follows: a product not existing is a stable fact worth remembering.
+        existingApi.stubFor(get(urlEqualTo("/product/n404/similarids"))
+                .willReturn(aResponse().withStatus(404)));
+
+        for (int attempt = 0; attempt < 5; attempt += 1) {
+            assertThat(getSimilarRaw("n404").getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        }
+
+        existingApi.verify(1, WireMock.getRequestedFor(urlEqualTo("/product/n404/similarids")));
+    }
+
+    @Test
+    void stops_hammering_a_source_that_fails_on_the_similar_ids() {
+        existingApi.stubFor(get(urlEqualTo("/product/n500/similarids"))
+                .willReturn(aResponse().withStatus(500)));
+
+        for (int attempt = 0; attempt < 5; attempt += 1) {
+            assertThat(getSimilarRaw("n500").getStatusCode()).isEqualTo(HttpStatus.BAD_GATEWAY);
+        }
+
+        // A failure is transient, so it is remembered for seconds rather than minutes — but
+        // remembered, which is the difference between one call and five.
+        existingApi.verify(1, WireMock.getRequestedFor(urlEqualTo("/product/n500/similarids")));
+    }
+
+    @Test
     void does_not_call_the_api_again_for_an_already_cached_detail() {
         stubSimilarIds("k1", "[\"k2\"]");
         stubProduct("k2", "Dress", 19.99);

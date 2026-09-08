@@ -30,7 +30,7 @@ The API listens on **5000**. The management endpoints live on **5001**
 ./mvnw test
 ```
 
-37 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
+39 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
 the same cases as the mock service, with its delays, its 404s and its 500s.
 
 To check that the tests are worth something — and not merely that they execute lines — nine
@@ -197,6 +197,22 @@ its own cache expiry:
 
 The effect is a circuit breaker in the right place: the first attempt pays the wait, and for the next
 few seconds that product is skipped instantly while everything else is served normally.
+
+**Both lookups follow that policy, not just the detail.** The list of similar identifiers used to let
+its exceptions escape the loading function, and a loading function that throws leaves nothing behind:
+Caffeine discards a failed future. In-flight deduplication hides that under load — the requests
+overlap — but it does nothing for requests that arrive one after another. Measured with 25 sequential
+requests for the same made-up product, counting the calls that reach the source:
+
+| | Calls to the source |
+| --- | --- |
+| Outcome escaping as an exception | 25 |
+| Outcome returned as a value (`Lookup`) | **1** |
+
+That is why the outcome travels as a *value* through both caches and the exception is raised by the
+caller afterwards: an outcome that is thrown cannot be remembered. The type is the generic
+`Lookup<T>`, shared by the two caches with a single `LookupExpiry`, so the two cannot drift apart —
+which is exactly how they had drifted in the first place.
 
 ### A cap on the number of similar products
 

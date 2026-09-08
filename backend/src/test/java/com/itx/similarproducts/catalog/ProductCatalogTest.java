@@ -16,6 +16,7 @@ import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 import com.itx.similarproducts.config.ExistingApiProperties;
+import com.itx.similarproducts.domain.ProductDetail;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -72,14 +73,14 @@ class ProductCatalogTest {
     void translates_a_404_of_the_detail_into_product_not_found() {
         existingApi.stubFor(get(urlEqualTo("/product/x")).willReturn(aResponse().withStatus(404)));
 
-        assertThat(catalog.lookupDetail("x").join()).isInstanceOf(ProductLookup.Missing.class);
+        assertThat(catalog.lookupDetail("x").join()).isInstanceOf(Lookup.Missing.class);
     }
 
     @Test
     void translates_a_500_of_the_detail_into_unavailable() {
         existingApi.stubFor(get(urlEqualTo("/product/y")).willReturn(aResponse().withStatus(500)));
 
-        assertThat(catalog.lookupDetail("y").join()).isInstanceOf(ProductLookup.Unavailable.class);
+        assertThat(catalog.lookupDetail("y").join()).isInstanceOf(Lookup.Unavailable.class);
     }
 
     @Test
@@ -89,7 +90,7 @@ class ProductCatalogTest {
         existingApi.stubFor(get(urlEqualTo("/product/t")).willReturn(aResponse().withStatus(429)));
 
         assertThat(catalog.lookupDetail("t").join())
-                .isInstanceOf(ProductLookup.Unavailable.class);
+                .isInstanceOf(Lookup.Unavailable.class);
     }
 
     @Test
@@ -97,7 +98,7 @@ class ProductCatalogTest {
         existingApi.stubFor(get(urlEqualTo("/product/s")).willReturn(aResponse().withStatus(403)));
 
         assertThat(catalog.lookupDetail("s").join())
-                .isInstanceOf(ProductLookup.Unavailable.class);
+                .isInstanceOf(Lookup.Unavailable.class);
     }
 
     @Test
@@ -105,7 +106,7 @@ class ProductCatalogTest {
         existingApi.stubFor(get(urlEqualTo("/product/z"))
                 .willReturn(aResponse().withStatus(200).withFixedDelay(2_000)));
 
-        assertThat(catalog.lookupDetail("z").join()).isInstanceOf(ProductLookup.Unavailable.class);
+        assertThat(catalog.lookupDetail("z").join()).isInstanceOf(Lookup.Unavailable.class);
     }
 
     @Test
@@ -115,17 +116,17 @@ class ProductCatalogTest {
                 .withHeader("Content-Type", "application/json")
                 .withBody("{\"id\":\"w\",\"name\":\"Shirt\",\"price\":9.99,\"availability\":true}")));
 
-        ProductLookup lookup = catalog.lookupDetail("w").join();
+        Lookup<ProductDetail> lookup = catalog.lookupDetail("w").join();
 
-        assertThat(lookup).isInstanceOf(ProductLookup.Found.class);
-        assertThat(((ProductLookup.Found) lookup).product().name()).isEqualTo("Shirt");
+        assertThat(lookup).isInstanceOf(Lookup.Found.class);
+        assertThat(((Lookup.Found<ProductDetail>) lookup).value().name()).isEqualTo("Shirt");
     }
 
     @Test
     void concurrent_lookups_of_the_same_product_produce_a_single_call() throws Exception {
-        // Es el comportamiento que evita que el arranque de una prueba de carga se convierta en
-        // doscientas llamadas identicas a un origen lento: la carga de la cache es atomica por
-        // clave, asi que una hace el trabajo y las demas esperan su result.
+        // This is the behaviour that stops the start of a load test from turning into two hundred
+        // identical calls to a slow source: the cache load is atomic per key, so one thread does
+        // the work and the rest wait for its result.
         existingApi.stubFor(get(urlEqualTo("/product/comun")).willReturn(aResponse()
                 .withStatus(200)
                 .withHeader("Content-Type", "application/json")
@@ -133,13 +134,13 @@ class ProductCatalogTest {
                 .withBody("{\"id\":\"comun\",\"name\":\"Shirt\",\"price\":9.99,\"availability\":true}")));
 
         ProductCatalog isolatedCatalog = newCatalog(Duration.ofSeconds(5));
-        List<Callable<ProductLookup>> lookups = IntStream.range(0, 20)
-                .mapToObj(ignored -> (Callable<ProductLookup>) () -> isolatedCatalog.lookupDetail("comun").join())
+        List<Callable<Lookup<ProductDetail>>> lookups = IntStream.range(0, 20)
+                .mapToObj(ignored -> (Callable<Lookup<ProductDetail>>) () -> isolatedCatalog.lookupDetail("comun").join())
                 .toList();
 
         try (ExecutorService pool = Executors.newFixedThreadPool(20)) {
             for (var future : pool.invokeAll(lookups)) {
-                assertThat(future.get()).isInstanceOf(ProductLookup.Found.class);
+                assertThat(future.get()).isInstanceOf(Lookup.Found.class);
             }
         }
 

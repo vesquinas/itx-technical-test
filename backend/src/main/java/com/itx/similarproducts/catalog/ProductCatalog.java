@@ -5,7 +5,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 
 import com.github.benmanes.caffeine.cache.AsyncCache;
@@ -34,9 +33,16 @@ import com.itx.similarproducts.domain.ProductDetail;
  * completing <b>1 request in 90 seconds</b> to 16,400 at 272/s with this change alone. Do not go
  * back to the synchronous cache.
  *
- * <p>Failures are remembered with a short expiry ({@link ProductLookup.Unavailable}), which works as
- * a circuit breaker with per-product granularity. The full reasoning, and why no circuit-breaker
+ * <p>Failures are remembered with a short expiry ({@link Lookup.Unavailable}), which works as a
+ * circuit breaker with per-product granularity. The full reasoning, and why no circuit-breaker
  * library is used, is in the README.
+ *
+ * <p><b>Both lookups cache their failures, not just the detail.</b> The similar-ids lookup used to
+ * let its exceptions escape the loader, and a loader that throws leaves nothing behind: Caffeine
+ * discards a failed future. Measured, that meant five sequential requests for a made-up product
+ * produced five calls to the source — in-flight deduplication does nothing for requests that do not
+ * overlap. It also contradicted the policy the detail already followed. Now both go through
+ * {@link Lookup}.
  */
 @Component
 public class ProductCatalog {
@@ -49,8 +55,8 @@ public class ProductCatalog {
 
     private final RestClient client;
     private final int maxSimilarProducts;
-    private final AsyncCache<String, ProductLookup> detailCache;
-    private final AsyncCache<String, List<String>> similarIdsCache;
+    private final AsyncCache<String, Lookup<ProductDetail>> detailCache;
+    private final AsyncCache<String, Lookup<List<String>>> similarIdsCache;
 
     public ProductCatalog(
             RestClient existingApiClient,
@@ -65,7 +71,7 @@ public class ProductCatalog {
                 .buildAsync();
         this.similarIdsCache = Caffeine.newBuilder()
                 .maximumSize(10_000)
-                .expireAfterWrite(properties.successTtl())
+                .expireAfter(new LookupExpiry(properties))
                 .executor(productDetailExecutor)
                 .buildAsync();
     }
@@ -76,14 +82,17 @@ public class ProductCatalog {
      * @throws ProductNotFoundException if the requested product does not exist
      */
     public List<String> similarIds(String productId) {
-        try {
-            return load(similarIdsCache, productId, this::fetchSimilarIds).join();
-        } catch (CompletionException e) {
-            // Unwrapped so the error handler sees the real exception and not the wrapper the future
-            // adds.
-            Throwable cause = e.getCause();
-            throw cause instanceof RuntimeException runtime ? runtime : e;
-        }
+        Lookup<List<String>> lookup = load(similarIdsCache, productId, this::fetchSimilarIds).join();
+
+        // The exception is raised here rather than inside the loader on purpose: a loader that
+        // throws leaves no cache entry behind, and then a made-up identifier costs one call to the
+        // source per request received.
+        return switch (lookup) {
+            case Lookup.Found<List<String>> found -> found.value();
+            case Lookup.Missing<List<String>> ignored -> throw new ProductNotFoundException(productId);
+            case Lookup.Unavailable<List<String>> ignored ->
+                    throw new ExistingApiUnavailableException(productId);
+        };
     }
 
     /**
@@ -93,7 +102,7 @@ public class ProductCatalog {
      * long it is willing to wait for the set. A method returning the resolved value would force
      * resolving them one at a time.
      */
-    public CompletableFuture<ProductLookup> lookupDetail(String productId) {
+    public CompletableFuture<Lookup<ProductDetail>> lookupDetail(String productId) {
         return load(detailCache, productId, this::fetchDetail);
     }
 
@@ -112,7 +121,7 @@ public class ProductCatalog {
                 CompletableFuture.supplyAsync(() -> fetcher.apply(key), executor));
     }
 
-    private List<String> fetchSimilarIds(String productId) {
+    private Lookup<List<String>> fetchSimilarIds(String productId) {
         try {
             List<String> ids = client.get()
                     .uri("/product/{productId}/similarids", productId)
@@ -123,17 +132,18 @@ public class ProductCatalog {
                     // falls through to the default handler, which throws, and is turned into a 502
                     // in the catch below.
                     .onStatus(status -> status.value() == 404, (request, response) -> {
-                        throw new ProductNotFoundException(productId);
+                        throw new ProductMissingSignal();
                     })
                     .body(ID_LIST);
-            return normalize(productId, ids);
-        } catch (ProductNotFoundException e) {
-            throw e;
+            return new Lookup.Found<>(normalize(productId, ids));
+        } catch (ProductMissingSignal e) {
+            return new Lookup.Missing<>();
         } catch (RuntimeException e) {
             // Failing to obtain the list *is* a failure of the request: without it there is nothing
-            // to return. It propagates and the error handler turns it into a 502.
+            // to return, and the error handler turns it into a 502. The cause is logged here
+            // because the outcome travels on as a value and does not carry it.
             log.warn("Could not obtain the similar products of {}: {}", productId, e.toString());
-            throw new ExistingApiUnavailableException(productId, e);
+            return new Lookup.Unavailable<>();
         }
     }
 
@@ -178,7 +188,7 @@ public class ProductCatalog {
         return List.copyOf(unique);
     }
 
-    private ProductLookup fetchDetail(String productId) {
+    private Lookup<ProductDetail> fetchDetail(String productId) {
         try {
             ProductDetail detail = client.get()
                     .uri("/product/{productId}", productId)
@@ -195,15 +205,15 @@ public class ProductCatalog {
             // A detail missing the fields the contract declares mandatory is not usable: returning
             // it would make us the origin of the breach for our own clients.
             return isUsable(detail)
-                    ? new ProductLookup.Found(detail)
-                    : new ProductLookup.Unavailable();
+                    ? new Lookup.Found<>(detail)
+                    : new Lookup.Unavailable<>();
         } catch (ProductMissingSignal e) {
-            return new ProductLookup.Missing();
+            return new Lookup.Missing<>();
         } catch (RuntimeException e) {
             // Logged at debug rather than warn on purpose: under load, a downed source would produce
             // thousands of lines per second and the logging itself would become the bottleneck.
             log.debug("The detail of product {} is unavailable: {}", productId, e.toString());
-            return new ProductLookup.Unavailable();
+            return new Lookup.Unavailable<>();
         }
     }
 
@@ -230,31 +240,31 @@ public class ProductCatalog {
      * transient and deserves the chance to recover.
      */
     private record LookupExpiry(ExistingApiProperties properties)
-            implements Expiry<String, ProductLookup> {
+            implements Expiry<String, Lookup<?>> {
 
-        private long ttlOf(ProductLookup lookup) {
+        private long ttlOf(Lookup<?> lookup) {
             Duration ttl = switch (lookup) {
-                case ProductLookup.Found ignored -> properties.successTtl();
-                case ProductLookup.Missing ignored -> properties.missingTtl();
-                case ProductLookup.Unavailable ignored -> properties.unavailableTtl();
+                case Lookup.Found<?> ignored -> properties.successTtl();
+                case Lookup.Missing<?> ignored -> properties.missingTtl();
+                case Lookup.Unavailable<?> ignored -> properties.unavailableTtl();
             };
             return ttl.toNanos();
         }
 
         @Override
-        public long expireAfterCreate(String key, ProductLookup value, long currentTime) {
+        public long expireAfterCreate(String key, Lookup<?> value, long currentTime) {
             return ttlOf(value);
         }
 
         @Override
         public long expireAfterUpdate(
-                String key, ProductLookup value, long currentTime, long currentDuration) {
+                String key, Lookup<?> value, long currentTime, long currentDuration) {
             return ttlOf(value);
         }
 
         @Override
         public long expireAfterRead(
-                String key, ProductLookup value, long currentTime, long currentDuration) {
+                String key, Lookup<?> value, long currentTime, long currentDuration) {
             // Reading does not extend the entry's life: the question the cache answers is "how long
             // may this value be out of date", not "when was it last used".
             return currentDuration;
