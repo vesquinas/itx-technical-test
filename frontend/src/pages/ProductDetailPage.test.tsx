@@ -160,6 +160,31 @@ describe('ProductDetailPage', () => {
       expect(screen.getByRole('button', { name: 'Añadir a la cesta' })).toBeEnabled();
     });
 
+    it('permite comprar un producto cuya opción no tiene nombre', async () => {
+      // M900 y DX650 traen su única capacidad con un espacio por nombre. Antes se
+      // descartaba la opción y el producto aparecía como no disponible para comprar.
+      fetchMock.mockImplementation(() =>
+        Promise.resolve(
+          jsonResponse({
+            ...productDetailFixture,
+            options: {
+              colors: [{ code: 1000, name: 'Black' }],
+              storages: [{ code: 2000, name: ' ' }],
+            },
+          }),
+        ),
+      );
+
+      renderDetail();
+      await screen.findByRole('heading', { level: 1, name: 'X960' });
+
+      expect(screen.getByRole('radio', { name: 'Estándar' })).toBeChecked();
+      expect(screen.getByRole('button', { name: 'Añadir a la cesta' })).toBeEnabled();
+      expect(
+        screen.queryByText(/no tiene opciones de compra disponibles/),
+      ).not.toBeInTheDocument();
+    });
+
     it('muestra el selector aunque haya una sola opción', async () => {
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });

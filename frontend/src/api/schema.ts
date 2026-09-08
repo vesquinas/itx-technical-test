@@ -63,14 +63,25 @@ export const parseProductList: Parser<ProductSummary[]> = (input) => {
   return asArrayOf(input, parseProductSummary);
 };
 
+/**
+ * Una opción es utilizable si tiene código, y solo si tiene código.
+ *
+ * El nombre es la etiqueta que se muestra; el código es lo que se envía a la cesta. Exigir
+ * también el nombre fue un error: dos productos del catálogo (`M900` y `DX650`) traen su única
+ * capacidad como `{ "code": 2000, "name": " " }`, con un espacio por nombre. Al descartarla, esos
+ * dos productos aparecían como «sin opciones de compra disponibles» aunque la API sí permite
+ * comprarlos: se perdía una venta por un problema de etiqueta.
+ *
+ * El nombre vacío se propaga tal cual, y es la interfaz la que decide qué rótulo poner. Un valor
+ * de relleno es una decisión de presentación y no tiene por qué contaminar el modelo de datos.
+ */
 const parseOption: Parser<ProductOption> = (input) => {
   if (!isRecord(input)) return undefined;
 
   const code = asPositiveInteger(input['code']);
-  const name = asText(input['name']);
-  if (code === undefined || name.length === 0) return undefined;
+  if (code === undefined) return undefined;
 
-  return { code, name };
+  return { code, name: asText(input['name']) };
 };
 
 function parseOptions(input: unknown): ProductOptions {

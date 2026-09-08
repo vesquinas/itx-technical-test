@@ -16,6 +16,7 @@
     "test:coverage": "vitest run --coverage",
     "typecheck": "tsc -b --noEmit",
     "check:csp": "node scripts/check-csp.mjs",
+    "check:api": "node --experimental-strip-types scripts/check-api.ts",
     "preview": "vite preview"
   },
   "dependencies": {

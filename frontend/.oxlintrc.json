@@ -70,7 +70,14 @@
       // interfaz, no una traza olvidada.
       "files": ["scripts/**"],
       "rules": {
-        "no-console": "off"
+        // Los scripts de línea de comandos informan por la salida estándar: es su
+        // interfaz, no una traza olvidada.
+        "no-console": "off",
+        // El `await` secuencial por lotes es el mecanismo con el que se limita la
+        // concurrencia contra la API. Lo que sugiere la regla —esperar todas las
+        // promesas a la vez— lanzaría cien peticiones simultáneas, que es justo lo
+        // que se quiere evitar.
+        "no-await-in-loop": "off"
       }
     },
     {

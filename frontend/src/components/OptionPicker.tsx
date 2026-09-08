@@ -19,6 +19,9 @@ import styles from './OptionPicker.module.css';
  * Los radios nativos van ocultos visualmente y el aspecto lo da la etiqueta, de
  * modo que se conserva todo el comportamiento nativo con el diseno del wireframe.
  */
+/** Rótulo para una opción a la que la API no da nombre. */
+const FALLBACK_LABEL = 'Estándar';
+
 export function OptionPicker({
   legend,
   options,
@@ -58,7 +61,7 @@ export function OptionPicker({
                 value={option.code}
               />
               <label className={styles.chip} htmlFor={inputId}>
-                {option.name}
+                {option.name.length > 0 ? option.name : FALLBACK_LABEL}
               </label>
             </div>
           );

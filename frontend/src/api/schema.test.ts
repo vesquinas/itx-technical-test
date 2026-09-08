@@ -128,6 +128,21 @@ describe('parseProductDetail', () => {
     expect(detail?.options.storages).toEqual([{ code: 2000, name: '256 MB ROM' }]);
   });
 
+  it('conserva una opción cuyo nombre viene en blanco pero tiene código', () => {
+    // Es el caso real de los productos M900 y DX650 del catálogo, cuya única capacidad
+    // llega como { code: 2000, name: " " }. Descartarla los dejaba sin poder comprarse
+    // aunque la API sí acepta la compra: el código es válido y es lo único que se envía.
+    const parsed = parseProductDetail({
+      ...productDetailFixture,
+      options: {
+        colors: [{ code: 1000, name: 'Black' }],
+        storages: [{ code: 2000, name: ' ' }],
+      },
+    });
+
+    expect(parsed?.options.storages).toEqual([{ code: 2000, name: '' }]);
+  });
+
   it('descarta una opción sin código, que no se podría enviar a la cesta', () => {
     const parsed = parseProductDetail({
       ...productDetailFixture,
@@ -137,6 +152,7 @@ describe('parseProductDetail', () => {
       },
     });
 
+    // Sin código no hay nada que enviar a la cesta, así que la opción no sirve.
     expect(parsed?.options.colors).toEqual([{ code: 1001, name: 'White' }]);
     expect(parsed?.options.storages).toEqual([]);
   });

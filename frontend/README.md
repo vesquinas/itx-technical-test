@@ -33,6 +33,7 @@ npm start          # modo desarrollo, en http://localhost:5173
 | `npm run test:coverage` | Tests con informe de cobertura |
 | `npm run typecheck` | Solo comprobación de tipos |
 | `npm run check:csp` | Verifica la Content-Security-Policy del HTML compilado |
+| `npm run check:api` | Valida los parsers contra la API real, los 100 productos (necesita red) |
 
 La URL de la API se puede cambiar con `VITE_API_BASE_URL`; ver [`.env.example`](./.env.example).
 
@@ -111,6 +112,14 @@ lugar de repartir esos arreglos por los componentes:
 | Diez campos cambian de tipo según el producto | `cpu`, `os`, `sim`, `primaryCamera`, `wlan`, `sensors`… llegan como texto o como lista | Se normalizan siempre a `string[]` |
 | Precio vacío | `price` es texto y viene `""` en 6 de los 100 productos | Se traduce a `null`, y la interfaz muestra «Precio no disponible» |
 | Direcciones de imagen | Llegan como texto sin validar | Se aceptan solo URLs absolutas `http`/`https`; el resto se descarta y se muestra «Sin imagen» |
+| Opciones sin nombre | `M900` y `DX650` traen su única capacidad como `{ code: 2000, name: " " }` | Se conserva la opción, porque el código es válido y es lo único que se envía a la cesta; la interfaz pone el rótulo «Estándar» |
+
+Estas particularidades no se descubrieron leyendo la API sino recorriéndola entera. Hay un script,
+`npm run check:api`, que pasa **los 100 productos del catálogo** por los mismos parsers que usa la
+aplicación y avisa de dos cosas: de un producto que no se pueda traducir, y de que alguna de estas
+particularidades haya dejado de cumplirse, lo que significaría que la API se ha corregido y hay que
+revisar la traducción a propósito. No está en integración continua porque necesita red y la API
+tarda unos 40 segundos en despertar.
 | Campos vacíos | `nfc` viene vacío en todos los productos muestreados | Las filas sin valor se omiten de la ficha |
 
 Lo del tipo variable no es cosmético: **React renderiza un array concatenando sus elementos
