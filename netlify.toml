@@ -1,0 +1,60 @@
+# Deployment of the frontend on Netlify.
+#
+# It exists for one reason that GitHub Pages cannot cover: **the cart**. The API keeps the basket
+# in a server-side session identified by an `HttpOnly` cookie, and a browser will not send that
+# cookie across origins — the cookie has no `SameSite=None; Secure` and the API answers
+# `Access-Control-Allow-Origin: *` with no `Access-Control-Allow-Credentials`, which forbids
+# credentialed cross-origin requests outright.
+#
+# The only fix is to stop being cross-origin, which needs a proxy. Static hosting cannot proxy;
+# Netlify can, in the four lines below. With them the requests are same-origin, the browser sends
+# the cookie, the session persists and the counter climbs.
+
+[build]
+  base    = "frontend"
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Node 22 satisfies what Vite 8 requires (^20.19.0 || >=22.12.0).
+  NODE_VERSION = "22"
+
+  # A relative base means the application asks its own origin, so the requests go through the
+  # proxy below. See `resolveBaseUrl` in src/api/client.ts.
+  VITE_API_BASE_URL = "/"
+
+# Order matters: the API proxy has to come before the SPA fallback, or `/api/...` would be
+# answered with index.html.
+[[redirects]]
+  from   = "/api/*"
+  to     = "https://itx-frontend-test.onrender.com/api/:splat"
+  status = 200
+  force  = true
+
+# SPA fallback. Unlike the 404.html trick that static hosting forces, this answers **200**, so a
+# deep link such as /product/<id> is a proper page and not an error page that happens to render.
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
+
+# The headers a Content-Security-Policy in a `<meta>` tag cannot express.
+#
+# The policy itself stays in the built HTML rather than being duplicated here: two copies of the
+# same policy are two things to keep in step, and a divergence between them would silently break
+# the application. What is added here is only what the meta tag has no way of doing.
+[[headers]]
+  for = "/*"
+
+  [headers.values]
+    # The equivalent of `frame-ancestors 'none'`, which is ignored in a meta tag. Clickjacking.
+    X-Frame-Options = "DENY"
+
+    # Stops the browser from second-guessing the declared content type.
+    X-Content-Type-Options = "nosniff"
+
+    # The API and the images are on another origin; there is no reason to tell them where the
+    # visit came from.
+    Referrer-Policy = "no-referrer"
+
+    Strict-Transport-Security = "max-age=31536000"
