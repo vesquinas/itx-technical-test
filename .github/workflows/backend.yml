@@ -1,0 +1,36 @@
+name: Backend
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  verify:
+    name: Tests y empaquetado
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: 21
+          distribution: temurin
+          cache: maven
+
+      - name: Tests
+        run: ./mvnw -B verify
+
+      # La imagen se construye en cada cambio para que un fallo en el Dockerfile se
+      # detecte aqui y no en el momento de despliegue.
+      - name: Imagen de contenedor
+        run: docker build -t similar-products:ci .

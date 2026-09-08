@@ -14,8 +14,8 @@ carpeta y con su propia documentación:
 # Frontend
 cd frontend && npm install && npm start
 
-# Backend
-cd backend && ./mvnw spring-boot:run
+# Backend (necesita los simuladores de las APIs existentes)
+cd backend && docker compose up -d simulado && ./mvnw spring-boot:run
 ```
 
 ## Cómo está organizado el trabajo
@@ -37,6 +37,11 @@ condicionan el resto del código:
   el nombre mal escrito y dos campos con el contenido intercambiado. Se validan y se
   normalizan en el borde de la aplicación en lugar de propagar esos defectos por la interfaz.
   Ver [`frontend/README.md`](./frontend/README.md#la-api-y-sus-sorpresas).
+- **En el backend, la caché tiene que ser asíncrona.** La caché sincrónica de Caffeine ejecuta
+  su función de carga dentro de un bloque `synchronized`, y en Java 21 un hilo virtual que se
+  bloquea dentro de un monitor fija su hilo portador. Con hilos virtuales y llamadas de red
+  lentas eso hunde el servicio: medido, 1 petición en 90 segundos frente a 16.400.
+  Ver [`backend/README.md`](./backend/README.md#3-la-caché-es-asíncrona-y-ese-detalle-lo-cambia-todo).
 
 ## Licencia
 

@@ -1,0 +1,72 @@
+server:
+  port: 5000
+  # No se anuncia el servidor ni su version en las respuestas: es informacion que
+  # solo le sirve a quien busca una vulnerabilidad conocida.
+  server-header: ""
+  shutdown: graceful
+  tomcat:
+    # Cola de aceptacion holgada: la prueba de carga arranca 200 usuarios de golpe
+    # y no conviene rechazar conexiones durante ese arranque.
+    accept-count: 200
+    max-connections: 10000
+
+spring:
+  application:
+    name: similar-products
+  threads:
+    # Un hilo virtual por peticion. Con esto, el servidor no necesita un pool
+    # dimensionado a mano y bloquearse esperando a la red deja de ser caro.
+    virtual:
+      enabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: 10s
+  mvc:
+    problemdetails:
+      enabled: true
+
+existing-api:
+  base-url: http://localhost:3001
+
+  # Conectar es rapido o no ocurre: si el origen esta caido conviene saberlo ya.
+  connect-timeout: 1s
+
+  # Limite por llamada. Se elige por encima del producto que tarda 5 segundos en el
+  # simulador, para que llegue a responder y quede cacheado; y muy por debajo del que
+  # tarda 50, que nunca merece la espera.
+  read-timeout: 6s
+
+  # Presupuesto para toda la peticion, y es corto a proposito. Lo que no llegue en
+  # este plazo se omite de la respuesta, pero su llamada sigue en curso y dejara el
+  # producto en la cache para las peticiones siguientes.
+  #
+  # Se elige por encima del producto que tarda 1 segundo en el simulador, para que
+  # entre ya en la primera respuesta, y muy por debajo de los que tardan 5 y 50.
+  #
+  # Este valor es el que fija la cola de latencias del servicio: en la prueba de
+  # carga, el percentil 95 medido coincide con el (1,51 s).
+  fan-out-timeout: 1500ms
+
+  # Cuanto se conserva un resultado bueno.
+  success-ttl: 5m
+
+  # Que un producto no exista es estable, asi que se recuerda un rato.
+  missing-ttl: 1m
+
+  # Un fallo es transitorio: se recuerda solo unos segundos y se vuelve a intentar.
+  # Es lo que hace de cortacircuitos con granularidad por producto.
+  unavailable-ttl: 10s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Solo salud y metricas. Exponer todos los endpoints de gestion publica la
+        # configuracion, las variables de entorno y los volcados de hilos.
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    com.itx.similarproducts: INFO
