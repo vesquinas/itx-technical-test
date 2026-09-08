@@ -11,12 +11,15 @@
     />
 
     <!--
-      The connection to the API is opened before the code needs it: it saves the DNS resolution
-      and the TLS negotiation from the critical path. With this API it counts double, because its
-      first response is slow to begin with.
+      The connection hints to the API are NOT here. They are injected at build time from the
+      configured API origin, next to the Content-Security-Policy that has to allow that same
+      origin — see `connectionHints` in vite.config.ts.
+
+      They used to be hard-coded here, and that made a liar of the README: pointing
+      VITE_API_BASE_URL at a different host left these two tags aimed at the old one, and the
+      build's own CSP check failed because the document then referenced an origin the policy did
+      not declare. One origin, one source.
     -->
-    <link rel="preconnect" href="https://itx-frontend-test.onrender.com" crossorigin />
-    <link rel="dns-prefetch" href="https://itx-frontend-test.onrender.com" />
 
     <!-- Tints the browser interface on mobile, in each mode. -->
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />

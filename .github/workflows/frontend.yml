@@ -50,6 +50,15 @@ jobs:
       - name: Content-Security-Policy verification
         run: npm run check:csp
 
+      # The README says the API URL is configurable. This step is what keeps that claim true: the
+      # whole build and its policy check run again against a different origin. That combination
+      # used to fail, because the connection hints were hard-coded in index.html while the policy
+      # was generated from the configuration, and nobody had ever run the two together.
+      - name: Build and verify with a configured API origin
+        run: npm run build && npm run check:csp
+        env:
+          VITE_API_BASE_URL: https://api.example.test
+
       # Known vulnerabilities in the dependencies. Limited to production ones: a warning in a
       # development tool never reaches the user.
       - name: Dependency audit

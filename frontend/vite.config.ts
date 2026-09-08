@@ -32,6 +32,30 @@ function apiProxy(apiOrigin: string) {
 }
 
 /**
+ * Opens the connection to the API before the code needs it.
+ *
+ * It saves the DNS resolution and the TLS negotiation from the critical path, and with this API it
+ * counts double because its first response is slow to begin with. The images are served from that
+ * origin too, so the hint is worth having even when the API itself is proxied through our own.
+ *
+ * It is generated from the resolved origin rather than written into `index.html`, because a
+ * hard-coded hint and a generated policy drift apart the moment the API URL is configured — which
+ * is exactly what happened, and what the build's own CSP check then caught.
+ */
+function connectionHints(apiOrigin: string): Plugin {
+  return {
+    name: 'itx:connection-hints',
+    apply: 'build',
+    transformIndexHtml() {
+      return [
+        { tag: 'link', attrs: { rel: 'preconnect', href: apiOrigin, crossorigin: '' }, injectTo: 'head' },
+        { tag: 'link', attrs: { rel: 'dns-prefetch', href: apiOrigin }, injectTo: 'head' },
+      ];
+    },
+  };
+}
+
+/**
  * Injects the Content-Security-Policy into the built HTML.
  *
  * It is the second line of defence against XSS: the first is that React escapes text by default
@@ -107,7 +131,7 @@ export default defineConfig(({ mode }) => {
      * application is served from a repository sub-path.
      */
     base: process.env['VITE_BASE_PATH'] ?? '/',
-    plugins: [react(), contentSecurityPolicy(apiOrigin)],
+    plugins: [react(), contentSecurityPolicy(apiOrigin), connectionHints(apiOrigin)],
 
     /**
      * The development server proxies the API, and that is not a convenience: it is what makes the
