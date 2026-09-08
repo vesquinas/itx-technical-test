@@ -48,7 +48,13 @@ function resolveBaseUrl(): string {
   const configured = import.meta.env.VITE_API_BASE_URL;
   const raw = typeof configured === 'string' && configured.length > 0 ? configured : DEFAULT_BASE_URL;
   // Normalised so `new URL` does not drop segments of the base path.
-  return raw.endsWith('/') ? raw : `${raw}/`;
+  const withTrailingSlash = raw.endsWith('/') ? raw : `${raw}/`;
+
+  // A relative base (`/`, or `/some-prefix/`) is resolved against the page's own origin, and an
+  // absolute one is used as it is. Supporting both is what lets development go through the
+  // development server's proxy: those requests are same-origin, so the browser sends the API's
+  // session cookie, which a cross-origin request cannot. See `server.proxy` in vite.config.ts.
+  return new URL(withTrailingSlash, globalThis.location.origin).toString();
 }
 
 /**

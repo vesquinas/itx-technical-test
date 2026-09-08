@@ -143,4 +143,37 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
+// The cart lives in a server-side session. Checking it here documents the behaviour the browser
+// cannot reproduce across origins, and would catch the API changing its mind about it.
+console.log('\nChecking the cart session…');
+const cartUrl = new URL('api/cart', `${BASE_URL}/`);
+const body = JSON.stringify({ id: list[0]?.id ?? '1', colorCode: 1000, storageCode: 2000 });
+const counts: unknown[] = [];
+let cookie = '';
+
+for (let attempt = 0; attempt < 3; attempt += 1) {
+  const response = await fetch(cartUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(cookie ? { Cookie: cookie } : {}) },
+    body,
+    signal: AbortSignal.timeout(90_000),
+  });
+  const setCookie = response.headers.get('set-cookie');
+  if (setCookie !== null) cookie = setCookie.split(';')[0] ?? '';
+  counts.push(((await response.json()) as { count?: unknown }).count);
+}
+
+console.log(`  counts across three requests on one session: ${counts.join(', ')}`);
+if (counts.join(',') !== '1,2,3') {
+  warnings.push(
+    `the cart session no longer accumulates as expected (got ${counts.join(', ')}); ` +
+      'the README explains why the browser cannot use it across origins',
+  );
+}
+
+if (warnings.length > 0) {
+  console.log(`\n${String(warnings.length)} warning(s) about the cart:`);
+  for (const warning of [...new Set(warnings)].slice(-3)) console.log(`  ${warning}`);
+}
+
 console.log('\nEvery product in the catalogue translates correctly.');

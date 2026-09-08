@@ -76,7 +76,14 @@ function contentSecurityPolicy(apiOrigin: string): Plugin {
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), 'VITE_');
-  const apiOrigin = originOf(env['VITE_API_BASE_URL'] ?? DEFAULT_API_BASE_URL);
+  const configured = env['VITE_API_BASE_URL'];
+
+  // The proxy target and the Content-Security-Policy both need an absolute origin. A relative
+  // value — which is what development uses, so requests go through the proxy — says nothing about
+  // where the API actually lives, so the default applies in that case.
+  const apiOrigin = originOf(
+    configured !== undefined && /^https?:\/\//i.test(configured) ? configured : DEFAULT_API_BASE_URL,
+  );
 
   return {
     /**
@@ -88,6 +95,32 @@ export default defineConfig(({ mode }) => {
      */
     base: process.env['VITE_BASE_PATH'] ?? '/',
     plugins: [react(), contentSecurityPolicy(apiOrigin)],
+
+    /**
+     * The development server proxies the API, and that is not a convenience: it is what makes the
+     * cart work.
+     *
+     * The API keeps the basket in a server-side session identified by an `HttpOnly` cookie. Two
+     * independent things stop a browser from ever using that cookie across origins: the cookie
+     * carries no `SameSite=None; Secure`, so it is not sent on cross-site requests; and the API
+     * answers `Access-Control-Allow-Origin: *` with no `Access-Control-Allow-Credentials`, which
+     * forbids credentialed cross-origin requests outright. With every request opening a fresh
+     * session, the API answers `{"count": 1}` for ever.
+     *
+     * Proxying through the development server makes the requests same-origin, so the browser sends
+     * the cookie, the session persists and the counter climbs. `cookieDomainRewrite` is the piece
+     * that matters: without it the cookie stays scoped to the API's domain and the browser will
+     * not send it back to localhost.
+     */
+    server: {
+      proxy: {
+        '/api': {
+          target: apiOrigin,
+          changeOrigin: true,
+          cookieDomainRewrite: '',
+        },
+      },
+    },
     build: {
       target: 'es2022',
       // No manual chunking is configured: the routes are loaded with `React.lazy`, so the

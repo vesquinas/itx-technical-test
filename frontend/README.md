@@ -9,7 +9,13 @@ Single-page application with client-side routing, no server rendering and no doc
 every push to `main`, so it can be tried without installing anything. The API allows cross-origin
 requests, so the demo is fully functional, adding products to the cart included.
 
-One honest caveat about that hosting: a deep link such as `/product/<id>` **renders correctly but
+Two honest caveats about that hosting. **The cart counter stays at 1 there**, because the API
+tracks the basket in a session cookie that a browser will not send across origins and Pages cannot
+proxy anything — the full diagnosis is in
+[its own section](#the-cart-counter-and-why-it-needs-a-proxy). Running the application locally with
+`npm start` gives a working cart.
+
+And a deep link such as `/product/<id>` **renders correctly but
 answers with a 404 status code**. GitHub Pages has no server-side rewrites, so the SPA fallback is
 a copy of `index.html` served as `404.html`: the browser gets the right page and the router
 resolves the route on the client, but the status line cannot be changed. On a host with rewrite
@@ -160,15 +166,43 @@ The test fixtures are real responses copied verbatim, so the tests double as exe
 documentation: if the API is ever corrected, they will fail and the translation will have to be
 adjusted deliberately.
 
-### The cart counter
+### The cart counter, and why it needs a proxy
 
 The brief asks to display **the value returned by the API** on add, and to persist it. That is what
 the application does: the API is the source of truth and no parallel count is kept on the client.
 
-Worth knowing: **`POST /api/cart` in this test always answers `{"count": 1}`**, including when
-adding the second or third product (checked with successive requests). That is why the counter
-stays at 1 while using the application: it is the mock's behaviour, not an implementation defect.
-Against a real API reporting the true basket size, the code would work unchanged.
+The interesting part is what it took to make that actually work.
+
+**The API keeps the basket in a server-side session**, identified by a cookie it sets on the first
+request:
+
+```
+set-cookie: session_id=s%3AGhYybA0Epp...; Path=/; HttpOnly
+```
+
+Sent without that cookie, every `POST /api/cart` opens a fresh session and the answer is
+`{"count": 1}` for ever. Sent with it, the same endpoint answers 1, 2, 3, 4 — a real basket.
+
+And **two independent things stop a browser from ever sending that cookie across origins**:
+
+| Blocker | Why it blocks |
+| --- | --- |
+| The cookie carries no `SameSite=None; Secure` | Modern browsers treat it as `SameSite=Lax` and do not attach it to cross-site requests at all |
+| The API answers `Access-Control-Allow-Origin: *` with no `Access-Control-Allow-Credentials` | The CORS specification forbids credentialed requests against a wildcard origin, so the browser would reject the response even if the cookie were sent |
+
+Neither is something a client can work around. **The fix is to stop being cross-origin**: the
+development server proxies `/api`, so the requests are same-origin, the browser sends the cookie,
+the session persists and the counter climbs. `cookieDomainRewrite` is the piece that matters —
+without it the cookie stays scoped to the API's domain and never comes back.
+
+So `npm start` gives a fully working cart. See `server.proxy` in [`vite.config.ts`](./vite.config.ts).
+
+**The public demo cannot do this**, and it is worth being explicit about it: GitHub Pages serves
+static files and cannot proxy anything, so there the counter stays at 1. That is not a defect of
+the application, and it is not a defect of the API either — it is what happens when a
+session-cookie API is called from another origin. A real deployment would sit behind the same
+reverse proxy or gateway as its API, which is exactly the arrangement the development server
+reproduces.
 
 ### The search term lives in the URL
 

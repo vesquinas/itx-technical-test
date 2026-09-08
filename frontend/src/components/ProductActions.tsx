@@ -33,10 +33,10 @@ function defaultCode(options: readonly { code: number }[]): number | undefined {
  * **that** value in the header, persisted. That is what this component does: the API is the source
  * of truth and no separate count is kept on the client.
  *
- * Worth knowing that the test API is a mock and always answers `{"count": 1}`, including when
- * adding the second or third product. That is why the header counter stays at 1 while using the
- * application: it is not an implementation defect, it is the service's behaviour. Documented in
- * the README.
+ * The API keeps the basket in a server-side session identified by an `HttpOnly` cookie, so the
+ * counter only climbs when the browser can send that cookie back — which means same-origin
+ * requests. Development goes through the development server's proxy and works; the statically
+ * hosted demo cannot proxy anything and stays at 1. The full diagnosis is in the README.
  */
 export function ProductActions({ product }: { product: ProductDetail }) {
   const { setCount } = useCart();
