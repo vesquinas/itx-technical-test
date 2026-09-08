@@ -1,0 +1,50 @@
+name: Frontend
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancela la ejecucion anterior de la misma rama: solo interesa el ultimo commit.
+concurrency:
+  group: frontend-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: frontend
+
+jobs:
+  verify:
+    name: Lint, tipos, tests y build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # `npm ci` en lugar de `npm install`: instala exactamente lo que fija el
+      # lockfile y falla si no coincide con package.json.
+      - run: npm ci
+
+      - name: Comprobacion de codigo
+        run: npm run lint
+
+      - name: Comprobacion de tipos
+        run: npm run typecheck
+
+      - name: Tests con cobertura
+        run: npm run test:coverage
+
+      - name: Compilacion de produccion
+        run: npm run build
+
+      # Vulnerabilidades conocidas en las dependencias. Se limita a las de
+      # produccion: un aviso en una herramienta de desarrollo no llega al usuario.
+      - name: Auditoria de dependencias
+        run: npm audit --omit=dev --audit-level=high
