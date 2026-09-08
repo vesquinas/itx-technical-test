@@ -5,21 +5,21 @@ option selection and add-to-cart.
 
 Single-page application with client-side routing, no server rendering and no document navigation.
 
-**Live demo: https://vesquinas.github.io/itx-technical-test/** — published from this repository on
-every push to `main`, so it can be tried without installing anything. The API allows cross-origin
-requests, so the demo is fully functional, adding products to the cart included.
+**Live demo: https://victor-esquinas-itx.netlify.app/** — published from this repository on every
+push to `main`, so it can be tried without installing anything. It is **fully functional, cart
+included**.
 
-Two honest caveats about that hosting. **The cart counter stays at 1 there**, because the API
-tracks the basket in a session cookie that a browser will not send across origins and Pages cannot
-proxy anything — the full diagnosis is in
-[its own section](#the-cart-counter-and-why-it-needs-a-proxy). Running the application locally with
-`npm start` gives a working cart.
+That last part took a proxy to achieve, and the reason is worth reading:
+[the cart counter](#the-cart-counter-and-why-it-needs-a-proxy). The short version is that the API
+keeps the basket in a session cookie a browser will not send across origins, so the demo is hosted
+somewhere that can forward `/api` from the application's own origin. The configuration is four
+lines of [`netlify.toml`](../netlify.toml), and the same arrangement is what `npm start` and
+`npm run preview:deployed` reproduce locally.
 
-And a deep link such as `/product/<id>` **renders correctly but
-answers with a 404 status code**. GitHub Pages has no server-side rewrites, so the SPA fallback is
-a copy of `index.html` served as `404.html`: the browser gets the right page and the router
-resolves the route on the client, but the status line cannot be changed. On a host with rewrite
-rules — or behind any real web server — the same build answers 200.
+Verified against the deployed site: the application answers 200, the API answers through the same
+origin, four consecutive add-to-cart requests on one session return 1, 2, 3, 4, a deep link such as
+`/product/<id>` answers 200, and the security headers a meta-tag policy cannot express are in
+place.
 
 ## Language
 
@@ -198,71 +198,43 @@ without it the cookie stays scoped to the API's domain and never comes back.
 
 So `npm start` gives a fully working cart. See `server.proxy` in [`vite.config.ts`](./vite.config.ts).
 
-**The public demo cannot do this**, and it is worth being explicit about it: GitHub Pages serves
-static files and cannot proxy anything, so there the counter stays at 1. That is not a defect of
-the application, and it is not a defect of the API either — it is what happens when a
-session-cookie API is called from another origin.
+**And that is how the public demo is hosted**: on a host that can forward `/api` from the
+application's own origin, in four lines of [`netlify.toml`](../netlify.toml). Static hosting cannot
+do it — GitHub Pages, where this was first deployed, left the counter stuck at 1 with no way to fix
+it. The counter working there and not there is **not a code difference**. It is the same build.
+Only the origin changes.
 
-#### How we know a real deployment works
+#### How we know it works
 
-Not by assuming it. Run it yourself:
-
-```bash
-npm run preview:deployed
-```
-
-That builds with a relative API base and serves the result from a single origin that also forwards
-`/api` — which is what a deployment behind a gateway looks like. Measured against it:
+Measured against the deployed site itself, not inferred:
 
 | Checked | Result |
 | --- | --- |
 | The application is served | 200 |
 | The API answers through the same origin | 200, 16.6 kB |
-| Five consecutive add-to-cart requests on one session | **1, 2, 3, 4, 5** |
-| A deep link such as `/product/<id>` | **200** — on GitHub Pages the same build answers 404 |
-| The production build configured this way | contains no absolute API URL: it calls its own origin |
-| The Content-Security-Policy | its 18 checks pass in this configuration too |
+| Four consecutive add-to-cart requests on one session | **1, 2, 3, 4** |
+| A deep link such as `/product/<id>` | 200 — on static hosting the same build answered 404 |
+| The bundle | contains no absolute API URL: it calls its own origin, which is what routes it through the proxy |
+| Security headers | `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: no-referrer`, HSTS |
 
-The cookie the client ends up holding is scoped exactly as expected: host-only to the deployment's
-own host, `Path=/`, no `Secure`, session-scoped.
+The same topology can be reproduced locally, without deploying anything:
 
-**What that does not cover** is a real browser attaching the cookie on its own, because those
-checks were made with an HTTP client. That last step is specified rather than measured, and all
-four conditions for it hold:
+```bash
+npm run preview:deployed
+```
+
+That builds with a relative API base and serves the result from one origin that also forwards
+`/api` — which is what a deployment behind a gateway looks like, and what the host above provides.
+
+**What none of that covers** is a real browser attaching the cookie on its own, because those
+checks were made with an HTTP client. That step is specified rather than measured, and all four
+conditions for it hold:
 
 1. The cookie has no `Domain`, so it is host-only and the browser scopes it to the deployment.
 2. It has no `SameSite`, so it is treated as `Lax` — which blocks cross-site requests and allows
    same-site ones.
 3. The request to `/api` is same-origin.
 4. `fetch` defaults to `credentials: 'same-origin'`, which sends cookies on same-origin requests.
-
-Worth saying plainly: the reason the counter works here and not on the demo is **not** a code
-difference. It is the same build. Only the origin changes.
-
-### The search term lives in the URL
-
-It is reflected in the `?q=` parameter, which buys three things for free: the search can be shared
-as a link, the browser's back button behaves as the user expects, and coming back from a detail
-page restores the filtered list exactly as it was.
-
-The input also keeps its own local state so typing is instant; only the URL write is delayed, and
-with `replace` so no history entry is left behind for every keystroke. Filtering is **not** delayed:
-the products are already in memory and delaying it would only add artificial latency.
-
-The search ignores accents and requires every word, in any order, so "liquid acer" finds the "Acer
-Liquid Z6".
-
-### The spec sheet shows the required attributes even with no data
-
-The brief asks to display "at least" eleven specific attributes. Hiding one because the API does not
-provide it breaks the requirement, and **it is not a rare case**: across the 100 products of the
-catalogue, 1 in 5 has at least one of those eleven empty (weight is missing in 7 products, RAM in 4,
-the front camera in 4, battery and CPU in 1 each).
-
-So the eleven required rows are always rendered, and when there is no data they say "No disponible".
-That informs more than making the row disappear, which leaves the user unsure whether the data does
-not exist or the page is incomplete. The **additional** attributes are dropped when empty: `nfc`,
-for instance, arrives empty in all 100 products, and a label with nothing next to it adds nothing.
 
 ### Spanish labels, English values: a deliberate mix
 

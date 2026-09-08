@@ -1,6 +1,6 @@
 # Technical test — Frontend + Backend
 
-**Live demo of the frontend: https://vesquinas.github.io/itx-technical-test/**
+**Live demo of the frontend: https://victor-esquinas-itx.netlify.app/**
 
 > The first load takes about 40 seconds. That is not the application: the test API is hosted on
 > Render's free tier, which shuts the service down when it receives no traffic, and the first
