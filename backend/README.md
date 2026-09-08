@@ -104,6 +104,25 @@ Results on the [Grafana dashboard](http://localhost:3000/d/Le2Ku9NMk/k6-performa
 graphs request count and mean duration. Verified end to end: k6 writes into InfluxDB and the
 dashboard is provisioned at that URL.
 
+## The endpoints
+
+| Endpoint | Port | Answers |
+| --- | --- | --- |
+| `GET /product/{productId}/similar` | 5000 | The detail of the similar products, in order of similarity. The only operation of the service, and it is [the agreed contract](./similarProducts.yaml) unchanged |
+| `GET /actuator/health` | 5001 | `{"status":"UP"}`, with no detail of what it depends on |
+| `GET /actuator/info`, `GET /actuator/metrics` | 5001 | Build data and metrics |
+
+Two responses of that first endpoint carry more than the contract says, without breaking it:
+
+- `Similar-Products-Complete: true|false` — whether the list is all of them. A caller receiving two
+  products cannot otherwise tell whether that is all there is, and the contract's body is a bare
+  array with nowhere to put a flag. When it is `false` the response also carries
+  `Cache-Control: no-store`, so an incomplete answer is not cached by anyone downstream. The
+  reasoning, and why not a 206, is in [Partial results](#partial-results-rather-than-no-results--and-saying-so).
+
+The management endpoints being on **5001** is the point, not an accident: the public port serves the
+API and nothing else. Verified — `/actuator/metrics` on 5000 answers 404. See [Security](#security).
+
 ## What the service does in each case
 
 The five scenarios of the load test each cover a different case. This is what the service returns,

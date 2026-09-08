@@ -117,6 +117,38 @@ src/
 The rule is that **no React may enter `domain/` or `lib/`**: they are pure functions and classes
 with no interface dependencies, which makes them trivial to test and to reuse.
 
+## The API
+
+Base URL `https://itx-frontend-test.onrender.com`, configurable with `VITE_API_BASE_URL`. Three
+endpoints, and the application uses all three:
+
+| Endpoint | Answers | Used by |
+| --- | --- | --- |
+| `GET /api/product` | The catalogue: **100 products** with `id`, `brand`, `model`, `price`, `imgUrl` | The list view, and — since a review — as evidence for telling "does not exist" from "failed", see [below](#it-does-not-exist-arrives-as-a-server-error) |
+| `GET /api/product/:id` | One product's detail: **38 fields**, including `options.colors` and `options.storages` | The detail view and its spec sheet |
+| `POST /api/cart` | `{"count": n}`, the number of items in the basket | Add to cart, which displays the number the API returns |
+
+`POST /api/cart` takes `{"id": "...", "colorCode": 1000, "storageCode": 2000}` — the **codes**, not
+the names.
+
+Four things about it are worth knowing before reading any of the code, because between them they
+explain most of the decisions in this document:
+
+- **It keeps the basket in a server-side session**, identified by an `HttpOnly` cookie with no
+  `SameSite=None`. Without that cookie every `POST /api/cart` opens a fresh session and answers
+  `{"count": 1}` for ever; with it, the same call answers 1, 2, 3. Verified with a shared cookie jar.
+  That single fact is why the application is served from an origin that proxies `/api`:
+  [the cart counter](#the-cart-counter-and-why-it-needs-a-proxy).
+- **A product that does not exist answers 500**, not 404 — checked with five made-up identifiers.
+- **The images come from the API's own origin** (`/images/<id>.jpg`), which is why that origin has to
+  be allowed in `img-src` as well as in `connect-src` in the
+  [Content-Security-Policy](#security).
+- **It sleeps.** It is hosted on a free tier, so the first request after a while takes around 40
+  seconds while the instance wakes up; afterwards it answers in about 150 ms. That is what the
+  "this is taking longer than usual" notice is for, and why the client's timeout is generous.
+
+The data also has real defects, corrected in one place: [the next section](#the-api-and-its-surprises).
+
 ## Decisions worth explaining
 
 ### The one-hour client-side cache
