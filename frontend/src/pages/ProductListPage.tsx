@@ -53,10 +53,7 @@ export function ProductListPage() {
   const [query, setQuery] = useState(() => searchParams.get('q') ?? '');
   const debouncedQuery = useDebouncedValue(query, URL_SYNC_DELAY_MS);
 
-  const load = useCallback(
-    (signal: AbortSignal) => fetchProductList({ signal }),
-    [],
-  );
+  const load = useCallback(() => fetchProductList(), []);
   const { state, isSlow, reload } = useAsyncResource('product-list', load);
 
   useEffect(() => {

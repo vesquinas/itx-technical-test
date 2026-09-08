@@ -2,6 +2,7 @@ import type { Mock } from 'vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { screen } from '@testing-library/react';
 import { render } from '@testing-library/react';
+import { StrictMode } from 'react';
 
 import { clearProductCache } from './api/products.ts';
 import { App } from './App.tsx';
@@ -38,7 +39,11 @@ describe('App', () => {
   it('renders the list at the root', async () => {
     window.history.pushState({}, '', '/');
 
-    render(<App />);
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Teléfonos' })).toBeInTheDocument();
   });
@@ -46,7 +51,11 @@ describe('App', () => {
   it('renders the detail page on the product route', async () => {
     window.history.pushState({}, '', '/product/abc123');
 
-    render(<App />);
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
 
     expect(await screen.findByRole('heading', { level: 1, name: 'X960' })).toBeInTheDocument();
   });
@@ -54,7 +63,11 @@ describe('App', () => {
   it('renders an error page on an unknown URL', async () => {
     window.history.pushState({}, '', '/una/ruta/inventada');
 
-    render(<App />);
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
 
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Página no encontrada' }),
@@ -65,7 +78,11 @@ describe('App', () => {
   it('keeps the header with the cart on every view', async () => {
     window.history.pushState({}, '', '/una/ruta/inventada');
 
-    render(<App />);
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
     await screen.findByRole('heading', { level: 1, name: 'Página no encontrada' });
 
     expect(screen.getByText('Cesta')).toBeInTheDocument();

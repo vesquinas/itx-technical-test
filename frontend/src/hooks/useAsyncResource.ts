@@ -51,6 +51,11 @@ function toApiError(cause: unknown): ApiError {
  * It also solves out-of-order responses: if the user navigates from one product to another and the
  * first response arrives after the second, its identifier no longer matches and it is discarded.
  *
+ * `load` takes no abort signal. Cancelling the network was never this hook's job: the requests it
+ * drives are shared and cached, so a request nobody is waiting for any more still has a result
+ * worth keeping. What the hook needs is not to *apply* a result that is no longer current, and
+ * that is what the flag in the cleanup and the identifier comparison are for.
+ *
  * `load` has to be stable (wrapped in `useCallback` by the caller), and `key` has to change
  * **whenever** `load` changes. That is the hook's contract: the loading state is derived by
  * comparing identifiers, so if `load` started pointing at a different resource without the key
@@ -61,7 +66,7 @@ function toApiError(cause: unknown): ApiError {
 export function useAsyncResource<T>(
   /** Identifies the requested resource. When it changes, the resource is loaded again. */
   key: string,
-  load: (signal: AbortSignal) => Promise<T>,
+  load: () => Promise<T>,
 ): AsyncResource<T> {
   const [attempt, setAttempt] = useState(0);
   const [result, setResult] = useState<{ id: string; state: SettledState<T> }>();
@@ -70,21 +75,21 @@ export function useAsyncResource<T>(
   const requestId = `${key}#${String(attempt)}`;
 
   useEffect(() => {
-    const controller = new AbortController();
+    let current = true;
     const slowTimer = setTimeout(() => {
       setSlowRequestId(requestId);
     }, SLOW_REQUEST_MS);
 
     const run = async () => {
       try {
-        const data = await load(controller.signal);
-        if (!controller.signal.aborted) {
+        const data = await load();
+        // A result that arrives after the effect was torn down belongs to a view that is no longer
+        // on screen, so it is read and dropped rather than applied.
+        if (current) {
           setResult({ id: requestId, state: { status: 'ready', data } });
         }
       } catch (cause) {
-        // An aborted request is not an error to show: the view that asked for it is no longer on
-        // screen.
-        if (!controller.signal.aborted) {
+        if (current) {
           setResult({ id: requestId, state: { status: 'error', error: toApiError(cause) } });
         }
       }
@@ -93,8 +98,8 @@ export function useAsyncResource<T>(
     void run();
 
     return () => {
+      current = false;
       clearTimeout(slowTimer);
-      controller.abort();
     };
   }, [load, requestId]);
 

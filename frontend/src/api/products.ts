@@ -16,7 +16,6 @@
 import type { CartSelection, ProductDetail, ProductSummary } from '../domain/product.ts';
 import type { Parser } from '../lib/parse.ts';
 import { ONE_HOUR_MS, TtlCache } from '../lib/cache/index.ts';
-import type { RequestOptions } from './client.ts';
 import { ApiError, buildUrl, requestJson, requestRawJson } from './client.ts';
 import { parseCartCount, parseProductDetail, parseProductList } from './schema.ts';
 
@@ -82,6 +81,17 @@ const inFlight = new InFlightRegistry();
  * The upside of caching the raw response is that there is a single parser and a single translation
  * point, applied identically whether the data comes from the network or from the cache. The cost
  * is translating again on every cache read, which for a hundred products is imperceptible.
+ *
+ * <b>The shared request takes no caller's abort signal, deliberately.</b> A deduplicated request
+ * belongs to the cache and not to whoever happened to ask for it first: tying it to one consumer's
+ * lifetime means the second consumer inherits the first one's cancellation. That is not
+ * hypothetical — it made the application fail on its very first load, because React's strict mode
+ * mounts, unmounts and remounts, and the remount joined the request the unmount had just aborted.
+ *
+ * So an abandoned request runs to completion and leaves its result in the cache, bounded by the
+ * HTTP client's own timeout. It is the same decision the backend makes about the calls it stops
+ * waiting for, and for the same reason: cancelling throws away work that was about to make the
+ * next read instant.
  */
 async function readCached<T>(
   key: string,
@@ -102,18 +112,15 @@ async function readCached<T>(
   });
 }
 
-export function fetchProductList(options: RequestOptions = {}): Promise<ProductSummary[]> {
+export function fetchProductList(): Promise<ProductSummary[]> {
   return readCached('products', parseProductList, () =>
-    requestRawJson(buildUrl(['api', 'product']), options),
+    requestRawJson(buildUrl(['api', 'product'])),
   );
 }
 
-export function fetchProductDetail(
-  id: string,
-  options: RequestOptions = {},
-): Promise<ProductDetail> {
+export function fetchProductDetail(id: string): Promise<ProductDetail> {
   return readCached(`product/${id}`, parseProductDetail, () =>
-    requestRawJson(buildUrl(['api', 'product', id]), options),
+    requestRawJson(buildUrl(['api', 'product', id])),
   );
 }
 
@@ -123,12 +130,8 @@ export function fetchProductDetail(
  * It is neither cached nor deduplicated: it is a write, and two presses of the button are two
  * distinct intentions from the user.
  */
-export function addToCart(
-  selection: CartSelection,
-  options: RequestOptions = {},
-): Promise<number> {
+export function addToCart(selection: CartSelection): Promise<number> {
   return requestJson(buildUrl(['api', 'cart']), parseCartCount, {
-    ...options,
     method: 'POST',
     body: selection,
   });

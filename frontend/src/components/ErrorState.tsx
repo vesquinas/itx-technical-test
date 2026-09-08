@@ -35,7 +35,6 @@ function describe(error: ApiError): { title: string; detail: string; canRetry: b
         canRetry: true,
       };
     case 'http':
-    case 'aborted':
       return {
         title: 'Algo ha ido mal',
         detail: 'El servidor no ha podido atender la petición. Vuelve a intentarlo.',

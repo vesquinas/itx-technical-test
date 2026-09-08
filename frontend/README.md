@@ -325,7 +325,9 @@ they wanted.
   for nothing.
 - **In-flight request deduplication.** If two components ask for the same resource at once the cache
   cannot help, because no request has finished; a registry of pending promises makes the second one
-  wait for the first.
+  wait for the first. The shared request takes **no caller's abort signal**, and that is the point:
+  a deduplicated request belongs to the cache, not to whoever asked first. See
+  [the defect that taught it](#the-test-harness-has-to-render-the-same-tree-as-the-application).
 - **`Intl` formatters created once** at module level, not per card.
 
 **The list is deliberately not virtualised.** There are 100 products. Virtualising would add a
@@ -429,6 +431,36 @@ while sending, and the test checks it by leaving the request unresolved.
 
 Queries go by role and accessible name, not by CSS class or test id: if a test finds the button the
 way a screen reader would, accessibility is checked along the way.
+
+### The test harness has to render the same tree as the application
+
+An external review of this repository found a defect the whole suite was blind to: **the
+application failed on its very first load** under `npm start`, showing "Algo ha ido mal" instead of
+the catalogue, with no way to recover short of a reload.
+
+React's strict mode — which `main.tsx` enables, and which every development build honours —
+deliberately mounts, unmounts and remounts every component. The unmount aborted the in-flight
+request for the product list. The remount then joined *that same request*, because it was still in
+the deduplication registry, and inherited its abort.
+
+The tests could not see it for **two** reasons, and both were harness faults rather than luck:
+
+1. **The harness did not render under strict mode.** `main.tsx` had it and the tests did not, so
+   the suite was exercising a tree the application never uses. It renders under strict mode now, so
+   every one of these tests goes through the mount-unmount-remount that broke this.
+2. **The `fetch` stub ignored the `AbortSignal`.** A stub that resolves with data even after the
+   request was aborted cannot reproduce an abort-related defect. Adding strict mode alone was not
+   enough: all the tests still passed. There is a faithful stub now
+   ([`src/test/fetchStub.ts`](./src/test/fetchStub.ts)) that rejects with an `AbortError` the way
+   the platform does, and with it the defect reproduced immediately.
+
+The fix was to stop tying a shared request to one consumer's lifetime: an abandoned request runs to
+completion and leaves its result in the cache, bounded by the HTTP client's own timeout. Nothing in
+the application aborts a request any more — only its time limit does — and the `signal` plumbing
+is gone rather than left lying around.
+
+It is the same decision the backend makes about the calls it stops waiting for, and for the same
+reason: cancelling throws away work that was about to make the next read instant.
 
 ## What I would do with more time
 

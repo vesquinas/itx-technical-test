@@ -26,10 +26,7 @@ export function ProductDetailPage() {
   const { productId = '' } = useParams<{ productId: string }>();
   const { search } = useLocation();
 
-  const load = useCallback(
-    (signal: AbortSignal) => fetchProductDetail(productId, { signal }),
-    [productId],
-  );
+  const load = useCallback(() => fetchProductDetail(productId), [productId]);
   const { state, isSlow, reload } = useAsyncResource(`product-${productId}`, load);
 
   // The view always opens at the top. Without this the browser keeps the position of whatever was

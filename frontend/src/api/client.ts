@@ -28,9 +28,7 @@ export type ApiFailureKind =
   /** It answered with an error status other than 404. */
   | 'http'
   /** It answered, but the body does not have the expected shape. */
-  | 'malformed'
-  /** The request was cancelled from the application (a view change, for instance). */
-  | 'aborted';
+  | 'malformed';
 
 export class ApiError extends Error {
   readonly kind: ApiFailureKind;
@@ -72,13 +70,7 @@ export function buildUrl(segments: readonly string[]): string {
 export interface RequestOptions {
   method?: 'GET' | 'POST';
   body?: unknown;
-  signal?: AbortSignal;
   timeoutMs?: number;
-}
-
-function combineSignals(signal: AbortSignal | undefined, timeoutMs: number): AbortSignal {
-  const timeout = AbortSignal.timeout(timeoutMs);
-  return signal === undefined ? timeout : AbortSignal.any([signal, timeout]);
 }
 
 /**
@@ -91,13 +83,16 @@ export async function requestRawJson(
   url: string,
   options: RequestOptions = {},
 ): Promise<unknown> {
-  const { method = 'GET', body, signal, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
+  const { method = 'GET', body, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
 
   let response: Response;
   try {
     response = await fetch(url, {
       method,
-      signal: combineSignals(signal, timeoutMs),
+      // The only thing allowed to abort a request is its own time limit. No caller passes a
+      // signal, and that is on purpose: a request that several callers share must not die because
+      // one of them lost interest. See `readCached` in products.ts.
+      signal: AbortSignal.timeout(timeoutMs),
       headers: {
         Accept: 'application/json',
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
@@ -105,7 +100,7 @@ export async function requestRawJson(
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
   } catch (cause) {
-    throw toRequestError(cause, signal);
+    throw toRequestError(cause);
   }
 
   if (response.status === 404) {
@@ -145,16 +140,12 @@ export async function requestJson<T>(
   return parsed;
 }
 
-function toRequestError(cause: unknown, signal: AbortSignal | undefined): ApiError {
-  if (cause instanceof DOMException && cause.name === 'TimeoutError') {
+function toRequestError(cause: unknown): ApiError {
+  // `AbortSignal.timeout` rejects with a `TimeoutError`, but an abort coming from the platform
+  // itself — a page being unloaded, say — arrives as an `AbortError`. Both mean the same thing to
+  // the user: the answer never came.
+  if (cause instanceof DOMException && (cause.name === 'TimeoutError' || cause.name === 'AbortError')) {
     return new ApiError('timeout', 'La API ha tardado demasiado en responder');
-  }
-  if (cause instanceof DOMException && cause.name === 'AbortError') {
-    // We tell our own cancellation apart from the time limit: the former is not an error to show
-    // to the user.
-    return signal?.aborted === true
-      ? new ApiError('aborted', 'Petición cancelada')
-      : new ApiError('timeout', 'La API ha tardado demasiado en responder');
   }
   return new ApiError('network', 'No se ha podido contactar con la API');
 }
