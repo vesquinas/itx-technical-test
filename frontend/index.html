@@ -1,10 +1,28 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+
+    <title>Mobile Store — Catálogo de teléfonos</title>
+    <meta
+      name="description"
+      content="Catálogo de teléfonos móviles con búsqueda por marca y modelo, ficha técnica detallada y selección de color y capacidad."
+    />
+
+    <!--
+      Se abre la conexión con la API antes de que el código la necesite: ahorra
+      la resolución de DNS y la negociación TLS del camino crítico. Con esta API
+      cuenta el doble, porque su primera respuesta ya es lenta de por sí.
+    -->
+    <link rel="preconnect" href="https://itx-frontend-test.onrender.com" crossorigin />
+    <link rel="dns-prefetch" href="https://itx-frontend-test.onrender.com" />
+
+    <!-- Tiñe la interfaz del navegador en móvil, en cada modo. -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#121212" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
   <body>
     <div id="root"></div>
