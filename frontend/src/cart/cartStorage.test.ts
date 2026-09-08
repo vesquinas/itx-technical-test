@@ -21,7 +21,7 @@ describe('persistencia del contador de la cesta', () => {
 
   describe('valores que el usuario puede haber manipulado', () => {
     // El contenido de localStorage es editable desde la consola del navegador,
-    // asi que se valida al leer en lugar de confiar en el.
+    // así que se valida al leer en lugar de confiar en el.
     it('descarta un contador que no es un numero', () => {
       localStorage.setItem('itx-cart-count', 'muchos');
 

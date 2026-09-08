@@ -12,9 +12,9 @@ import {
 
 /**
  * Las fixtures son respuestas reales de la API, copiadas tal cual. Los tests de
- * este fichero valen sobre todo como documentacion ejecutable de las rarezas de
- * ese origen de datos: si algun dia la API se corrige, estos tests fallaran y
- * habra que ajustar la traduccion a proposito.
+ * este fichero valen sobre todo como documentación ejecutable de las rarezas de
+ * ese origen de datos: si algun dia la API se corrige, estos tests fallarán y
+ * habrá que ajustar la traducción a propósito.
  */
 describe('parseProductSummary', () => {
   it('traduce un producto real del listado', () => {
@@ -98,7 +98,7 @@ describe('parseProductDetail', () => {
   });
 
   it('deshace el intercambio entre displayResolution y displaySize', () => {
-    // La API publica las pulgadas bajo `displayResolution` y los pixeles bajo
+    // La API publica las pulgadas bajo `displayResolution` y los píxeles bajo
     // `displaySize`, al contrario de lo que dicen sus nombres.
     expect(detail?.specs.screenResolution).toBe('480 x 640 pixels (~286 ppi pixel density)');
     expect(detail?.specs.screenSize).toBe('2.8 inches (~38.7% screen-to-body ratio)');

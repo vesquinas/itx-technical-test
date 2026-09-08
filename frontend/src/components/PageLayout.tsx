@@ -8,7 +8,7 @@ import styles from './PageLayout.module.css';
  * Estructura comun a las dos vistas: cabecera fija y contenido principal.
  *
  * El enlace "Saltar al contenido" es el primer elemento enfocable del documento.
- * Quien navega con teclado puede asi evitar la cabecera en cada pagina, en lugar
+ * Quien navega con teclado puede así evitar la cabecera en cada página, en lugar
  * de recorrerla entera con el tabulador cada vez.
  */
 export function PageLayout({

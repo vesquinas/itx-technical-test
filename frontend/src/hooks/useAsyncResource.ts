@@ -13,10 +13,10 @@ type SettledState<T> = Exclude<AsyncState<T>, { status: 'loading' }>;
 export interface AsyncResource<T> {
   state: AsyncState<T>;
   /**
-   * `true` cuando la carga se esta alargando mas de lo normal.
+   * `true` cuando la carga se esta alargando más de lo normal.
    *
-   * La API de la prueba esta en un plan gratuito que apaga el servicio sin
-   * trafico: la primera peticion tarda unos 40 segundos en arrancarlo y las
+   * La API de la prueba está en un plan gratuito que apaga el servicio sin
+   * tráfico: la primera petición tarda unos 40 segundos en arrancarlo y las
    * siguientes responden en milisegundos. Con esta senal la interfaz puede
    * explicar la espera larga sin hacer parpadear un mensaje alarmante en cada
    * carga rapida.
@@ -39,26 +39,26 @@ function toApiError(cause: unknown): ApiError {
  * Carga un recurso asincrono y expone su estado como una union discriminada.
  *
  * El tipo `AsyncState` es lo que hace que un componente no pueda olvidarse de un
- * caso: no existe un estado en el que `data` y `error` esten ambos definidos, ni
- * uno en el que se pinte la vista con los datos todavia sin llegar.
+ * caso: no existe un estado en el que `data` y `error` estén ambos definidos, ni
+ * uno en el que se pinte la vista con los datos todavía sin llegar.
  *
  * ## Por que hay un `requestId`
  *
  * El estado de carga se **deriva** durante el renderizado comparando el
- * identificador de la peticion en curso con el del ultimo resultado guardado. La
+ * identificador de la petición en curso con el del último resultado guardado. La
  * alternativa evidente —poner el estado a "cargando" dentro del efecto— provoca
  * un renderizado extra en cada cambio y deja una ventana en la que la vista
  * muestra datos del producto anterior.
  *
- * Ademas resuelve el problema de las respuestas que llegan desordenadas: si el
- * usuario navega de un producto a otro y la primera respuesta llega despues de la
+ * Además resuelve el problema de las respuestas que llegan desordenadas: si el
+ * usuario navega de un producto a otro y la primera respuesta llega después de la
  * segunda, su identificador ya no coincide y se descarta.
  *
  * `load` tiene que ser estable (envuelta en `useCallback` por quien llama), y `key` tiene que
  * cambiar **siempre** que cambie `load`. Es el contrato del hook: el estado de carga se deriva
- * comparando identificadores, asi que si `load` pasara a apuntar a otro recurso sin cambiar la
- * clave, la vista mostraria los datos del recurso anterior mientras llega el nuevo. Las dos
- * llamadas de esta aplicacion lo cumplen por construccion, porque `key` se compone de las mismas
+ * comparando identificadores, así que si `load` pasara a apuntar a otro recurso sin cambiar la
+ * clave, la vista mostraría los datos del recurso anterior mientras llega el nuevo. Las dos
+ * llamadas de esta aplicación lo cumplen por construcción, porque `key` se compone de las mismas
  * dependencias que la `useCallback` de `load`.
  */
 export function useAsyncResource<T>(
@@ -85,8 +85,8 @@ export function useAsyncResource<T>(
           setResult({ id: requestId, state: { status: 'ready', data } });
         }
       } catch (cause) {
-        // Una peticion cancelada no es un error que mostrar: la vista que la
-        // pidio ya no esta en pantalla.
+        // Una petición cancelada no es un error que mostrar: la vista que la
+        // pidió ya no está en pantalla.
         if (!controller.signal.aborted) {
           setResult({ id: requestId, state: { status: 'error', error: toApiError(cause) } });
         }
@@ -108,7 +108,7 @@ export function useAsyncResource<T>(
   const state: AsyncState<T> =
     result?.id === requestId ? result.state : { status: 'loading' };
 
-  // Se derivan durante el renderizado, comparando con la peticion en curso: asi
+  // Se derivan durante el renderizado, comparando con la petición en curso: así
   // el aviso desaparece por si solo al empezar una carga nueva.
   const isSlow = state.status === 'loading' && slowRequestId === requestId;
 

@@ -4,7 +4,7 @@ import styles from './ErrorState.module.css';
 /**
  * Traduce un fallo tecnico a un mensaje que le sirva a una persona.
  *
- * Se distingue por tipo de fallo porque la accion que puede tomar el usuario es
+ * Se distingue por tipo de fallo porque la acción que puede tomar el usuario es
  * distinta en cada caso: ante un problema de red puede reintentar, ante un
  * producto inexistente no tiene sentido ofrecerlo.
  */
@@ -13,7 +13,7 @@ function describe(error: ApiError): { title: string; detail: string; canRetry: b
     case 'notFound':
       return {
         title: 'No hemos encontrado este producto',
-        detail: 'Puede que ya no este disponible o que el enlace no sea correcto.',
+        detail: 'Puede que ya no esté disponible o que el enlace no sea correcto.',
         canRetry: false,
       };
     case 'timeout':
@@ -26,7 +26,7 @@ function describe(error: ApiError): { title: string; detail: string; canRetry: b
     case 'network':
       return {
         title: 'No hemos podido conectar',
-        detail: 'Comprueba tu conexion a internet y vuelve a intentarlo.',
+        detail: 'Comprueba tu conexión a internet y vuelve a intentarlo.',
         canRetry: true,
       };
     case 'malformed':
@@ -39,7 +39,7 @@ function describe(error: ApiError): { title: string; detail: string; canRetry: b
     case 'aborted':
       return {
         title: 'Algo ha ido mal',
-        detail: 'El servidor no ha podido atender la peticion. Vuelve a intentarlo.',
+        detail: 'El servidor no ha podido atender la petición. Vuelve a intentarlo.',
         canRetry: true,
       };
   }
@@ -48,9 +48,9 @@ function describe(error: ApiError): { title: string; detail: string; canRetry: b
 /**
  * Bloque de error con reintento.
  *
- * El reintento es explicito y no automatico a proposito: un reintento en bucle
- * castiga a un servidor que ya esta en problemas, y deja al usuario sin saber
- * si la aplicacion esta haciendo algo o se ha quedado colgada.
+ * El reintento es explicito y no automático a propósito: un reintento en bucle
+ * castiga a un servidor que ya está en problemas, y deja al usuario sin saber
+ * si la aplicación está haciendo algo o se ha quedado colgada.
  *
  * `role="alert"` hace que el lector de pantalla lo anuncie en cuanto aparece,
  * sin esperar a que el usuario llegue navegando hasta el.

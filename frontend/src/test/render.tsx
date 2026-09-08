@@ -6,7 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { CartProvider } from '../cart/CartProvider.tsx';
 
 /**
- * Monta un componente con el contexto que necesita en produccion: el proveedor
+ * Monta un componente con el contexto que necesita en producción: el proveedor
  * de la cesta y un enrutador en memoria.
  *
  * Se usa `MemoryRouter` en lugar de `BrowserRouter` porque no depende de la API

@@ -6,8 +6,8 @@ import { CartContext } from './cartContext.ts';
 export function useCart(): CartContextValue {
   const context = useContext(CartContext);
   // Falla de forma explicita en lugar de devolver un cero silencioso: un
-  // componente fuera del proveedor es un error de programacion, no un caso que
-  // haya que tolerar en ejecucion.
+  // componente fuera del proveedor es un error de programación, no un caso que
+  // haya que tolerar en ejecución.
   if (context === undefined) {
     throw new Error('useCart tiene que usarse dentro de un CartProvider');
   }

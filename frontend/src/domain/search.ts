@@ -6,9 +6,9 @@ import { searchableText } from './product.ts';
  *
  * Pasa a minusculas y quita los diacriticos descomponiendo en NFD y eliminando
  * las marcas combinantes. Sin esto, buscar "telefono" no encontraria "teléfono",
- * que en un catalogo en espanol es un fallo que el usuario nota enseguida.
+ * que en un catálogo en espanol es un fallo que el usuario nota enseguida.
  *
- * Tambien resuelve un caso real de estos datos: la marca "alcatel" viene en
+ * También resuelve un caso real de estos datos: la marca "alcatel" viene en
  * minusculas mientras que "Acer" viene capitalizada.
  */
 export function normalizeForSearch(text: string): string {
@@ -22,11 +22,11 @@ export function normalizeForSearch(text: string): string {
  * Filtra los productos por marca y modelo, como pide el enunciado.
  *
  * El termino se parte en palabras y **todas** tienen que aparecer, en cualquier
- * orden. Asi "acer liquid" encuentra el "Acer Liquid Z6", cosa que una simple
- * busqueda de subcadena no haria porque el texto completo es "Acer Liquid Z6" y
- * el usuario podria escribir "liquid acer".
+ * orden. Así "acer liquid" encuentra el "Acer Liquid Z6", cosa que una simple
+ * búsqueda de subcadena no haría porque el texto completo es "Acer Liquid Z6" y
+ * el usuario podría escribir "liquid acer".
  *
- * Es una funcion pura sobre un array que ya esta en memoria: no toca la red ni
+ * Es una función pura sobre un array que ya está en memoria: no toca la red ni
  * el estado, lo que la hace trivial de probar y de memoizar.
  */
 export function filterProducts(

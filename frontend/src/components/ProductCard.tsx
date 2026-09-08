@@ -9,7 +9,7 @@ import styles from './ProductCard.module.css';
  *
  * ## Decisiones
  *
- * - **Un solo enlace envuelve toda la tarjeta.** Es un unico destino, asi que
+ * - **Un solo enlace envuelve toda la tarjeta.** Es un único destino, así que
  *   partirlo en dos enlaces (imagen y titulo) obligaria a tabular dos veces por
  *   producto para llegar al mismo sitio.
  *
@@ -20,9 +20,9 @@ import styles from './ProductCard.module.css';
  * - **El texto alternativo es "marca + modelo", no "foto de ...".** El lector de
  *   pantalla ya anuncia que es una imagen; repetirlo es ruido.
  *
- * - **El enlace arrastra la busqueda actual** (`?q=...`). Asi el enlace de vuelta
+ * - **El enlace arrastra la búsqueda actual** (`?q=...`). Así el enlace de vuelta
  *   de la ficha puede devolver al usuario a su lista filtrada en lugar de al
- *   catalogo entero, y la URL del producto sigue siendo compartible.
+ *   catálogo entero, y la URL del producto sigue siendo compartible.
  */
 export function ProductCard({ product }: { product: ProductSummary }) {
   const { search } = useLocation();
@@ -36,7 +36,7 @@ export function ProductCard({ product }: { product: ProductSummary }) {
             <img
               alt={name}
               className={styles.image}
-              // `lazy` mas `async` deja fuera del camino critico las imagenes que
+              // `lazy` más `async` deja fuera del camino critico las imagenes que
               // aun no se ven y no bloquea el renderizado con su decodificacion.
               decoding="async"
               loading="lazy"

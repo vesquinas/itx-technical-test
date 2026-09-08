@@ -6,8 +6,8 @@
  *  1. Las respuestas de la API.
  *  2. Lo que se lee de `localStorage`, que el usuario puede editar a mano.
  *
- * En ambos casos TypeScript no ayuda: `strict` protege del codigo mal escrito,
- * no de un JSON con otra forma. La comprobacion tiene que ocurrir en ejecucion.
+ * En ambos casos TypeScript no ayuda: `strict` protege del código mal escrito,
+ * no de un JSON con otra forma. La comprobación tiene que ocurrir en ejecución.
  */
 
 /** Convierte una entrada desconocida en `T`, o devuelve `undefined` si no encaja. */
@@ -26,7 +26,7 @@ export function asText(value: unknown): string {
  * Normaliza los campos que la API devuelve unas veces como texto y otras como
  * lista de textos (`cpu`, `sim`, `primaryCamera`, `wlan`, `sensors`...).
  *
- * Sin esta normalizacion React renderiza el array concatenando sus elementos sin
+ * Sin esta normalización React renderiza el array concatenando sus elementos sin
  * separador ("Quad-core1.3 GHz"), que es un fallo visible en la interfaz.
  */
 export function asTextList(value: unknown): string[] {
@@ -35,7 +35,7 @@ export function asTextList(value: unknown): string[] {
 }
 
 /**
- * La API entrega el precio como cadena y en 6 de los 100 productos viene vacia.
+ * La API entrega el precio como cadena y en 6 de los 100 productos viene vacía.
  * Devolvemos `null` en lugar de `NaN` para que la interfaz tenga que decidir
  * explicitamente que mostrar cuando no hay precio.
  */
@@ -49,16 +49,16 @@ export function asPrice(value: unknown): number | null {
 }
 
 /**
- * Acepta unicamente URLs absolutas con esquema http o https.
+ * Acepta únicamente URLs absolutas con esquema http o https.
  *
  * La API entrega las direcciones de las fotos, y esas direcciones acaban en el atributo `src`
  * de una imagen. Comprobar el esquema evita que un origen comprometido —o simplemente
- * equivocado— cuele un `javascript:`, un `data:` o un `blob:` donde deberia haber una foto.
+ * equivocado— cuele un `javascript:`, un `data:` o un `blob:` donde debería haber una foto.
  * Los navegadores actuales no ejecutan `javascript:` en un `<img>`, pero apoyarse en eso es
- * apoyarse en el navegador y no en el codigo propio.
+ * apoyarse en el navegador y no en el código propio.
  *
  * Solo se admiten absolutas porque es lo que devuelve esta API en los 100 productos del
- * catalogo. Una relativa se descarta, y la interfaz muestra "Sin imagen" en su lugar.
+ * catálogo. Una relativa se descarta, y la interfaz muestra "Sin imagen" en su lugar.
  */
 export function asHttpUrl(value: unknown): string {
   const text = asText(value);

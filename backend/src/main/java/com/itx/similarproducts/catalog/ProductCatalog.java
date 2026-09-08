@@ -23,49 +23,20 @@ import com.itx.similarproducts.domain.ProductDetail;
 /**
  * Acceso a la API existente, con caché.
  *
- * <p>Es la única pieza que habla con el exterior, y es donde vive casi todo el rendimiento del
- * servicio.
+ * <p>La caché hace dos trabajos: evita repetir llamadas ya resueltas y, sobre todo,
+ * <b>deduplica</b>, porque guarda la llamada en curso y no solo su resultado. Doscientas
+ * peticiones simultáneas del mismo producto generan una sola llamada al origen.
  *
- * <h2>La caché hace dos trabajos, no uno</h2>
+ * <p><b>Tiene que ser {@link AsyncCache} y no la variante sincrónica.</b> La sincrónica ejecuta
+ * su función de carga dentro de un bloque {@code synchronized} de {@code ConcurrentHashMap}, y
+ * en Java 21 un hilo virtual bloqueado dentro de un monitor fija su hilo portador. Con llamadas
+ * de red de varios segundos, unas pocas cargas clavan el planificador entero: medido, la prueba
+ * de carga pasó de completar <b>1 petición en 90 segundos</b> a 16.400 a 272/s solo con este
+ * cambio. No volver a la caché sincrónica.
  *
- * Lo evidente es evitar repetir llamadas ya resueltas. El menos evidente, y aquí el más valioso,
- * es la <b>deduplicación</b>: la caché guarda la llamada en curso, no solo su resultado, así que
- * si doscientas peticiones simultáneas necesitan el mismo producto, una sola llega al origen y
- * las demás esperan ese mismo resultado. Sin eso, el arranque de cada escenario de la prueba de
- * carga lanza doscientas llamadas idénticas contra un origen que además es lento.
- *
- * <h2>Por qué la caché es asíncrona: hilos virtuales y monitores</h2>
- *
- * Es una {@link AsyncCache} y no la variante sincrónica, y ese detalle es la razón por la que
- * este servicio rinde.
- *
- * <p>La caché sincrónica de Caffeine se apoya en {@code ConcurrentHashMap.computeIfAbsent}, que
- * ejecuta la función de carga <b>dentro de un bloque {@code synchronized}</b>. En Java 21, un
- * hilo virtual que se bloquea dentro de un monitor <b>fija su hilo portador</b>: no se desmonta,
- * y ese hilo de plataforma queda inutilizable mientras dure el bloqueo. Como la carga hace una
- * llamada de red que puede tardar segundos, unas pocas cargas simultáneas bastan para clavar
- * todos los portadores del planificador y dejar la aplicación entera sin atender peticiones.
- *
- * <p>No es teoría. Con la caché sincrónica, la prueba de carga de 200 usuarios completó
- * <b>1 petición en 90 segundos</b>. La caché asíncrona guarda en el mapa un futuro —operación
- * inmediata, sin bloqueo bajo el monitor— y ejecuta la llamada fuera, en el ejecutor de hilos
- * virtuales: conserva la deduplicación y elimina la fijación. Con ella, la misma prueba pasa a
- * <b>16.400 peticiones a 272/s</b>, con mediana de 5,7 ms y ningún error.
- *
- * <p>Es también el motivo de que {@code similarIds} resuelva su valor con {@code join} sobre un
- * futuro en lugar de llamar directamente: quien decide si hay que ir al origen es la caché.
- *
- * <h2>Cortacircuitos por producto</h2>
- *
- * No se usa una librería de cortacircuitos. El motivo es que sus interruptores son por nombre, y
- * aquí el fallo es <b>por producto</b>: el producto 10000 tarda 50 segundos, pero el 100 responde
- * en uno. Un interruptor compartido abierto por el primero dejaría de servir el segundo, que está
- * perfectamente sano.
- *
- * <p>Lo que se hace es recordar los fallos con una expiración corta ({@link
- * ProductLookup.Unavailable}). El efecto es el de un cortacircuitos con la granularidad correcta:
- * el primer intento paga el tiempo de espera, y durante los segundos siguientes ese producto se
- * descarta al instante mientras el resto sigue atendiéndose con normalidad.
+ * <p>Los fallos se recuerdan con expiración corta ({@link ProductLookup.Unavailable}), lo que
+ * funciona como un cortacircuitos con granularidad por producto. El razonamiento completo, y por
+ * qué no se usa una librería de cortacircuitos, está en el README.
  */
 @Component
 public class ProductCatalog {

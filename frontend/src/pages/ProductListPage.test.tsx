@@ -115,7 +115,7 @@ describe('ProductListPage', () => {
 
       expect(screen.getByRole('heading', { name: 'Sin resultados' })).toBeInTheDocument();
 
-      await user.click(screen.getByRole('button', { name: 'Ver todo el catalogo' }));
+      await user.click(screen.getByRole('button', { name: 'Ver todo el catálogo' }));
 
       expect(screen.getByRole('heading', { name: 'Iconia Talk S' })).toBeInTheDocument();
     });
@@ -134,7 +134,7 @@ describe('ProductListPage', () => {
       renderWithProviders(<ProductListPage />, { route: '/?q=iconia' });
       await screen.findByRole('heading', { name: 'Iconia Talk S' });
 
-      await user.click(screen.getByRole('button', { name: 'Borrar la busqueda' }));
+      await user.click(screen.getByRole('button', { name: 'Borrar la búsqueda' }));
 
       expect(screen.getByRole('heading', { name: 'Liquid Z6' })).toBeInTheDocument();
     });
@@ -177,7 +177,7 @@ describe('ProductListPage', () => {
 
   it('explica la espera cuando la primera carga se alarga', async () => {
     // La API de la prueba se aloja en un plan gratuito que apaga el servicio:
-    // la primera peticion tarda unos 40 segundos en arrancarlo.
+    // la primera petición tarda unos 40 segundos en arrancarlo.
     vi.useFakeTimers({ shouldAdvanceTime: true });
     fetchMock.mockImplementation(
       () =>
@@ -207,7 +207,7 @@ describe('ProductListPage', () => {
     await screen.findByRole('heading', { name: 'Iconia Talk S' });
 
     await waitFor(() => {
-      expect(screen.getByText('0 articulos')).toBeInTheDocument();
+      expect(screen.getByText('0 artículos')).toBeInTheDocument();
     });
   });
 });

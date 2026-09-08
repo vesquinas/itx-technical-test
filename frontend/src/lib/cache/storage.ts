@@ -1,9 +1,9 @@
 /**
- * Superficie minima de almacenamiento que necesita la cache.
+ * Superficie mínima de almacenamiento que necesita la caché.
  *
  * Definirla como interfaz en lugar de usar `localStorage` directamente permite
- * dos cosas: probar la cache sin navegador, y degradar a memoria cuando el
- * almacenamiento persistente no esta disponible.
+ * dos cosas: probar la caché sin navegador, y degradar a memoria cuando el
+ * almacenamiento persistente no está disponible.
  */
 export interface KeyValueStorage {
   getItem(key: string): string | null;
@@ -52,9 +52,9 @@ const PROBE_KEY = '__itx_storage_probe__';
 /**
  * Comprueba que el almacenamiento se puede leer y escribir de verdad.
  *
- * No basta con que `localStorage` exista: en navegacion privada de Safari y con
- * las cookies de terceros bloqueadas, el objeto esta presente pero `setItem`
- * lanza una excepcion. Incluso el simple acceso a la propiedad puede lanzar
+ * No basta con que `localStorage` exista: en navegación privada de Safari y con
+ * las cookies de terceros bloqueadas, el objeto está presente pero `setItem`
+ * lanza una excepción. Incluso el simple acceso a la propiedad puede lanzar
  * dentro de un iframe restringido, de ahi que el acceso vaya en `try`.
  */
 export function isUsable(storage: KeyValueStorage): boolean {
@@ -68,9 +68,9 @@ export function isUsable(storage: KeyValueStorage): boolean {
 }
 
 /**
- * Devuelve `localStorage` si es utilizable y, si no, un almacen en memoria.
+ * Devuelve `localStorage` si es utilizable y, si no, un almacén en memoria.
  *
- * La cache es una optimizacion: cuando no se puede persistir, la aplicacion
+ * La caché es una optimización: cuando no se puede persistir, la aplicación
  * tiene que seguir funcionando aunque pierda el cacheo entre recargas.
  */
 export function resolveStorage(): KeyValueStorage {

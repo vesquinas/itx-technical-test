@@ -1,16 +1,16 @@
 /**
- * Acceso a los datos de producto: API + cache de cliente.
+ * Acceso a los datos de producto: API + caché de cliente.
  *
- * Aqui se juntan las dos piezas anteriores. El orden de cada lectura es:
+ * Aquí se juntan las dos piezas anteriores. El orden de cada lectura es:
  *
- *   1. Cache. Si hay entrada valida y no caducada, se sirve sin red.
- *   2. Peticion en vuelo. Si ya hay una peticion identica en curso, se espera a
+ *   1. Caché. Si hay entrada valida y no caducada, se sirve sin red.
+ *   2. Petición en vuelo. Si ya hay una petición identica en curso, se espera a
  *      esa en lugar de lanzar otra.
- *   3. API. Se pide, se valida y se guarda en cache.
+ *   3. API. Se pide, se valida y se guarda en caché.
  *
- * El paso 2 importa mas de lo que parece: sin el, montar en la misma vista dos
+ * El paso 2 importa más de lo que parece: sin el, montar en la misma vista dos
  * componentes que necesiten el mismo producto genera dos peticiones simultaneas,
- * porque ninguna ha terminado todavia para poblar la cache.
+ * porque ninguna ha terminado todavía para poblar la caché.
  */
 
 import type { CartSelection, ProductDetail, ProductSummary } from '../domain/product.ts';
@@ -21,9 +21,9 @@ import { buildUrl, requestJson } from './client.ts';
 import { parseCartCount, parseProductDetail, parseProductList } from './schema.ts';
 
 /**
- * Subir esta version invalida todo lo cacheado en los navegadores. Hay que
+ * Subir esta versión inválida todo lo cacheado en los navegadores. Hay que
  * hacerlo cuando cambie la forma del modelo de dominio, o los usuarios que ya
- * tengan datos guardados seguirian leyendo el formato antiguo.
+ * tengan datos guardados seguirían leyendo el formato antiguo.
  */
 const CACHE_VERSION = 1;
 
@@ -36,10 +36,10 @@ const cache = new TtlCache({
 /**
  * Registro de peticiones en curso, para no lanzar dos veces la misma.
  *
- * El tipo se recupera con una asercion, acotada a este unico punto: la clave
+ * El tipo se recupera con una aserción, acotada a este único punto: la clave
  * determina de forma univoca el tipo del resultado (`products` siempre resuelve
- * a `ProductSummary[]`, `product/<id>` siempre a `ProductDetail`), asi que la
- * asercion es correcta por construccion.
+ * a `ProductSummary[]`, `product/<id>` siempre a `ProductDetail`), así que la
+ * aserción es correcta por construcción.
  *
  * Se intento evitarla revalidando la promesa compartida con el mismo parser,
  * pero es un error de concepto: el parser traduce la forma de la API y la
@@ -66,7 +66,7 @@ class InFlightRegistry {
 
 const inFlight = new InFlightRegistry();
 
-/** Lectura cacheada, con deduplicacion de peticiones concurrentes. */
+/** Lectura cacheada, con deduplicación de peticiones concurrentes. */
 async function readCached<T>(
   key: string,
   parse: Parser<T>,
@@ -98,7 +98,7 @@ export function fetchProductDetail(
 }
 
 /**
- * Anade un producto a la cesta y devuelve el numero de articulos que hay en ella.
+ * Añade un producto a la cesta y devuelve el número de artículos que hay en ella.
  *
  * No se cachea ni se deduplica: es una escritura, y dos pulsaciones del boton
  * son dos intenciones distintas del usuario.
@@ -114,7 +114,7 @@ export function addToCart(
   });
 }
 
-/** Vacia la cache de productos. Se expone para poder ofrecer un refresco manual. */
+/** Vacía la caché de productos. Se expone para poder ofrecer un refresco manual. */
 export function clearProductCache(): void {
   cache.clear();
   inFlight.clear();

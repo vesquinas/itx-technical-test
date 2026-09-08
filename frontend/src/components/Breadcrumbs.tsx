@@ -4,7 +4,7 @@ import styles from './Breadcrumbs.module.css';
 
 export interface Crumb {
   label: string;
-  /** Sin `to`, la miga es la pagina actual y no se enlaza. */
+  /** Sin `to`, la miga es la página actual y no se enlaza. */
   to?: string;
 }
 
@@ -13,13 +13,13 @@ export interface Crumb {
  *
  * Se marca con `<nav aria-label>` y una lista ordenada, que es el patron que
  * esperan los lectores de pantalla: sin el, se anuncia como un puñado de enlaces
- * sueltos sin relacion jerarquica.
+ * sueltos sin relación jerarquica.
  *
- * La ultima miga es la pagina actual: no se enlaza y lleva `aria-current="page"`.
+ * La última miga es la página actual: no se enlaza y lleva `aria-current="page"`.
  */
 export function Breadcrumbs({ trail }: { trail: readonly Crumb[] }) {
   return (
-    <nav aria-label="Ruta de navegacion" className={styles.nav}>
+    <nav aria-label="Ruta de navegación" className={styles.nav}>
       <ol className={styles.list}>
         {trail.map((crumb, index) => {
           const isLast = index === trail.length - 1;

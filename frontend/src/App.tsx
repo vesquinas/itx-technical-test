@@ -8,12 +8,12 @@ import { RouteFallback } from './components/RouteFallback.tsx';
  * Las dos vistas se cargan en diferido.
  *
  * Cada una acaba en su propio fragmento, de modo que quien abre el listado no
- * descarga el codigo de la ficha ni al reves. Es el motivo por el que no hace
+ * descarga el código de la ficha ni al reves. Es el motivo por el que no hace
  * falta configurar el troceado manual del bundler.
  *
  * `React.lazy` necesita una exportacion por defecto, y en el resto del proyecto
  * se usan exportaciones nombradas para que los nombres sean estables al
- * refactorizar. Se adapta aqui, en un solo punto.
+ * refactorizar. Se adapta aquí, en un solo punto.
  */
 const ProductListPage = lazy(async () => {
   const module = await import('./pages/ProductListPage.tsx');
@@ -31,14 +31,14 @@ const NotFoundPage = lazy(async () => {
 });
 
 /**
- * Raiz de la aplicacion.
+ * Raiz de la aplicación.
  *
  * Es una SPA con enrutado en cliente (`BrowserRouter`), sin renderizado en
- * servidor y sin navegacion entre documentos, como exige el enunciado.
+ * servidor y sin navegación entre documentos, como exige el enunciado.
  *
  * El proveedor de la cesta envuelve al enrutador para que el contador sobreviva
  * a los cambios de vista: si estuviera dentro de una ruta, se reiniciaria en cada
- * navegacion.
+ * navegación.
  */
 export function App() {
   return (

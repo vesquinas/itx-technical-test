@@ -20,43 +20,21 @@ import com.itx.similarproducts.domain.ProductDetail;
 /**
  * Resuelve el detalle de los productos similares a uno dado.
  *
- * <h2>En paralelo, no en serie</h2>
+ * <p>Los detalles se piden <b>en paralelo</b>, cada uno en un hilo virtual: en serie la latencia
+ * sería la suma de las llamadas y en paralelo es el máximo. Con los retardos del simulador
+ * (100 ms, 1 s y 5 s para un mismo producto) la diferencia es de más de seis segundos a cinco.
  *
- * Es la decisión que más pesa. Obtener los detalles uno detrás de otro hace que la latencia sea
- * la <b>suma</b> de todas las llamadas; hacerlo en paralelo la deja en el <b>máximo</b>. Con los
- * retardos del simulador de la prueba (100 ms, 1 s y 5 s para un mismo producto) la diferencia
- * es de más de seis segundos a cinco.
+ * <p>Hay un presupuesto de tiempo corto para toda la petición, y lo que no llega dentro de él se
+ * omite de la respuesta: un solo producto lento no debe decidir la latencia de la respuesta
+ * entera. Se omiten igualmente los similares que no existen y los que fallan, porque que uno
+ * haya desaparecido del catálogo no invalida los demás.
  *
- * <p>Cada detalle se resuelve en un hilo virtual. No hay que dimensionar ningún pool: crear
- * cientos de hilos virtuales es barato y ninguno consume un hilo del sistema operativo mientras
- * espera una respuesta de red. Quien lanza esas cargas es la caché, que además garantiza que dos
- * peticiones simultáneas del mismo producto se resuelvan con una sola llamada al origen.
+ * <p><b>La llamada descartada no se cancela</b>, y esto es deliberado: sigue su curso y deja el
+ * producto en la caché, así que las peticiones siguientes sí lo incluyen. Cancelarla —la primera
+ * versión lo hacía— tira justamente el trabajo que iba a acelerar todo lo demás.
  *
- * <h2>Resultados parciales antes que ningún resultado</h2>
- *
- * Hay un presupuesto de tiempo para toda la petición, y es corto. Lo que no llega dentro de él
- * se omite de esta respuesta. El motivo es que un solo producto lento no debe decidir la latencia
- * de la respuesta entera: en la prueba de carga hay un producto que tarda 50 segundos, y
- * esperarlo significaría dejar colgadas las peticiones de todos los usuarios.
- *
- * <p>Se omiten igualmente los similares que no existen (404) y los que fallan. El contrato define
- * una lista de similares, y que uno de ellos haya desaparecido del catálogo no invalida los demás.
- *
- * <h2>La llamada descartada NO se cancela</h2>
- *
- * Esto es lo que más cambió las mediciones. Al agotarse el presupuesto se deja de esperar, pero
- * la llamada sigue su curso: cuando termine, dejará el producto en la caché y la siguiente
- * petición lo servirá al instante. Cancelarla, que fue la primera versión, tiraba justamente el
- * trabajo que iba a acelerar las peticiones siguientes, y así cada ciclo volvía a pagar la espera.
- *
- * <p>El coste de no cancelar está acotado por dos lados: por el límite de tiempo de lectura del
- * cliente HTTP, y porque la carga de la caché es atómica por clave, de modo que nunca hay más de
- * una llamada en vuelo por producto, por muchas peticiones simultáneas que lo pidan.
- *
- * <p>El presupuesto es además lo que fija el peor caso del servicio: ninguna respuesta puede
- * tardar más que él. Medido con la prueba de carga del propio ejercicio, el máximo observado es
- * de 649 ms para un presupuesto de 600 ms. Las peticiones que lo alcanzan son las que caen en la
- * ventana en la que un producto lento todavía no está cacheado.
+ * <p>El razonamiento completo, con las mediciones que llevaron a elegir el presupuesto, está en
+ * el README.
  */
 @Service
 public class SimilarProductsService {

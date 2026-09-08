@@ -66,6 +66,26 @@
   },
   "overrides": [
     {
+      // Los scripts de linea de comandos informan por la salida estandar: es su
+      // interfaz, no una traza olvidada.
+      "files": ["scripts/**"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      // La asercion vive en `expectNoAccessibilityViolations`, un ayudante compartido,
+      // asi que la regla no la ve dentro del cuerpo del test. Se le ensena el nombre
+      // en lugar de desactivar la comprobacion.
+      "files": ["**/accessibility.test.tsx"],
+      "rules": {
+        "vitest/expect-expect": [
+          "error",
+          { "assertFunctionNames": ["expect", "expectNoAccessibilityViolations"] }
+        ]
+      }
+    },
+    {
       // En los tests, una URL `javascript:` es el dato de entrada de la comprobacion:
       // son justamente los tests que verifican que esas URLs se rechazan. La regla
       // busca `javascript:` en atributos que el navegador ejecuta, no en datos de test.

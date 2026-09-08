@@ -14,10 +14,10 @@ type SubmitState =
   | { status: 'failed'; message: string };
 
 /**
- * Si hay una sola opcion se deja preseleccionada, como pide el enunciado.
+ * Si hay una sola opción se deja preseleccionada, como pide el enunciado.
  *
  * Con varias no se preselecciona ninguna: el color y la capacidad cambian el
- * producto que se compra, y elegirlos por el usuario invita a anadir a la cesta
+ * producto que se compra, y elegirlos por el usuario invita a añadir a la cesta
  * algo distinto de lo que queria. El boton permanece deshabilitado hasta que ha
  * elegido las dos cosas, y se le explica por que.
  */
@@ -26,19 +26,19 @@ function defaultCode(options: readonly { code: number }[]): number | undefined {
 }
 
 /**
- * Acciones de la ficha: seleccion de capacidad y color, y anadir a la cesta.
+ * Acciones de la ficha: selección de capacidad y color, y añadir a la cesta.
  *
  * ## El contador de la cesta
  *
- * `POST /api/cart` responde con el numero de articulos en la cesta y el
+ * `POST /api/cart` responde con el número de artículos en la cesta y el
  * enunciado pide mostrar **ese** valor en la cabecera, persistido. Es lo que
  * hace este componente: la API es la fuente de la verdad y no se lleva una
  * cuenta propia en el cliente.
  *
  * Conviene saber que la API de la prueba es un simulador y responde siempre
- * `{"count": 1}`, tambien al anadir el segundo o el tercer producto. Por eso el
- * contador de la cabecera se queda en 1 al usar la aplicacion: no es un fallo de
- * la implementacion, es el comportamiento del servicio. Queda documentado en el
+ * `{"count": 1}`, también al añadir el segundo o el tercer producto. Por eso el
+ * contador de la cabecera se queda en 1 al usar la aplicación: no es un fallo de
+ * la implementación, es el comportamiento del servicio. Queda documentado en el
  * README.
  */
 export function ProductActions({ product }: { product: ProductDetail }) {
@@ -66,7 +66,7 @@ export function ProductActions({ product }: { product: ProductDetail }) {
       const message =
         cause instanceof ApiError
           ? cause.message
-          : 'No se ha podido anadir el producto a la cesta';
+          : 'No se ha podido añadir el producto a la cesta';
       setSubmit({ status: 'failed', message });
     }
   };
@@ -84,15 +84,15 @@ export function ProductActions({ product }: { product: ProductDetail }) {
   return (
     <div className={styles.actions}>
       <OptionPicker
-        // Los selectores se bloquean mientras se envia. Sin esto, cambiar de color con la
-        // peticion en vuelo dejaba un mensaje enganoso: al llegar la respuesta se anunciaba
-        // "producto anadido" para una seleccion que no era la que se habia enviado.
+        // Los selectores se bloquean mientras se envía. Sin esto, cambiar de color con la
+        // petición en vuelo dejaba un mensaje enganoso: al llegar la respuesta se anunciaba
+        // "producto añadido" para una selección que no era la que se habia enviado.
         disabled={submit.status === 'sending'}
         legend="Almacenamiento"
         onSelect={(code) => {
           setStorageCode(code);
-          // Cualquier cambio de seleccion invalida el mensaje anterior: seguir
-          // mostrando "anadido" tras cambiar el color seria enganoso.
+          // Cualquier cambio de selección inválida el mensaje anterior: seguir
+          // mostrando "añadido" tras cambiar el color sería enganoso.
           setSubmit({ status: 'idle' });
         }}
         options={storages}
@@ -119,7 +119,7 @@ export function ProductActions({ product }: { product: ProductDetail }) {
           }}
           type="button"
         >
-          {submit.status === 'sending' ? 'Anadiendo…' : 'Anadir a la cesta'}
+          {submit.status === 'sending' ? 'Añadiendo…' : 'Añadir a la cesta'}
         </button>
 
         {/*
@@ -132,7 +132,7 @@ export function ProductActions({ product }: { product: ProductDetail }) {
             <span className={styles.hint}>Elige almacenamiento y color para continuar.</span>
           ) : null}
           {submit.status === 'added' ? (
-            <span className={styles.added}>Producto anadido a la cesta.</span>
+            <span className={styles.added}>Producto añadido a la cesta.</span>
           ) : null}
           {submit.status === 'failed' ? (
             <span className={styles.failed}>{submit.message}</span>

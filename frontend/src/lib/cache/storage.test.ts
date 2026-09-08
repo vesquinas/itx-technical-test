@@ -37,7 +37,7 @@ describe('resolveStorage', () => {
   });
 
   it('degrada a memoria cuando localStorage rechaza la escritura', () => {
-    // Reproduce la navegacion privada de Safari: el objeto existe pero lanza.
+    // Reproduce la navegación privada de Safari: el objeto existe pero lanza.
     vi.spyOn(globalThis.localStorage, 'setItem').mockImplementation(() => {
       throw new DOMException('cuota agotada', 'QuotaExceededError');
     });

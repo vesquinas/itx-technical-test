@@ -6,7 +6,7 @@ import { CartIndicator } from './CartIndicator.tsx';
 import styles from './Header.module.css';
 
 /**
- * Cabecera de la aplicacion, presente en las dos vistas.
+ * Cabecera de la aplicación, presente en las dos vistas.
  *
  * Recibe las migas de pan como prop en lugar de deducirlas de la ruta. El motivo
  * es que la miga de la vista de detalle es el nombre del producto, que solo se

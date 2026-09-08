@@ -2,15 +2,15 @@ import { useCart } from '../cart/useCart.ts';
 import styles from './CartIndicator.module.css';
 
 /**
- * Numero de articulos en la cesta, visible en la cabecera de cualquier vista.
+ * Número de artículos en la cesta, visible en la cabecera de cualquier vista.
  *
  * Dos detalles de accesibilidad:
  *
  * - El icono es decorativo (`aria-hidden`) y el significado va en el texto, de
- *   modo que un lector de pantalla anuncia "Cesta: 2 articulos" y no "imagen".
+ *   modo que un lector de pantalla anuncia "Cesta: 2 artículos" y no "imagen".
  * - Se usa `aria-live="polite"` para que el cambio del contador se anuncie al
- *   anadir un producto: sin eso, quien no ve la pantalla no recibe confirmacion
- *   de que la accion ha surtido efecto.
+ *   añadir un producto: sin eso, quien no ve la pantalla no recibe confirmacion
+ *   de que la acción ha surtido efecto.
  */
 export function CartIndicator() {
   const { count } = useCart();
@@ -35,7 +35,7 @@ export function CartIndicator() {
       <span className={styles.label}>Cesta</span>
       <span aria-live="polite" className={styles.count}>
         <span className="visually-hidden">
-          {count === 1 ? '1 articulo' : `${String(count)} articulos`}
+          {count === 1 ? '1 artículo' : `${String(count)} artículos`}
         </span>
         <span aria-hidden="true">{count}</span>
       </span>

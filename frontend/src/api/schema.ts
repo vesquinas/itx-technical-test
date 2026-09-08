@@ -1,8 +1,8 @@
 /**
- * Traduccion de las respuestas de la API al modelo de dominio.
+ * Traducción de las respuestas de la API al modelo de dominio.
  *
- * Este modulo es la unica frontera donde se acepta `unknown` y se convierte en
- * datos tipados. Todo lo que no encaje se descarta aqui, de modo que ningun
+ * Este modulo es la única frontera donde se acepta `unknown` y se convierte en
+ * datos tipados. Todo lo que no encaje se descarta aquí, de modo que ningún
  * componente tenga que defenderse de un JSON inesperado.
  *
  * ## Particularidades reales de esta API
@@ -10,14 +10,14 @@
  * Verificadas contra https://itx-frontend-test.onrender.com sobre los 100
  * productos del listado y una muestra de sus detalles:
  *
- * 1. `dimentions` y `secondaryCmera` estan mal escritos en el origen.
- * 2. `displayResolution` contiene las pulgadas y `displaySize` los pixeles:
+ * 1. `dimentions` y `secondaryCmera` están mal escritos en el origen.
+ * 2. `displayResolution` contiene las pulgadas y `displaySize` los píxeles:
  *    su contenido esta intercambiado respecto a lo que dicen sus nombres.
  * 3. Diez campos (`cpu`, `os`, `sim`, `primaryCamera`, `secondaryCmera`, `wlan`,
  *    `bluetooth`, `radio`, `usb`, `sensors`) llegan como texto en unos productos
  *    y como lista de textos en otros.
- * 4. `price` es siempre texto y viene vacio en 6 de los 100 productos.
- * 5. `nfc` viene vacio en todos los productos muestreados.
+ * 4. `price` es siempre texto y viene vacío en 6 de los 100 productos.
+ * 5. `nfc` viene vacío en todos los productos muestreados.
  */
 
 import type {
@@ -56,7 +56,7 @@ export const parseProductSummary: Parser<ProductSummary> = (input) => {
 
 /**
  * El listado se acepta siempre que sea un array, descartando los elementos
- * invalidos: un producto corrupto no debe dejar al usuario sin catalogo.
+ * invalidos: un producto corrupto no debe dejar al usuario sin catálogo.
  */
 export const parseProductList: Parser<ProductSummary[]> = (input) => {
   if (!Array.isArray(input)) return undefined;
@@ -131,7 +131,7 @@ export const parseProductDetail: Parser<ProductDetail> = (input) => {
 };
 
 /**
- * `POST /api/cart` responde `{ "count": n }`. Es el numero de articulos que hay
+ * `POST /api/cart` responde `{ "count": n }`. Es el número de artículos que hay
  * en la cesta y es el dato que la cabecera muestra en todas las vistas.
  */
 export const parseCartCount: Parser<number> = (input) => {

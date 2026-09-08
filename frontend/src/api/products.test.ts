@@ -7,7 +7,7 @@ import { ONE_HOUR_MS } from '../lib/cache/index.ts';
 import { ApiError } from './client.ts';
 import { addToCart, clearProductCache, fetchProductDetail, fetchProductList } from './products.ts';
 
-/** Firma acotada de `fetch`: solo lo que la aplicacion usa de verdad. */
+/** Firma acotada de `fetch`: solo lo que la aplicación usa de verdad. */
 type FetchStub = (url: string, init?: RequestInit) => Promise<Response>;
 
 function jsonResponse(payload: unknown, status = 200): Response {

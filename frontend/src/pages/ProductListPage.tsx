@@ -18,35 +18,35 @@ import styles from './ProductListPage.module.css';
 const TRAIL: Crumb[] = [{ label: 'Productos' }];
 
 /**
- * Constante a nivel de modulo en lugar de un `[]` en linea: un array nuevo en
+ * Constante a nivel de modulo en lugar de un `[]` en línea: un array nuevo en
  * cada renderizado invalidaria la memoizacion del filtrado.
  */
 const NO_PRODUCTS: readonly ProductSummary[] = [];
 
-/** Retardo con el que el termino de busqueda se escribe en la URL. */
+/** Retardo con el que el termino de búsqueda se escribe en la URL. */
 const URL_SYNC_DELAY_MS = 350;
 
 function describeResults(total: number, visible: number, query: string): string {
   if (query.trim().length === 0) {
     return total === 1 ? '1 producto' : `${String(total)} productos`;
   }
-  if (visible === 0) return 'Ningun producto coincide con la busqueda';
+  if (visible === 0) return 'Ningún producto coincide con la búsqueda';
   return visible === 1 ? '1 producto encontrado' : `${String(visible)} productos encontrados`;
 }
 
 /**
  * Vista principal: listado de productos con buscador.
  *
- * ## El termino de busqueda vive en la URL
+ * ## El termino de búsqueda vive en la URL
  *
- * Se guarda en el parametro `?q=`, lo que aporta tres cosas gratis: la busqueda
- * se puede compartir por enlace, el boton de atras del navegador funciona como
+ * Se guarda en el parámetro `?q=`, lo que aporta tres cosas gratis: la búsqueda
+ * se puede compartir por enlace, el boton de atrás del navegador funciona como
  * el usuario espera, y volver desde la ficha de un producto recupera la lista
  * filtrada tal y como estaba.
  *
- * El campo mantiene ademas su propio estado local para que la escritura sea
+ * El campo mantiene además su propio estado local para que la escritura sea
  * inmediata, y solo la escritura en la URL va con retardo. Al reves —leer el
- * campo directamente de la URL— cada tecla provocaria una navegacion.
+ * campo directamente de la URL— cada tecla provocaría una navegación.
  */
 export function ProductListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -69,8 +69,8 @@ export function ProductListPage() {
         else next.set('q', trimmed);
         return next;
       },
-      // `replace` para no dejar una entrada en el historial por cada busqueda:
-      // el boton de atras tiene que salir de la lista, no deshacer letra a letra.
+      // `replace` para no dejar una entrada en el historial por cada búsqueda:
+      // el boton de atrás tiene que salir de la lista, no deshacer letra a letra.
       { replace: true },
     );
   }, [debouncedQuery, setSearchParams]);
@@ -82,9 +82,9 @@ export function ProductListPage() {
     <PageLayout trail={TRAIL}>
       <div className={styles.head}>
         <div>
-          <h1 className={styles.title}>Telefonos</h1>
+          <h1 className={styles.title}>Teléfonos</h1>
           <p className={styles.subtitle}>
-            Catalogo completo de dispositivos disponibles.
+            Catálogo completo de dispositivos disponibles.
           </p>
         </div>
 
@@ -103,7 +103,7 @@ export function ProductListPage() {
           {isSlow ? <SlowNotice /> : null}
           {/* Un unico anuncio del estado de carga, en lugar de uno por hueco. */}
           <p aria-live="polite" className="visually-hidden">
-            Cargando el catalogo de productos
+            Cargando el catálogo de productos
           </p>
           <ProductGridSkeleton />
         </>
@@ -128,7 +128,7 @@ export function ProductListPage() {
               }}
               type="button"
             >
-              Ver todo el catalogo
+              Ver todo el catálogo
             </button>
           </div>
         )

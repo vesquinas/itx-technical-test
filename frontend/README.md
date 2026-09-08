@@ -7,7 +7,9 @@ SPA con enrutado en cliente, sin renderizado en servidor y sin navegación entre
 
 ## Cómo ejecutarlo
 
-Requiere Node 20 o superior.
+Requiere **Node `^20.19.0` o `>=22.12.0`**, que es lo que exige Vite 8. Node 20.0–20.18 y toda la
+rama 21 no sirven: el requisito está declarado en `engines` del `package.json`, así que `npm
+install` avisa antes de que falle nada.
 
 ```bash
 npm install
@@ -30,6 +32,7 @@ npm start          # modo desarrollo, en http://localhost:5173
 | `npm run test:watch` | Tests en modo continuo |
 | `npm run test:coverage` | Tests con informe de cobertura |
 | `npm run typecheck` | Solo comprobación de tipos |
+| `npm run check:csp` | Verifica la Content-Security-Policy del HTML compilado |
 
 La URL de la API se puede cambiar con `VITE_API_BASE_URL`; ver [`.env.example`](./.env.example).
 
@@ -144,6 +147,26 @@ añadiría latencia artificial.
 La búsqueda ignora los acentos y exige todas las palabras en cualquier orden, así que «liquid
 acer» encuentra el «Acer Liquid Z6».
 
+### La ficha técnica muestra los atributos obligatorios aunque no haya dato
+
+El enunciado pide mostrar «al menos» once atributos concretos. Ocultar uno porque la API no lo
+trae incumple el requisito, y **no es un caso raro**: sobre los 100 productos del catálogo, 1 de
+cada 5 tiene al menos uno de esos once vacío (el peso falta en 7 productos, la RAM en 4, la cámara
+frontal en 4, la batería y el procesador en 1 cada uno).
+
+Así que las once filas obligatorias se muestran siempre, y cuando no hay dato se dice «No
+disponible». Informa más que hacer desaparecer la fila, que deja al usuario sin saber si el dato
+no existe o si la página está incompleta. Los atributos **adicionales** sí se omiten cuando vienen
+vacíos: `nfc`, por ejemplo, llega vacío en los 100 productos, y una etiqueta sin valor al lado no
+aporta nada.
+
+### El orden de la segunda columna lo fija el wireframe
+
+En la ficha, la descripción va sobre las acciones. Comercialmente se defendería lo contrario —el
+botón de compra cuanto más arriba, mejor— pero el enunciado pide seguir la estructura de las
+capturas, y eso manda sobre la preferencia propia. Hay un test que comprueba el orden en el DOM,
+para que un refactor no lo invierta sin darse cuenta.
+
 ### Los selectores de opciones
 
 Grupos de radios dentro de un `fieldset` con `legend`, no listas de botones ni `<select>`. Es
@@ -187,6 +210,13 @@ correcta no es virtualizar, es paginar en el servidor.
 - Se respeta `prefers-reduced-motion`: el movimiento puede provocar mareo y migraña.
 - Las reglas de `jsx-a11y` están activas en el linter, que falla ante cualquier aviso.
 
+**Y está comprobado, no afirmado.** Hay una auditoría automática con `axe-core` —el motor que
+usan las herramientas de accesibilidad habituales— sobre las dos vistas y en los estados que se
+suelen dejar sin revisar: cargando, con error y con la búsqueda sin resultados. Cero violaciones.
+El linter revisa el código estático; axe revisa el árbol resultante, que es donde aparecen los
+problemas de verdad. (La regla de contraste se desactiva porque jsdom no calcula estilos ni
+geometría; el contraste se eligió a mano en el sistema de diseño.)
+
 ## Seguridad
 
 El alcance real es limitado y conviene decirlo: es una SPA estática contra una API pública sin
@@ -203,6 +233,14 @@ autenticación, sin sesiones ni datos personales. Lo que sí aplica:
   cuando la política llega en una etiqueta `<meta>` y no en una cabecera HTTP. La protección contra
   clickjacking y el HSTS tiene que configurarlos quien sirva los ficheros; no se incluye una
   directiva que no haría nada.
+
+  **La política se verifica en cada compilación** con `npm run check:csp`, que corre también en
+  integración continua. Comprueba sobre el HTML compilado que la política existe y trae sus ocho
+  directivas, que no hay ni un script ni un estilo en línea —la condición que permite prescindir
+  de `unsafe-inline`—, que el documento no referencia orígenes sin declarar y que el origen de la
+  API está permitido para conectarse y para imágenes. Son 18 comprobaciones. Existe porque una CSP
+  mal ajustada no avisa: el navegador bloquea el recurso en silencio, y la política no se aplica
+  en desarrollo, así que el fallo aparecería en producción y en el navegador del usuario.
 - **No se usa `dangerouslySetInnerHTML` en ningún sitio**, y el linter lo prohíbe por
   configuración. React escapa el texto por defecto; el riesgo de XSS aparece justo al salirse
   de ese camino.
@@ -226,7 +264,7 @@ autenticación, sin sesiones ni datos personales. Lo que sí aplica:
 
 ## Tests
 
-140 tests. 97% de cobertura de sentencias y 100% de funciones.
+148 tests. 97% de cobertura de sentencias y 100% de funciones.
 
 ```bash
 npm test

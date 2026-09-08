@@ -3,17 +3,17 @@ import { useId } from 'react';
 import styles from './SearchBar.module.css';
 
 /**
- * Campo de busqueda del listado.
+ * Campo de búsqueda del listado.
  *
- * El filtrado es en tiempo real: cada pulsacion de tecla actualiza el valor y la
+ * El filtrado es en tiempo real: cada pulsación de tecla actualiza el valor y la
  * vista vuelve a filtrar. No se aplica retardo al filtrado porque los productos
- * ya estan en memoria y filtrarlos es inmediato; retrasarlo solo introduciria una
- * latencia artificial. El retardo se aplica unicamente a la escritura del termino
+ * ya están en memoria y filtrarlos es inmediato; retrasarlo solo introduciria una
+ * latencia artificial. El retardo se aplica únicamente a la escritura del termino
  * en la URL, que es lo que no conviene rehacer en cada tecla.
  *
  * `useId` genera el identificador que une etiqueta y campo, en lugar de una
- * constante: si algun dia hubiera dos buscadores en la misma pagina, los `id`
- * seguirian siendo unicos.
+ * constante: si algun dia hubiera dos buscadores en la misma página, los `id`
+ * seguirían siendo únicos.
  */
 export function SearchBar({
   value,
@@ -45,7 +45,7 @@ export function SearchBar({
           }}
           placeholder="Marca o modelo"
           // `search` en lugar de `text`: en movil el teclado muestra la tecla de
-          // busqueda y el navegador ofrece el boton de borrado.
+          // búsqueda y el navegador ofrece el boton de borrado.
           type="search"
           value={value}
         />
@@ -57,7 +57,7 @@ export function SearchBar({
             }}
             type="button"
           >
-            <span className="visually-hidden">Borrar la busqueda</span>
+            <span className="visually-hidden">Borrar la búsqueda</span>
             <span aria-hidden="true">×</span>
           </button>
         ) : null}

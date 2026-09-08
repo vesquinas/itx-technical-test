@@ -61,7 +61,7 @@ describe('asPrice', () => {
   });
 
   it('devuelve null cuando el precio viene vacio', () => {
-    // 6 de los 100 productos de la API llegan asi.
+    // 6 de los 100 productos de la API llegan así.
     expect(asPrice('')).toBeNull();
     expect(asPrice('   ')).toBeNull();
   });

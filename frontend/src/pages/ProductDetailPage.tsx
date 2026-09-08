@@ -18,8 +18,8 @@ import styles from './ProductDetailPage.module.css';
  * Dos columnas, como indica el wireframe: la imagen a la izquierda, y a la
  * derecha las caracteristicas y las acciones. En movil se apilan.
  *
- * El enlace de vuelta conserva la busqueda que traia el usuario (`?q=...`), de
- * modo que regresa a su lista filtrada y no al catalogo completo.
+ * El enlace de vuelta conserva la búsqueda que traia el usuario (`?q=...`), de
+ * modo que regresa a su lista filtrada y no al catálogo completo.
  */
 export function ProductDetailPage() {
   const { productId = '' } = useParams<{ productId: string }>();
@@ -38,7 +38,7 @@ export function ProductDetailPage() {
   const trail: Crumb[] = [
     { label: 'Productos', to: `/${search}` },
     // Mientras carga se muestra un rotulo genérico: el nombre no se conoce hasta
-    // que llega la respuesta, y dejar la miga vacia haria saltar la cabecera.
+    // que llega la respuesta, y dejar la miga vacía haría saltar la cabecera.
     { label: productName.length > 0 ? productName : 'Producto' },
   ];
 
@@ -89,7 +89,7 @@ export function ProductDetailPage() {
                   className={styles.image}
                   decoding="async"
                   // Sin `lazy`: es la imagen principal de la vista y esta visible
-                  // desde el primer instante, asi que diferirla solo la retrasa.
+                  // desde el primer instante, así que diferirla solo la retrasa.
                   src={state.data.imageUrl}
                 />
               ) : (
@@ -99,10 +99,18 @@ export function ProductDetailPage() {
               )}
             </div>
 
-            {/* Segunda columna: detalles y acciones. */}
+            {/*
+              Segunda columna: detalles y acciones, en ese orden.
+
+              El orden lo fija el wireframe del enunciado, que sitúa el bloque de
+              descripción sobre el de acciones. Comercialmente se defendería lo
+              contrario —el botón de compra cuanto más arriba, mejor— pero el
+              enunciado pide seguir la estructura de las capturas, y eso manda
+              sobre la preferencia propia.
+            */}
             <div className={styles.column}>
-              <ProductActions product={state.data} />
               <ProductSpecs product={state.data} />
+              <ProductActions product={state.data} />
             </div>
           </div>
         </article>

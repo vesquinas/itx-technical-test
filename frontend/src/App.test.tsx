@@ -18,9 +18,9 @@ function jsonResponse(payload: unknown): Response {
 }
 
 /**
- * Estos tests recorren la aplicacion completa, con su enrutador real y las
+ * Estos tests recorren la aplicación completa, con su enrutador real y las
  * vistas cargadas en diferido. Comprueban el cableado: que cada URL lleva a la
- * vista que le corresponde y que una URL desconocida no deja la pagina en blanco.
+ * vista que le corresponde y que una URL desconocida no deja la página en blanco.
  */
 describe('App', () => {
   let fetchMock: Mock<FetchStub>;
@@ -40,7 +40,7 @@ describe('App', () => {
 
     render(<App />);
 
-    expect(await screen.findByRole('heading', { level: 1, name: 'Telefonos' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Teléfonos' })).toBeInTheDocument();
   });
 
   it('muestra la ficha en la ruta del producto', async () => {
@@ -57,7 +57,7 @@ describe('App', () => {
     render(<App />);
 
     expect(
-      await screen.findByRole('heading', { level: 1, name: 'Pagina no encontrada' }),
+      await screen.findByRole('heading', { level: 1, name: 'Página no encontrada' }),
     ).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Ir al listado de productos' })).toBeInTheDocument();
   });
@@ -66,7 +66,7 @@ describe('App', () => {
     window.history.pushState({}, '', '/una/ruta/inventada');
 
     render(<App />);
-    await screen.findByRole('heading', { level: 1, name: 'Pagina no encontrada' });
+    await screen.findByRole('heading', { level: 1, name: 'Página no encontrada' });
 
     expect(screen.getByText('Cesta')).toBeInTheDocument();
   });

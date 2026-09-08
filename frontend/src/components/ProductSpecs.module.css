@@ -29,6 +29,12 @@
   color: var(--color-ink-faint);
 }
 
+/* Un atributo obligatorio del que la API no da valor: se dice, no se esconde. */
+.missing {
+  color: var(--color-ink-faint);
+  font-style: italic;
+}
+
 .value {
   color: var(--color-ink);
   /* Los valores de la API traen cadenas largas sin espacios; se permite partir

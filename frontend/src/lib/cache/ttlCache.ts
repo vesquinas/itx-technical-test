@@ -3,20 +3,20 @@ import { isRecord } from '../parse.ts';
 import type { KeyValueStorage } from './storage.ts';
 import { resolveStorage } from './storage.ts';
 
-/** Expiracion exigida por el enunciado. */
+/** Expiración exigida por el enunciado. */
 export const ONE_HOUR_MS = 60 * 60 * 1000;
 
 /**
- * Lo que se guarda realmente en el almacen. Los nombres son cortos porque esto
- * se serializa una vez por producto y `localStorage` tiene una cuota pequena
+ * Lo que se guarda realmente en el almacén. Los nombres son cortos porque esto
+ * se serializa una vez por producto y `localStorage` tiene una cuota pequeña
  * (unos 5 MB por origen).
  */
 interface Envelope {
-  /** Version del formato de los datos. */
+  /** Versión del formato de los datos. */
   v: number;
   /** Instante, en epoch ms, a partir del cual la entrada deja de valer. */
   e: number;
-  /** Carga util, sin validar. */
+  /** Carga útil, sin validar. */
   d: unknown;
 }
 
@@ -35,34 +35,34 @@ export interface TtlCacheOptions {
   /** Tiempo de vida de cada entrada. Por defecto, una hora. */
   ttlMs?: number;
   /**
-   * Version del formato. Subirla invalida de golpe todo lo cacheado, que es lo
+   * Versión del formato. Subirla inválida de golpe todo lo cacheado, que es lo
    * que hay que hacer cuando cambia la forma de los datos: sin esto, un usuario
-   * que ya tuviera la version anterior en su navegador seguiria leyendola.
+   * que ya tuviera la versión anterior en su navegador seguiría leyéndola.
    */
   version?: number;
   storage?: KeyValueStorage;
-  /** Reloj inyectable, para poder probar la expiracion sin esperar una hora. */
+  /** Reloj inyectable, para poder probar la expiración sin esperar una hora. */
   now?: () => number;
 }
 
 /**
- * Cache de cliente con expiracion por entrada.
+ * Caché de cliente con expiración por entrada.
  *
- * Tres decisiones que merecen explicacion:
+ * Tres decisiones que merecen explicación:
  *
  * - **Se valida al leer, no solo al escribir.** Lo que sale de `localStorage` es
- *   texto que el usuario puede haber editado, o que escribio una version
- *   anterior de la aplicacion. Tratarlo como dato de confianza es el error que
- *   convierte una cache en un fallo de seguridad, asi que `get` exige un parser.
+ *   texto que el usuario puede haber editado, o que escribió una versión
+ *   anterior de la aplicación. Tratarlo como dato de confianza es el error que
+ *   convierte una caché en un fallo de seguridad, así que `get` exige un parser.
  *
  * - **Al expirar se borra y se devuelve `undefined`**, de modo que quien llama
  *   revalida contra la API. Es exactamente lo que pide el enunciado. Se valoro
  *   servir el dato caducado mientras se revalida en segundo plano
  *   (stale-while-revalidate), pero eso muestra datos vencidos y el requisito
- *   dice que la informacion "debera revalidarse".
+ *   dice que la información "deberá revalidarse".
  *
- * - **Ningun fallo del almacen se propaga.** La cache es una optimizacion; si no
- *   puede escribir, la aplicacion tiene que seguir funcionando.
+ * - **Ningún fallo del almacén se propaga.** La caché es una optimización; si no
+ *   puede escribir, la aplicación tiene que seguir funcionando.
  */
 export class TtlCache {
   private readonly storage: KeyValueStorage;
@@ -76,8 +76,8 @@ export class TtlCache {
     this.ttlMs = options.ttlMs ?? ONE_HOUR_MS;
     this.version = options.version ?? 1;
     // Closure en lugar de `Date.now` a secas: guardar la referencia directa la
-    // congela en el momento de construir la cache, y entonces sustituir el reloj
-    // (en un test, o con una libreria de tiempo virtual) ya no tiene efecto.
+    // congela en el momento de construir la caché, y entonces sustituir el reloj
+    // (en un test, o con una librería de tiempo virtual) ya no tiene efecto.
     this.now = options.now ?? (() => Date.now());
     this.prefix = `${options.namespace}/v${String(this.version)}/`;
   }
@@ -87,8 +87,8 @@ export class TtlCache {
   }
 
   /**
-   * Devuelve el valor cacheado, o `undefined` si no hay, esta caducado o no
-   * supera la validacion. Las entradas invalidas se eliminan al leerlas para no
+   * Devuelve el valor cacheado, o `undefined` si no hay, está caducado o no
+   * supera la validación. Las entradas inválidas se eliminan al leerlas para no
    * dejar basura acumulada en el navegador.
    */
   get<T>(key: string, parse: Parser<T>): T | undefined {
@@ -129,7 +129,7 @@ export class TtlCache {
     return parsed;
   }
 
-  /** Guarda un valor con la expiracion configurada contada desde ahora. */
+  /** Guarda un valor con la expiración configurada contada desde ahora. */
   set(key: string, data: unknown): void {
     const envelope: Envelope = { v: this.version, e: this.now() + this.ttlMs, d: data };
     const serialized = JSON.stringify(envelope);
@@ -137,13 +137,13 @@ export class TtlCache {
     try {
       this.storage.setItem(this.storageKey(key), serialized);
     } catch {
-      // Lo habitual aqui es haber agotado la cuota. Liberamos lo que es nuestro
-      // y probamos una sola vez mas; si vuelve a fallar, seguimos sin cachear.
+      // Lo habitual aquí es haber agotado la cuota. Liberamos lo que es nuestro
+      // y probamos una sola vez más; si vuelve a fallar, seguimos sin cachear.
       this.clear();
       try {
         this.storage.setItem(this.storageKey(key), serialized);
       } catch {
-        // Sin cache. La aplicacion sigue: ira a la API en cada peticion.
+        // Sin caché. La aplicación sigue: irá a la API en cada petición.
       }
     }
   }
@@ -156,7 +156,7 @@ export class TtlCache {
     }
   }
 
-  /** Elimina unicamente las entradas de este namespace y version. */
+  /** Elimina únicamente las entradas de este namespace y versión. */
   clear(): void {
     try {
       for (const key of this.storage.keys()) {
