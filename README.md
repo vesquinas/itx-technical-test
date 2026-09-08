@@ -1,5 +1,11 @@
 # Technical test — Frontend + Backend
 
+**Live demo of the frontend: https://vesquinas.github.io/itx-technical-test/**
+
+> The first load takes about 40 seconds. That is not the application: the test API is hosted on
+> Render's free tier, which shuts the service down when it receives no traffic, and the first
+> request has to start it back up. The application says so on screen while it waits.
+
 This repository holds both technical tests in a single project, each one in its own folder with
 its own documentation:
 

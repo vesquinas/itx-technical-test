@@ -5,6 +5,10 @@ option selection and add-to-cart.
 
 Single-page application with client-side routing, no server rendering and no document navigation.
 
+**Live demo: https://vesquinas.github.io/itx-technical-test/** — published from this repository on
+every push to `main`, so it can be tried without installing anything. The API allows cross-origin
+requests, so the demo is fully functional, adding products to the cart included.
+
 ## Language
 
 Code, comments and documentation are in English. **The user-facing copy is in Spanish**, because
