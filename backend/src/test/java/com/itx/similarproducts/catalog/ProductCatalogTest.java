@@ -52,7 +52,8 @@ class ProductCatalogTest {
                 Duration.ofSeconds(1),
                 Duration.ofMinutes(5),
                 Duration.ofMinutes(1),
-                Duration.ofSeconds(10));
+                Duration.ofSeconds(10),
+                50);
 
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(
                 HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build());
@@ -78,6 +79,24 @@ class ProductCatalogTest {
         existingApi.stubFor(get(urlEqualTo("/product/y")).willReturn(aResponse().withStatus(500)));
 
         assertThat(catalog.lookupDetail("y").join()).isInstanceOf(ProductLookup.Unavailable.class);
+    }
+
+    @Test
+    void trata_un_429_del_detalle_como_no_disponible_y_no_como_inexistente() {
+        // La diferencia importa porque cada caso se recuerda en cache un tiempo distinto:
+        // "no existe" un minuto, "ha fallado" solo unos segundos.
+        existingApi.stubFor(get(urlEqualTo("/product/t")).willReturn(aResponse().withStatus(429)));
+
+        assertThat(catalog.lookupDetail("t").join())
+                .isInstanceOf(ProductLookup.Unavailable.class);
+    }
+
+    @Test
+    void trata_un_403_del_detalle_como_no_disponible() {
+        existingApi.stubFor(get(urlEqualTo("/product/s")).willReturn(aResponse().withStatus(403)));
+
+        assertThat(catalog.lookupDetail("s").join())
+                .isInstanceOf(ProductLookup.Unavailable.class);
     }
 
     @Test

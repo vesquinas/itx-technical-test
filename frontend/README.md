@@ -107,6 +107,7 @@ lugar de repartir esos arreglos por los componentes:
 | Nombres mal escritos en el origen | `dimentions` y `secondaryCmera` | Se leen con su nombre real y se exponen bien escritos |
 | Diez campos cambian de tipo según el producto | `cpu`, `os`, `sim`, `primaryCamera`, `wlan`, `sensors`… llegan como texto o como lista | Se normalizan siempre a `string[]` |
 | Precio vacío | `price` es texto y viene `""` en 6 de los 100 productos | Se traduce a `null`, y la interfaz muestra «Precio no disponible» |
+| Direcciones de imagen | Llegan como texto sin validar | Se aceptan solo URLs absolutas `http`/`https`; el resto se descarta y se muestra «Sin imagen» |
 | Campos vacíos | `nfc` viene vacío en todos los productos muestreados | Las filas sin valor se omiten de la ficha |
 
 Lo del tipo variable no es cosmético: **React renderiza un array concatenando sus elementos
@@ -191,6 +192,17 @@ correcta no es virtualizar, es paginar en el servidor.
 El alcance real es limitado y conviene decirlo: es una SPA estática contra una API pública sin
 autenticación, sin sesiones ni datos personales. Lo que sí aplica:
 
+- **Content-Security-Policy** en la compilación de producción, generada a partir del origen de la
+  API configurado. Es estricta —`script-src 'self'` y `style-src 'self'`, sin `unsafe-inline`—
+  porque se comprobó que la aplicación no tiene ni un script ni un estilo en línea: los estilos
+  son CSS Modules, que salen como ficheros enlazados, y no se usa el atributo `style` en ningún
+  componente. Se inyecta solo al compilar, porque el servidor de desarrollo necesita scripts en
+  línea para la recarga en caliente.
+
+  Con una limitación que conviene decir: `frame-ancestors`, `report-uri` y `sandbox` **se ignoran**
+  cuando la política llega en una etiqueta `<meta>` y no en una cabecera HTTP. La protección contra
+  clickjacking y el HSTS tiene que configurarlos quien sirva los ficheros; no se incluye una
+  directiva que no haría nada.
 - **No se usa `dangerouslySetInnerHTML` en ningún sitio**, y el linter lo prohíbe por
   configuración. React escapa el texto por defecto; el riesgo de XSS aparece justo al salirse
   de ese camino.
@@ -200,6 +212,12 @@ autenticación, sin sesiones ni datos personales. Lo que sí aplica:
 - **Las URLs se construyen codificando cada segmento**, de modo que un identificador que
   contenga `../` o `?` no pueda alterar la ruta ni añadir parámetros. Hay un test que lo
   comprueba.
+- **Las direcciones de imagen que da la API se validan**: solo se aceptan URLs absolutas con
+  esquema `http` o `https`. Esas direcciones acaban en el atributo `src` de una imagen, y
+  comprobar el esquema evita que un origen comprometido —o simplemente equivocado— cuele un
+  `javascript:`, un `data:` o un `blob:` donde debería haber una foto. Los navegadores actuales no
+  ejecutan `javascript:` en un `<img>`, pero apoyarse en eso es apoyarse en el navegador y no en
+  el código propio.
 - **Enlaces externos con `rel="noreferrer"`**, obligado por el linter.
 - **Dependencias mínimas**: react, react-dom y react-router en producción. Menos dependencias,
   menos superficie de cadena de suministro. Se auditan en integración continua.
@@ -208,7 +226,7 @@ autenticación, sin sesiones ni datos personales. Lo que sí aplica:
 
 ## Tests
 
-134 tests. 97% de cobertura de sentencias y 100% de funciones.
+140 tests. 97% de cobertura de sentencias y 100% de funciones.
 
 ```bash
 npm test
@@ -224,6 +242,11 @@ Se reparten en tres niveles:
   verdad: filtrar, no encontrar nada y salir del estado vacío, seleccionar opciones, añadir a
   la cesta y ver el contador en la cabecera, y los fallos de red, 404 y respuesta malformada
   con su reintento.
+
+Uno de ellos merece mención porque cubre una carrera real que apareció en la revisión final: si el
+usuario cambiaba de color con la petición de añadir en vuelo, al llegar la respuesta se anunciaba
+«producto añadido» para una selección distinta de la que se había enviado. Los selectores ahora se
+bloquean mientras se envía, y el test lo comprueba dejando la petición sin resolver.
 
 Las consultas se hacen por rol y por nombre accesible, no por clase CSS ni por identificador
 de test: si un test encuentra el botón como lo encontraría un lector de pantalla, la

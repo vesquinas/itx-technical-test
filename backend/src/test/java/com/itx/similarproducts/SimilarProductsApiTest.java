@@ -199,6 +199,80 @@ class SimilarProductsApiTest {
     }
 
     @Test
+    void tolera_un_identificador_nulo_en_la_lista_de_similares() {
+        // Un `null` dentro del array JSON llega como elemento nulo de la lista, y
+        // `List.copyOf` rechaza los nulos con NullPointerException.
+        stubSimilarIds("n1", "[\"n2\",null,\"n3\"]");
+        stubProduct("n2", "Dress", 19.99);
+        stubProduct("n3", "Blazer", 29.99);
+
+        ResponseEntity<List<ProductDetail>> response = getSimilar("n1");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).extracting(ProductDetail::id).containsExactly("n2", "n3");
+    }
+
+    @Test
+    void descarta_los_identificadores_vacios_sin_llamar_a_la_api() {
+        stubSimilarIds("o1", "[\"\",\"  \",\"o2\"]");
+        stubProduct("o2", "Dress", 19.99);
+
+        List<ProductDetail> products = getSimilar("o1").getBody();
+
+        assertThat(products).extracting(ProductDetail::id).containsExactly("o2");
+        // Un identificador vacio produciria una llamada a /product/, que no significa nada.
+        existingApi.verify(0, WireMock.getRequestedFor(urlEqualTo("/product/")));
+    }
+
+    @Test
+    void devuelve_502_y_no_404_cuando_la_api_existente_limita_las_peticiones() {
+        // Un 429 no significa "el producto no existe": significa "vuelve luego".
+        existingApi.stubFor(get(urlEqualTo("/product/r9/similarids"))
+                .willReturn(aResponse().withStatus(429)));
+
+        assertThat(getSimilarRaw("r9").getStatusCode()).isEqualTo(HttpStatus.BAD_GATEWAY);
+    }
+
+    @Test
+    void omite_un_similar_cuyo_detalle_llega_sin_identificador() {
+        stubSimilarIds("s9", "[\"s8\",\"s7\"]");
+        stubProduct("s8", "Dress", 19.99);
+        existingApi.stubFor(get(urlEqualTo("/product/s7")).willReturn(aResponse()
+                .withStatus(200)
+                .withHeader("Content-Type", "application/json")
+                .withBody("{\"name\":\"Sin identificador\",\"price\":9.99,\"availability\":true}")));
+
+        List<ProductDetail> products = getSimilar("s9").getBody();
+
+        // Sin identificador el producto no es utilizable, y devolverlo incumpliria el contrato,
+        // que declara `id` obligatorio.
+        assertThat(products).extracting(ProductDetail::id).containsExactly("s8");
+    }
+
+    @Test
+    void rechaza_un_identificador_desmesurado_sin_llegar_a_la_api() {
+        String largo = "a".repeat(3_000);
+
+        ResponseEntity<String> response = getSimilarRaw(largo);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        // Lo importante: no se reenvia al origen ni se convierte en una clave de cache.
+        existingApi.verify(0, WireMock.getRequestedFor(
+                urlEqualTo("/product/" + largo + "/similarids")));
+    }
+
+    @Test
+    void responde_a_una_ruta_desconocida_sin_revelar_como_esta_construido_el_servicio() {
+        ResponseEntity<String> response =
+                restTemplate.getForEntity("/una/ruta/inventada", String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        // Por omision, Spring responde "No static resource <ruta>." y devuelve al cliente la
+        // ruta que envio. Ni una cosa ni la otra le sirven a nadie mas que a quien explora.
+        assertThat(response.getBody()).doesNotContain("static resource");
+    }
+
+    @Test
     void no_vuelve_a_llamar_a_la_api_para_un_detalle_ya_cacheado() {
         stubSimilarIds("k1", "[\"k2\"]");
         stubProduct("k2", "Dress", 19.99);

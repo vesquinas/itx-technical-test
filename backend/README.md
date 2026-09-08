@@ -21,14 +21,22 @@ docker compose up -d simulado influxdb grafana
 curl http://localhost:5000/product/1/similar
 ```
 
+La API escucha en el **5000**. Los endpoints de gestión están en el **5001**
+(`http://localhost:5001/actuator/health`), separados a propósito: ver [Seguridad](#seguridad).
+
 ### Tests
 
 ```bash
 ./mvnw test
 ```
 
-22 tests. No necesitan Docker: la API existente se sustituye por un doble de WireMock que
+31 tests. No necesitan Docker: la API existente se sustituye por un doble de WireMock que
 reproduce los mismos casos que el simulador, con sus retardos, sus 404 y sus 500.
+
+Nueve de ellos se escribieron durante la revisión final, cada uno reproduciendo un fallo real
+antes de arreglarlo: el nulo en la lista de similares, los identificadores vacíos, el 429 tratado
+como «no existe», el detalle sin identificador, la amplificación sin tope, el identificador
+desmesurado y el mensaje de la ruta desconocida.
 
 ### Prueba de carga
 
@@ -55,8 +63,15 @@ Y los casos de error de la petición en sí:
 
 | Situación | Respuesta | Por qué |
 | --- | --- | --- |
-| El producto de la petición no existe | **404** | Lo indica el contrato |
-| La API existente falla al dar los similares | **502** | El fallo es de una dependencia, no nuestro. Un 500 diría que el error es del servicio, y un 200 con lista vacía mentiría diciendo que ese producto no tiene similares |
+| El producto de la petición no existe (404 del origen) | **404** | Lo indica el contrato |
+| La API existente falla o limita las peticiones (500, 429, 403…) | **502** | El fallo es de una dependencia, no nuestro. Un 500 diría que el error es del servicio, y un 200 con lista vacía mentiría diciendo que ese producto no tiene similares |
+| Identificador de más de 128 caracteres | **400** | Se rechaza antes de reenviarlo al origen y de convertirlo en clave de caché |
+| Ruta desconocida | **404** | Con un mensaje genérico, sin devolver la ruta recibida |
+
+**Solo el 404 significa «no existe».** Un 429 o un 403 son problemas de la dependencia, y
+traducirlos a 404 le diría al cliente que el producto no existe cuando lo que ocurre es que no
+hemos podido preguntar. La distinción importa además porque cada caso se recuerda en caché un
+tiempo distinto: un minuto «no existe», diez segundos «ha fallado».
 
 ## Las tres decisiones que determinan el rendimiento
 
@@ -142,6 +157,18 @@ El efecto es el de un cortacircuitos en el sitio correcto: el primer intento pag
 durante los segundos siguientes ese producto se descarta al instante mientras el resto se sigue
 atendiendo con normalidad.
 
+### Tope al número de similares
+
+Sin un límite, **una** petición a este servicio se convierte en tantas llamadas al origen como
+elementos tenga la lista de similares, y ese número lo decide el origen, no nosotros. Es una
+amplificación que conviene acotar: hay un tope configurable (50 por omisión) y, como la lista
+viene ordenada por similitud, el recorte se queda con los más parecidos.
+
+La lista se sanea además antes de cachearla: se descartan los identificadores nulos y vacíos y se
+eliminan los duplicados conservando el orden. Lo de los nulos no es hipotético: un `null` dentro
+del array JSON llega como elemento nulo de la lista, y `List.copyOf` los rechaza con
+`NullPointerException`, así que **un solo nulo en el origen tumbaba la petición con un 500**.
+
 ### Resultados parciales antes que ningún resultado
 
 Un similar que no existe, que falla o que tarda demasiado se omite de la respuesta. El contrato
@@ -160,15 +187,30 @@ del que tarda 50, que nunca merece la espera.
 
 - **Imagen sin privilegios.** El contenedor corre como usuario `spring`, no como root, y la imagen
   final lleva solo el JRE: sin JDK ni herramientas de compilación.
-- **Endpoints de gestión restringidos** a salud, información y métricas. Exponerlos todos publica
-  la configuración, las variables de entorno y los volcados de hilos.
+- **Los endpoints de gestión viven en su propio puerto** (5001), que en un despliegue real queda
+  accesible solo desde la red interna. En el puerto público no hay nada más que la API. Importa
+  más de lo que parece: `/actuator/metrics` permite enumerar 44 métricas sin autenticar, entre
+  ellas el espacio libre en disco e interioridades de la JVM.
+- **Y aun ahí, solo lo necesario**: salud, información y métricas. Exponerlos todos publica la
+  configuración, las variables de entorno y los volcados de hilos y de memoria.
 - **Los detalles de salud no se publican** (`show-details: never`): revelan los servicios de los
   que depende el sistema.
+- **El tamaño del identificador está acotado** a 128 caracteres. Sin ese límite, cualquiera puede
+  pedir identificadores arbitrariamente largos, y cada uno se reenvía al origen y se convierte en
+  una clave de caché nueva: es una vía cómoda para desalojar las entradas buenas y para generar
+  una llamada al origen por cada petición recibida.
+- **El detalle que llega del origen se valida** antes de aceptarlo. Un producto sin los campos que
+  el contrato declara obligatorios se descarta: devolverlo nos convertiría en el origen del
+  incumplimiento para nuestros clientes.
 - **No se anuncia el servidor ni su versión** en las respuestas. Es información que solo le sirve a
   quien busca una vulnerabilidad conocida.
 - **Los mensajes de error no incluyen la excepción ni su traza.** Los errores son una vía habitual
   de filtración: rutas del sistema, nombres de host internos, versiones de librerías. El detalle
-  técnico va al registro del servidor.
+  técnico va al registro del servidor. Incluye el caso de una ruta desconocida: por omisión Spring
+  responde `"No static resource <ruta>."`, que revela que detrás hay un servidor de recursos
+  estáticos y devuelve al cliente la ruta que él mismo envió.
+- **No se anuncian el servidor ni su versión** en las respuestas (verificado: no hay cabecera
+  `Server`).
 - **Los identificadores se pasan como variables de plantilla de URI** (`/product/{productId}`), no
   concatenados, de modo que el cliente HTTP los codifica y no pueden alterar la ruta.
 - **Dependencias mínimas**: web, caché, actuator y validación. Menos superficie de cadena de
@@ -193,8 +235,12 @@ esperándola igualmente.
 
 ## Qué haría con más tiempo
 
-- Un *bulkhead* que limite las llamadas concurrentes al origen. Ahora las acotan la caché y el
-  pool de conexiones, que basta a esta escala, pero no es un límite explícito.
+- Un *bulkhead* que limite las llamadas concurrentes al origen. Ahora las acotan la caché, el tope
+  de similares y el pool de conexiones, que basta a esta escala, pero no es un límite explícito.
+- Limitación de peticiones por cliente. El tope de similares acota la amplificación por petición,
+  pero no el número de peticiones, y un cliente que pida identificadores distintos sin parar sigue
+  pudiendo desalojar la caché. Corresponde a la pasarela más que a este servicio, pero conviene
+  decir que aquí no está.
 - Métricas propias de aciertos de caché y de similares omitidos por tiempo agotado, que es lo que
   querría vigilar en producción.
 - Contract testing contra el `similarProducts.yaml`, para que el contrato se verifique solo.

@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { asArrayOf, asPositiveInteger, asPrice, asText, asTextList, isRecord } from './parse.ts';
+import {
+  asArrayOf,
+  asHttpUrl,
+  asPositiveInteger,
+  asPrice,
+  asText,
+  asTextList,
+  isRecord,
+} from './parse.ts';
 
 describe('isRecord', () => {
   it('acepta objetos planos y rechaza el resto', () => {
@@ -69,6 +77,33 @@ describe('asPrice', () => {
   it('acepta un numero ya tipado', () => {
     expect(asPrice(170)).toBe(170);
     expect(asPrice(0)).toBe(0);
+  });
+});
+
+describe('asHttpUrl', () => {
+  it('acepta las direcciones de imagen que devuelve la API', () => {
+    const url = 'https://itx-frontend-test.onrender.com/images/abc.jpg';
+
+    expect(asHttpUrl(url)).toBe(url);
+  });
+
+  it('acepta http, no solo https', () => {
+    expect(asHttpUrl('http://ejemplo.test/foto.jpg')).toBe('http://ejemplo.test/foto.jpg');
+  });
+
+  it('rechaza los esquemas que no deberian acabar en un atributo src', () => {
+    expect(asHttpUrl('javascript:alert(1)')).toBe('');
+    expect(asHttpUrl('data:image/svg+xml,<svg onload="alert(1)"/>')).toBe('');
+    expect(asHttpUrl('blob:https://ejemplo.test/abc')).toBe('');
+    expect(asHttpUrl('vbscript:msgbox(1)')).toBe('');
+  });
+
+  it('rechaza lo que no es una URL absoluta', () => {
+    expect(asHttpUrl('/images/abc.jpg')).toBe('');
+    expect(asHttpUrl('no soy una url')).toBe('');
+    expect(asHttpUrl('')).toBe('');
+    expect(asHttpUrl(undefined)).toBe('');
+    expect(asHttpUrl(42)).toBe('');
   });
 });
 

@@ -54,7 +54,12 @@ function toApiError(cause: unknown): ApiError {
  * usuario navega de un producto a otro y la primera respuesta llega despues de la
  * segunda, su identificador ya no coincide y se descarta.
  *
- * `load` tiene que ser estable (envuelta en `useCallback` por quien llama).
+ * `load` tiene que ser estable (envuelta en `useCallback` por quien llama), y `key` tiene que
+ * cambiar **siempre** que cambie `load`. Es el contrato del hook: el estado de carga se deriva
+ * comparando identificadores, asi que si `load` pasara a apuntar a otro recurso sin cambiar la
+ * clave, la vista mostraria los datos del recurso anterior mientras llega el nuevo. Las dos
+ * llamadas de esta aplicacion lo cumplen por construccion, porque `key` se compone de las mismas
+ * dependencias que la `useCallback` de `load`.
  */
 export function useAsyncResource<T>(
   /** Identifica el recurso pedido. Al cambiar, se vuelve a cargar. */

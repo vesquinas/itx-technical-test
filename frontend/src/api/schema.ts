@@ -30,6 +30,7 @@ import type {
 import type { Parser } from '../lib/parse.ts';
 import {
   asArrayOf,
+  asHttpUrl,
   asPositiveInteger,
   asPrice,
   asText,
@@ -49,7 +50,7 @@ export const parseProductSummary: Parser<ProductSummary> = (input) => {
     brand: asText(input['brand']),
     model: asText(input['model']),
     price: asPrice(input['price']),
-    imageUrl: asText(input['imgUrl']),
+    imageUrl: asHttpUrl(input['imgUrl']),
   };
 };
 

@@ -30,7 +30,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(properties = {
         "existing-api.read-timeout=400ms",
         "existing-api.fan-out-timeout=600ms",
-        "existing-api.unavailable-ttl=2s"
+        "existing-api.unavailable-ttl=2s",
+        "existing-api.max-similar-products=3"
 })
 class SimilarProductsResilienceTest {
 
@@ -113,6 +114,27 @@ class SimilarProductsResilienceTest {
 
         assertThat(existingApi.findAll(WireMock.getRequestedFor(urlEqualTo("/product/r2"))))
                 .hasSize(llamadasTrasElPrimerIntento);
+    }
+
+    @Test
+    void acota_cuantos_similares_resuelve_por_peticion() {
+        // Sin tope, una lista de similares larga convierte UNA peticion a este servicio en
+        // tantas llamadas al origen como elementos tenga. Es una amplificacion que un cliente
+        // puede provocar y que hay que acotar.
+        StringBuilder ids = new StringBuilder("[");
+        for (int i = 0; i < 30; i++) {
+            if (i > 0) ids.append(',');
+            ids.append('"').append("z").append(i).append('"');
+            stubProduct("z" + i, "Producto " + i, 0);
+        }
+        stubSimilarIds("z1000", ids.append(']').toString());
+
+        List<ProductDetail> products = service.findSimilarProducts("z1000");
+
+        assertThat(products).hasSize(3);
+        assertThat(existingApi.findAll(WireMock.getRequestedFor(
+                com.github.tomakehurst.wiremock.client.WireMock.urlMatching("/product/z\\d+"))))
+                .hasSize(3);
     }
 
     @Test

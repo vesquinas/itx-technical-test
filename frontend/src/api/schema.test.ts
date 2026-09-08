@@ -34,6 +34,18 @@ describe('parseProductSummary', () => {
     expect(parseProductSummary(sinPrecio)?.price).toBeNull();
   });
 
+  it('descarta una direccion de imagen con un esquema peligroso', () => {
+    const parsed = parseProductSummary({
+      ...productListFixture[0],
+      imgUrl: 'javascript:alert(document.domain)',
+    });
+
+    // El producto sigue siendo utilizable; lo que se descarta es la imagen, y la interfaz
+    // muestra "Sin imagen" en su lugar.
+    expect(parsed?.id).toBe('ZmGrkLRPXOTpxsU4jjAcv');
+    expect(parsed?.imageUrl).toBe('');
+  });
+
   it('rechaza un producto sin id, porque no se puede enrutar ni consultar', () => {
     expect(parseProductSummary({ brand: 'Acer', model: 'X960' })).toBeUndefined();
     expect(parseProductSummary({ id: '  ', brand: 'Acer' })).toBeUndefined();

@@ -16,7 +16,8 @@ import org.springframework.context.annotation.Configuration;
  * implementa {@code AutoCloseable}, cerrarlo dentro de un {@code try-with-resources} <b>espera a
  * que terminen todas las tareas</b>. Eso convertiría en inútil el presupuesto de tiempo de la
  * petición: tras descartar una llamada lenta, el cierre del ejecutor se quedaría esperándola
- * igualmente. Con un ejecutor compartido, la tarea abandonada se cancela y la petición responde.
+ * igualmente. Con un ejecutor compartido, la petición responde de inmediato y la carga descartada
+ * termina por su cuenta, dejando el producto en la caché.
  *
  * <p>Se destruye con {@code shutdownNow} en lugar de {@code shutdown} para que al parar la
  * aplicación no se quede esperando a las llamadas en vuelo.

@@ -56,15 +56,31 @@ existing-api:
   # Es lo que hace de cortacircuitos con granularidad por producto.
   unavailable-ttl: 10s
 
+  # Tope de similares que se resuelven por peticion. Acota la amplificacion: sin el,
+  # UNA peticion a este servicio se convierte en tantas llamadas al origen como
+  # elementos tenga la lista, y ese numero lo decide el origen y no nosotros.
+  # La lista viene ordenada por similitud, asi que el recorte deja los mas parecidos.
+  max-similar-products: 50
+
 management:
+  server:
+    # Los endpoints de gestion viven en su propio puerto, que en un despliegue real
+    # queda accesible solo desde la red interna. En el puerto publico (5000) no hay
+    # nada mas que la API.
+    #
+    # Importa mas de lo que parece: /actuator/metrics permite enumerar 44 metricas sin
+    # autenticar, entre ellas espacio libre en disco e interioridades de la JVM. Es
+    # informacion que no le sirve a un cliente y si a quien esta explorando el sistema.
+    port: 5001
   endpoints:
     web:
       exposure:
-        # Solo salud y metricas. Exponer todos los endpoints de gestion publica la
-        # configuracion, las variables de entorno y los volcados de hilos.
+        # Y aun ahi, solo lo necesario: exponerlos todos publica la configuracion, las
+        # variables de entorno y los volcados de hilos y de memoria.
         include: health,info,metrics
   endpoint:
     health:
+      # Los detalles enumeran los servicios de los que depende el sistema.
       show-details: never
 
 logging:

@@ -84,6 +84,10 @@ export function ProductActions({ product }: { product: ProductDetail }) {
   return (
     <div className={styles.actions}>
       <OptionPicker
+        // Los selectores se bloquean mientras se envia. Sin esto, cambiar de color con la
+        // peticion en vuelo dejaba un mensaje enganoso: al llegar la respuesta se anunciaba
+        // "producto anadido" para una seleccion que no era la que se habia enviado.
+        disabled={submit.status === 'sending'}
         legend="Almacenamiento"
         onSelect={(code) => {
           setStorageCode(code);
@@ -96,6 +100,7 @@ export function ProductActions({ product }: { product: ProductDetail }) {
       />
 
       <OptionPicker
+        disabled={submit.status === 'sending'}
         legend="Color"
         onSelect={(code) => {
           setColorCode(code);

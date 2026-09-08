@@ -63,5 +63,16 @@
     // Reglas de estilo de unicorn que chocan con el idioma habitual de React.
     "unicorn/no-array-for-each": "off",
     "unicorn/prefer-query-selector": "off"
-  }
+  },
+  "overrides": [
+    {
+      // En los tests, una URL `javascript:` es el dato de entrada de la comprobacion:
+      // son justamente los tests que verifican que esas URLs se rechazan. La regla
+      // busca `javascript:` en atributos que el navegador ejecuta, no en datos de test.
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "rules": {
+        "no-script-url": "off"
+      }
+    }
+  ]
 }

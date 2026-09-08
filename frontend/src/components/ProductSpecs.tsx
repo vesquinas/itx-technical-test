@@ -1,3 +1,5 @@
+import { useId } from 'react';
+
 import type { ProductDetail } from '../domain/product.ts';
 import { formatPrice, formatWeight, joinSpecs } from '../lib/format.ts';
 import styles from './ProductSpecs.module.css';
@@ -66,11 +68,15 @@ function buildRows(product: ProductDetail): Row[] {
  * entre cada etiqueta y su valor para un lector de pantalla.
  */
 export function ProductSpecs({ product }: { product: ProductDetail }) {
+  // `useId` en lugar de un identificador fijo: dos fichas en la misma pagina producirian
+  // identificadores duplicados, que es un error de accesibilidad y hace que `aria-labelledby`
+  // apunte al elemento equivocado.
+  const headingId = useId();
   const rows = buildRows(product);
 
   return (
-    <section aria-labelledby="ficha-tecnica">
-      <h2 className={styles.heading} id="ficha-tecnica">
+    <section aria-labelledby={headingId}>
+      <h2 className={styles.heading} id={headingId}>
         Caracteristicas
       </h2>
       <dl className={styles.list}>

@@ -1,7 +1,24 @@
+import type { KeyValueStorage } from '../lib/cache/index.ts';
 import { resolveStorage } from '../lib/cache/index.ts';
 import { asPositiveInteger } from '../lib/parse.ts';
 
 const STORAGE_KEY = 'itx-cart-count';
+
+/**
+ * El almacen se resuelve una sola vez y se recuerda.
+ *
+ * `resolveStorage` comprueba que se puede escribir de verdad, y para eso escribe y borra una
+ * clave de sondeo. Llamarlo en cada lectura y en cada escritura del contador convertia dos
+ * operaciones en seis, y dejaba una escritura de sondeo por cada vez que se pinta la cabecera.
+ * Se resuelve de forma perezosa, en el primer uso, para no tocar el almacenamiento al importar
+ * el modulo.
+ */
+let resolved: KeyValueStorage | undefined;
+
+function storage(): KeyValueStorage {
+  resolved ??= resolveStorage();
+  return resolved;
+}
 
 /**
  * Persistencia del contador de la cesta.
@@ -16,7 +33,7 @@ const STORAGE_KEY = 'itx-cart-count';
  * validos.
  */
 export function readCartCount(): number {
-  const raw = resolveStorage().getItem(STORAGE_KEY);
+  const raw = storage().getItem(STORAGE_KEY);
   if (raw === null) return 0;
 
   const parsed = Number(raw);
@@ -24,5 +41,5 @@ export function readCartCount(): number {
 }
 
 export function writeCartCount(count: number): void {
-  resolveStorage().setItem(STORAGE_KEY, String(count));
+  storage().setItem(STORAGE_KEY, String(count));
 }

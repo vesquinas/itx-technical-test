@@ -3,7 +3,6 @@ package com.itx.similarproducts.service;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -79,9 +78,10 @@ public class SimilarProductsService {
      * @throws com.itx.similarproducts.catalog.ProductNotFoundException si el producto no existe
      */
     public List<ProductDetail> findSimilarProducts(String productId) {
-        // `LinkedHashSet` cumple dos requisitos del contrato de una vez: la lista es de elementos
-        // únicos y conserva el orden de similitud que informa la API.
-        List<String> ids = List.copyOf(new LinkedHashSet<>(catalog.similarIds(productId)));
+        // La lista llega ya saneada del catálogo: sin nulos ni vacíos, sin duplicados, en orden
+        // de similitud y acotada en número. Se normaliza allí y no aquí para que lo que se
+        // cachea sea lo ya saneado, y para que el tope acote también lo que se guarda en memoria.
+        List<String> ids = catalog.similarIds(productId);
         if (ids.isEmpty()) {
             return List.of();
         }

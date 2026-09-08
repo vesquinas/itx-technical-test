@@ -56,6 +56,17 @@
   color: var(--color-ink);
 }
 
+/* Mientras hay una accion en curso, el grupo no responde ni lo aparenta. */
+.group:disabled .chip {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.group:disabled .chip:hover {
+  border-color: var(--color-hairline-strong);
+  color: var(--color-ink-muted);
+}
+
 .input:checked + .chip {
   border-color: var(--color-accent);
   background-color: var(--color-accent);

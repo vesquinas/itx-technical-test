@@ -18,6 +18,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param successTtl     cuánto se conserva en caché un producto encontrado
  * @param missingTtl     cuánto se recuerda que un producto no existe
  * @param unavailableTtl cuánto se recuerda que un producto falló o tardó demasiado
+ * @param maxSimilarProducts tope de similares que se resuelven por petición
  */
 @ConfigurationProperties(prefix = "existing-api")
 public record ExistingApiProperties(
@@ -27,5 +28,6 @@ public record ExistingApiProperties(
         Duration fanOutTimeout,
         Duration successTtl,
         Duration missingTtl,
-        Duration unavailableTtl) {
+        Duration unavailableTtl,
+        int maxSimilarProducts) {
 }

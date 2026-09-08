@@ -188,6 +188,35 @@ describe('ProductDetailPage', () => {
       expect(await screen.findByText('Producto anadido a la cesta.')).toBeInTheDocument();
     });
 
+    it('bloquea los selectores mientras la peticion esta en vuelo', async () => {
+      // Sin esto, cambiar de color con la peticion en curso hacia que al llegar la respuesta
+      // se anunciara "producto anadido" para una seleccion distinta de la que se envio.
+      const user = userEvent.setup();
+      renderDetail();
+      await screen.findByRole('heading', { level: 1, name: 'X960' });
+
+      let resolverPeticion: (() => void) | undefined;
+      fetchMock.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolverPeticion = () => {
+              resolve(jsonResponse({ count: 1 }));
+            };
+          }),
+      );
+
+      await user.click(screen.getByRole('button', { name: 'Anadir a la cesta' }));
+
+      expect(screen.getByRole('radio', { name: 'Black' })).toBeDisabled();
+      expect(screen.getByRole('radio', { name: '256 MB ROM' })).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Anadiendo…' })).toBeDisabled();
+
+      resolverPeticion?.();
+
+      expect(await screen.findByText('Producto anadido a la cesta.')).toBeInTheDocument();
+      expect(screen.getByRole('radio', { name: 'Black' })).toBeEnabled();
+    });
+
     it('avisa si la peticion falla y no toca el contador', async () => {
       const user = userEvent.setup();
       renderDetail();

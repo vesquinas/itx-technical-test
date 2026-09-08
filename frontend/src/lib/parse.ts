@@ -48,6 +48,30 @@ export function asPrice(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+/**
+ * Acepta unicamente URLs absolutas con esquema http o https.
+ *
+ * La API entrega las direcciones de las fotos, y esas direcciones acaban en el atributo `src`
+ * de una imagen. Comprobar el esquema evita que un origen comprometido —o simplemente
+ * equivocado— cuele un `javascript:`, un `data:` o un `blob:` donde deberia haber una foto.
+ * Los navegadores actuales no ejecutan `javascript:` en un `<img>`, pero apoyarse en eso es
+ * apoyarse en el navegador y no en el codigo propio.
+ *
+ * Solo se admiten absolutas porque es lo que devuelve esta API en los 100 productos del
+ * catalogo. Una relativa se descarta, y la interfaz muestra "Sin imagen" en su lugar.
+ */
+export function asHttpUrl(value: unknown): string {
+  const text = asText(value);
+  if (text.length === 0) return '';
+
+  try {
+    const url = new URL(text);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : '';
+  } catch {
+    return '';
+  }
+}
+
 export function asPositiveInteger(value: unknown): number | undefined {
   if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) return undefined;
   return value;

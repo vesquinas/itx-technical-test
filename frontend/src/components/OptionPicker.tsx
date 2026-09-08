@@ -24,16 +24,21 @@ export function OptionPicker({
   options,
   selectedCode,
   onSelect,
+  disabled = false,
 }: {
   legend: string;
   options: readonly ProductOption[];
   selectedCode: number | undefined;
   onSelect: (code: number) => void;
+  /** Bloquea el grupo mientras hay una accion en curso. */
+  disabled?: boolean;
 }) {
   const groupName = useId();
 
   return (
-    <fieldset className={styles.group}>
+    // `disabled` en el `fieldset` bloquea todo el grupo de una vez, que es lo que hace el
+    // elemento nativo: no hay que propagarlo a cada radio.
+    <fieldset className={styles.group} disabled={disabled}>
       <legend className={styles.legend}>{legend}</legend>
 
       <div className={styles.options}>
