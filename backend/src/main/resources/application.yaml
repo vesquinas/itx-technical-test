@@ -1,7 +1,13 @@
 server:
   port: 5000
-  # The server and its version are not advertised in the responses: that information only
-  # serves whoever is looking for a known vulnerability.
+  # The server and its version are not advertised: that only serves whoever is looking for a
+  # known vulnerability.
+  #
+  # Measured, this setting changes nothing today: with the key removed the responses carry no
+  # Server header either, because Spring Boot does not send one with Tomcat. It stays as a
+  # deliberate pin rather than as protection it does not provide — Jetty and Undertow do announce
+  # themselves, and this is the property that keeps them quiet if the container ever changes.
+  # What guards the behaviour is not this line but the test that asserts the header is absent.
   server-header: ""
   shutdown: graceful
   tomcat:

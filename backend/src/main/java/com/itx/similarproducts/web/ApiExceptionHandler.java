@@ -4,8 +4,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import java.util.Set;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -23,6 +29,11 @@ import com.itx.similarproducts.catalog.ProductNotFoundException;
  * messages are a common leak channel — system paths, internal host names, library versions. The
  * technical detail goes to the server log, where it serves whoever operates the service rather than
  * whoever is calling it.
+ *
+ * <p>Nothing the caller sent is repeated back either, which took a review to actually achieve: see
+ * {@link ProblemDetailInstances} for the {@code instance} field, and the 405 below for the method
+ * name. {@code ErrorResponsesTest} checks the whole set of errors at once rather than field by
+ * field, because a leak moved to a different field is the failure mode a per-field test misses.
  *
  * <p>The explicit ordering is necessary, not decorative. Spring Boot registers its own
  * <i>problem details</i> {@code @ControllerAdvice} with order 0, and an advice with no order ends up
@@ -53,6 +64,32 @@ public class ApiExceptionHandler {
     ProblemDetail handleUnknownPath(NoResourceFoundException exception) {
         log.debug("Unknown path: {}", exception.getMessage());
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "Resource not found");
+    }
+
+    /**
+     * The route exists but not for this method.
+     *
+     * <p>Handled here only to drop Spring's wording, {@code "Method 'X' is not supported."}, which
+     * repeats back the method the caller sent — one more piece of the request in the response, and
+     * one an attacker chooses freely.
+     *
+     * <p>The {@code Allow} header stays, because that is the part of a 405 that belongs to us: it
+     * says what the endpoint accepts, and the HTTP specification requires it.
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    ResponseEntity<ProblemDetail> handleWrongMethod(HttpRequestMethodNotSupportedException exception) {
+        log.debug("Method not allowed: {}", exception.getMessage());
+
+        HttpHeaders headers = new HttpHeaders();
+        HttpMethod[] allowed = exception.getSupportedHttpMethods() == null
+                ? new HttpMethod[0]
+                : exception.getSupportedHttpMethods().toArray(HttpMethod[]::new);
+        headers.setAllow(Set.of(allowed));
+
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED)
+                .headers(headers)
+                .body(ProblemDetail.forStatusAndDetail(
+                        HttpStatus.METHOD_NOT_ALLOWED, "Method not allowed"));
     }
 
     @ExceptionHandler(ExistingApiUnavailableException.class)

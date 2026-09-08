@@ -23,10 +23,19 @@ import com.itx.similarproducts.service.SimilarProductsService;
  * <p>It does two things of its own:
  *
  * <ol>
- *   <li><b>Caps the size of the identifier.</b> Without that limit anyone can ask for arbitrarily
- *       long identifiers, and each one is forwarded to the source and becomes a new cache key. That
- *       is a convenient way to evict the good entries and to force one call to the source per
- *       request received. Rejecting it here costs one annotation.
+ *   <li><b>Caps the size of the identifier.</b> Every identifier that arrives is forwarded to the
+ *       source and becomes a cache key, so its length is the length of something we store and
+ *       something we send on. With the cap, the ten thousand entries of the cache cannot be made to
+ *       hold more than about 3 MB of keys; without it, the ceiling is whatever the container
+ *       accepts in a request line — 8 KB by default, which is 150 MB of keys. Rejecting it here
+ *       costs one annotation.
+ *
+ *       <p><b>What it does not do</b> is bound the <i>number</i> of distinct identifiers, and that
+ *       is what evicts the good entries: ten thousand short made-up identifiers do it just as well
+ *       as long ones. This cap makes each abusive request cheap, not the campaign of them. The
+ *       answer to that is a request limit per client, which belongs to the gateway rather than to
+ *       this service, and the README lists it among the things left undone rather than
+ *       implying it is solved here.
  *   <li><b>Says whether the list is complete</b>, see below.
  * </ol>
  */

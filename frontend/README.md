@@ -419,7 +419,10 @@ API with no authentication, no sessions and no personal data. What does apply:
   simply mistaken — source from slipping in a `javascript:`, a `data:` or a `blob:` where a photo
   should be. Current browsers do not execute `javascript:` in an `<img>`, but relying on that is
   relying on the browser rather than on your own code.
-- **External links carry `rel="noreferrer"`**, enforced by the linter.
+- **A lint rule guards external links** — `react/jsx-no-target-blank` — and it is worth being
+  precise about what that means: **there is no external link in the application**. The only anchor
+  is the internal skip link of the layout. The rule protects the day someone adds one, which is a
+  guard and not a measure in place, and it was listed as the latter until a review pointed it out.
 - **Minimal dependencies**: react, react-dom and react-router in production. Fewer dependencies mean
   less supply-chain surface. They are audited in continuous integration.
 - Nothing sensitive is stored in the browser: only the catalogue, which is public, and the cart

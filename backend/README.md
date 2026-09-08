@@ -30,7 +30,7 @@ The API listens on **5000**. The management endpoints live on **5001**
 ./mvnw test
 ```
 
-39 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
+50 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
 the same cases as the mock service, with its delays, its 404s and its 500s.
 
 To check that the tests are worth something — and not merely that they execute lines — nine
@@ -284,19 +284,59 @@ is never worth waiting for.
   configuration, the environment variables and thread and heap dumps.
 - **Health details are not published** (`show-details: never`): they enumerate the services the
   system depends on.
-- **The identifier size is capped** at 128 characters. Without that limit anyone can ask for
-  arbitrarily long identifiers, and each one is forwarded to the source and becomes a new cache key:
-  a convenient way to evict the good entries and to force one call to the source per request received.
+- **The identifier size is capped** at 128 characters. Each identifier that arrives is forwarded to
+  the source and becomes a cache key, so its length is the length of something we store and
+  something we send on: with the cap the ten thousand entries of the cache cannot be made to hold
+  more than about 3 MB of keys, and without it the ceiling is what the container accepts in a
+  request line — 8 KB, which is 150 MB. Verified at the edges: 128 characters are accepted, 129
+  answer 400, and past 8 KB the container answers before the application does, with a 431-byte page
+  that reflects nothing and does not name itself.
+
+  **What the cap does not do is bound the number of distinct identifiers**, which is what evicts the
+  good entries: ten thousand short made-up ones do it as well as long ones. It makes each abusive
+  request cheap, not a campaign of them — that needs a request limit per client, which belongs to
+  the gateway and is listed below among the things left undone. Said plainly here because the
+  earlier wording implied the cap solved it.
 - **The detail arriving from the source is validated** before being accepted. A product missing the
   fields the contract declares mandatory is dropped: returning it would make us the origin of the
   breach for our own clients.
 - **Error messages carry neither the exception nor its stack trace.** Errors are a common leak
   channel: system paths, internal host names, library versions. The technical detail goes to the
-  server log. This includes the unknown-path case: by default Spring answers
-  `"No static resource <path>."`, which reveals that there is a static resource server behind and
-  hands the client back the path it sent.
-- **Neither the server nor its version is advertised** in the responses (verified: there is no
-  `Server` header).
+  server log.
+
+- **And they do not repeat back what the caller sent** — which is here because a review found the
+  claim was false, and it is the most useful entry in this list. Four channels were reflecting the
+  request, not one:
+
+  | Channel | What came back | Now |
+  | --- | --- | --- |
+  | `instance` of every `ProblemDetail` | The full request URI: a 2,000-character identifier produced a 2,017-character field | The route template, `/product/{productId}/similar` |
+  | `detail` of a 405 | `Method 'PROPFIND' is not supported.` | `Method not allowed`, keeping the `Allow` header |
+  | `detail` of an unknown path | `No static resource <path>.` | `Resource not found` |
+  | An unexpected exception | Spring Boot's error dispatch, with `"path":"/product/…/similar"` and a shape unlike every other error | The same `ProblemDetail` as the rest, with nothing in it |
+
+  Two things are worth more than the fix. The first: the `instance` case survived because the fix
+  had been applied **handler by handler** — the unknown path was corrected and the rest assumed
+  fine — while two of those responses are built by Spring's own advice and never passed through our
+  handlers at all. It is now done in one place on the way out ([`ProblemDetailInstances`](./src/main/java/com/itx/similarproducts/web/ProblemDetailInstances.java)),
+  which is the only way it covers what we did not think of.
+
+  The second: the test that was supposed to cover this asserted `doesNotContain("static resource")`.
+  It checked that Spring's wording was gone, not that the path was — so it passed while the path
+  came back in a different field, and it read like coverage. Its replacement sends a long marker and
+  requires that **no fragment of it returns**, over every error the service can produce, plus the
+  exception message and the stack trace. Naming the field you are checking is how a test becomes a
+  place to hide.
+
+  The risk itself is modest and worth saying so: the amplification is about 1:1 and a path the
+  caller wrote holds no secret. What is not modest is the habit — a response that repeats the
+  request is the channel the serious leaks travel through.
+
+- **Neither the server nor its version is advertised** in the responses, and the honest version of
+  this one is that `server.server-header: ""` **changes nothing**: measured with the key removed,
+  the responses carry no `Server` header either, because Spring Boot does not send one with Tomcat.
+  The setting stays as a deliberate pin — Jetty and Undertow do announce themselves — and what
+  guards the behaviour is not the line of configuration but a test asserting the header is absent.
 - **Minimal dependencies**: web, cache, actuator and validation. Less supply-chain surface.
 
 ## Third-party files

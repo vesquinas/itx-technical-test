@@ -267,9 +267,14 @@ class SimilarProductsApiTest {
                 restTemplate.getForEntity("/una/ruta/inventada", String.class);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        // By default Spring answers "No static resource <path>." and hands the client back the
-        // path it sent. Neither serves anyone but someone probing the service.
+        // By default Spring answers "No static resource <path>.", which reveals that there is a
+        // static resource server behind. That is what this assertion is for.
         assertThat(response.getBody()).doesNotContain("static resource");
+        // And this one is the lesson: the wording was gone but the path was still coming back in
+        // the `instance` field, and this test looked like it covered that. Naming only the string
+        // being removed leaves the actual leak untested. The full check lives in
+        // ErrorResponsesTest, over every error at once.
+        assertThat(response.getBody()).doesNotContain("inventada");
     }
 
     @Test
