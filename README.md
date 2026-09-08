@@ -43,6 +43,12 @@ condicionan el resto del código:
   lentas eso hunde el servicio: medido, 1 petición en 90 segundos frente a 16.400.
   Ver [`backend/README.md`](./backend/README.md#3-la-caché-es-asíncrona-y-ese-detalle-lo-cambia-todo).
 
-## Licencia
+## Licencia y atribución
 
-Código escrito para un proceso de selección. Sin licencia de uso.
+El código de este repositorio está escrito para un proceso de selección y no lleva licencia
+de uso.
+
+La excepción son los ficheros de `backend/` que provienen de
+[dalogax/backendDevTest](https://github.com/dalogax/backendDevTest) —el contrato de la API, los
+simuladores y la prueba de carga— que están bajo Apache License 2.0 y se conservan sin
+modificar. Ver [`backend/NOTICE.md`](./backend/NOTICE.md).

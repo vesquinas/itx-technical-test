@@ -44,7 +44,9 @@ desmesurado y el mensaje de la ruta desconocida.
 docker compose run --rm k6 run scripts/test.js
 ```
 
-Resultados en el [panel de Grafana](http://localhost:3000/d/Le2Ku9NMk/k6-performance-test).
+Resultados en el [panel de Grafana](http://localhost:3000/d/Le2Ku9NMk/k6-performance-test), que
+grafica número de peticiones y duración media. Verificado de extremo a extremo: k6 escribe en
+InfluxDB y el panel se provisiona en esa URL.
 
 ## Qué hace el servicio ante cada caso
 
@@ -87,8 +89,10 @@ esperando a la red deja de ser caro. El servidor también atiende cada petición
 
 ### 2. Presupuesto de tiempo corto, pero sin cancelar el trabajo
 
-Hay un presupuesto para toda la petición (1,5 s). Lo que no llega dentro de él se omite de la
-respuesta, porque un solo producto lento no debe decidir la latencia de la respuesta entera.
+Hay un presupuesto para toda la petición (600 ms). Lo que no llega dentro de él se omite de la
+respuesta, porque un solo producto lento no debe decidir la latencia de la respuesta entera. Es
+el valor que fija el peor caso del servicio, y se elige por debajo del segundo: los similares son
+un complemento de la ficha de producto, no su contenido principal.
 
 Lo importante es lo que **no** se hace: la llamada descartada **no se cancela**. Sigue su curso y,
 al terminar, deja el producto en la caché, de modo que las peticiones siguientes lo incluyen. La
@@ -98,6 +102,37 @@ demás: cada ciclo volvía a pagar la espera desde cero.
 El coste de no cancelar está acotado por dos lados: por el límite de tiempo de lectura del cliente
 HTTP, y porque la caché deduplica por producto, así que nunca hay más de una llamada en vuelo para
 el mismo identificador.
+
+#### Cómo se eligió el valor, y una lectura contraintuitiva
+
+Se midieron dos presupuestos con la prueba de carga:
+
+| Métrica | Presupuesto 1,5 s | Presupuesto 600 ms |
+| --- | --- | --- |
+| Peticiones | 16.322 (270,8/s) | **17.200 (285,2/s)** |
+| Latencia media | 123 ms | **92 ms** |
+| Latencia mediana | **6,1 ms** | 7,7 ms |
+| Percentil 90 | **65 ms** | 602 ms |
+| Percentil 95 | 1,51 s | **609 ms** |
+| Peor caso | 1,53 s | **649 ms** |
+
+El percentil 95 mejora y el percentil 90 empeora. No es contradictorio, y la explicación importa:
+
+**la prueba de carga es de lazo cerrado.** Son 200 usuarios que esperan la respuesta y luego
+duermen medio segundo, así que una petición lenta se autolimita: mientras un usuario espera, no
+genera más peticiones. Con el presupuesto largo, las peticiones lentas duran más y por tanto se
+registran **menos**, de modo que ocupan una franja menor de la distribución y el percentil 90 sale
+mejor. No es que la experiencia sea mejor: es que las respuestas malas se cuentan menos veces.
+
+Con tráfico real, donde la llegada de peticiones no depende de lo que tarde el servicio, la
+fracción afectada la determina cuánto dura la ventana en la que el producto lento no está
+cacheado, no cuánto tarda cada respuesta. En ese modelo el presupuesto corto gana sin ambigüedad:
+la misma proporción de usuarios espera menos de la mitad.
+
+Lo que no depende del modelo de carga es el **peor caso**: 649 ms frente a 1,53 s. Y la
+completitud no se resiente, porque la llamada descartada sigue en curso y deja el producto en
+caché: en cuanto está caliente, las respuestas vuelven a traer todos los similares alcanzables.
+Se verificó producto a producto.
 
 ### 3. La caché es asíncrona, y ese detalle lo cambia todo
 
@@ -119,12 +154,11 @@ Medido con la prueba de carga del propio ejercicio, 200 usuarios y caché vacía
 | Latencia mediana | 15,3 ms | **5,7 ms** |
 | Latencia media | 1,63 s | **120 ms** |
 | Percentil 90 | 6,50 s | **60,5 ms** |
-| Percentil 95 | 6,56 s | 1,51 s |
 | Errores HTTP | 0 | **0** |
 
 Quince veces más throughput y un percentil 90 que baja de seis segundos y medio a sesenta
-milisegundos. El percentil 95 que queda (1,51 s) es exactamente el presupuesto de la petición: son
-las peticiones que caen en la ventana en la que un producto lento todavía no está cacheado.
+milisegundos. (Las dos columnas se midieron con el presupuesto de 1,5 s, para comparar una sola
+variable; el ajuste del presupuesto vino después.)
 
 La caché asíncrona guarda en el mapa un futuro —operación inmediata, sin bloqueo bajo el
 monitor— y ejecuta la llamada fuera. Conserva la deduplicación y elimina la fijación.
@@ -215,6 +249,17 @@ del que tarda 50, que nunca merece la espera.
   concatenados, de modo que el cliente HTTP los codifica y no pueden alterar la ruta.
 - **Dependencias mínimas**: web, caché, actuator y validación. Menos superficie de cadena de
   suministro.
+
+## Ficheros de terceros
+
+El contrato, los simuladores y la prueba de carga vienen del repositorio que indica el
+enunciado, [dalogax/backendDevTest](https://github.com/dalogax/backendDevTest), y se conservan
+**sin modificar**: son el banco de pruebas con el que se evalúa la solución, y tocarlos
+invalidaría la comparación.
+
+Están bajo Apache License 2.0. El detalle de qué fichero es de quién está en
+[`NOTICE.md`](./NOTICE.md), y el texto de la licencia en
+[`LICENSE-APACHE-2.0`](./LICENSE-APACHE-2.0).
 
 ## Cómo está organizado
 

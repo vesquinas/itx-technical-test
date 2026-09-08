@@ -53,10 +53,10 @@ import com.itx.similarproducts.domain.ProductDetail;
  * cliente HTTP, y porque la carga de la caché es atómica por clave, de modo que nunca hay más de
  * una llamada en vuelo por producto, por muchas peticiones simultáneas que lo pidan.
  *
- * <p>El presupuesto corto es además lo que acota la cola de latencias: en la prueba de carga de
- * la propia prueba (200 usuarios, cinco escenarios), el percentil 95 medido es de 1,51 s, es
- * decir, el propio presupuesto. Son las peticiones que caen en la ventana en la que un producto
- * lento todavía no está cacheado.
+ * <p>El presupuesto es además lo que fija el peor caso del servicio: ninguna respuesta puede
+ * tardar más que él. Medido con la prueba de carga del propio ejercicio, el máximo observado es
+ * de 649 ms para un presupuesto de 600 ms. Las peticiones que lo alcanzan son las que caen en la
+ * ventana en la que un producto lento todavía no está cacheado.
  */
 @Service
 public class SimilarProductsService {

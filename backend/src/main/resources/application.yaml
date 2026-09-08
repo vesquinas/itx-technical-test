@@ -37,14 +37,18 @@ existing-api:
 
   # Presupuesto para toda la peticion, y es corto a proposito. Lo que no llegue en
   # este plazo se omite de la respuesta, pero su llamada sigue en curso y dejara el
-  # producto en la cache para las peticiones siguientes.
+  # producto en la cache, asi que las peticiones siguientes si lo incluyen.
   #
-  # Se elige por encima del producto que tarda 1 segundo en el simulador, para que
-  # entre ya en la primera respuesta, y muy por debajo de los que tardan 5 y 50.
+  # Este valor fija el peor caso del servicio, y por eso se elige por debajo del
+  # segundo: los similares son un complemento de la ficha de producto, no su
+  # contenido principal, y ningun usuario deberia esperar mas de eso por un
+  # complemento.
   #
-  # Este valor es el que fija la cola de latencias del servicio: en la prueba de
-  # carga, el percentil 95 medido coincide con el (1,51 s).
-  fan-out-timeout: 1500ms
+  # Medido con la prueba de carga, frente a un presupuesto de 1500ms: la media baja
+  # de 123ms a 92ms, el peor caso de 1,53s a 649ms y el throughput sube de 270 a 285
+  # peticiones por segundo. La completitud no se resiente: en cuanto la cache esta
+  # caliente, las respuestas vuelven a traer todos los similares alcanzables.
+  fan-out-timeout: 600ms
 
   # Cuanto se conserva un resultado bueno.
   success-ttl: 5m
