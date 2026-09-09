@@ -362,6 +362,22 @@ class ReadmeClaimsTest {
     }
 
     @Test
+    void every_link_to_a_file_points_at_a_file_that_exists() throws IOException {
+        // Neither gate checked these until a review counted twenty-eight of them across the two
+        // READMEs, all valid at the time and none of them held to it by anything. A link to a
+        // renamed file is the same class of rot as a number that no longer matches.
+        List<String> broken = Pattern.compile("\\[[^\\]]+\\]\\((\\.[^)#]+)\\)")
+                .matcher(read(README))
+                .results()
+                .map(result -> result.group(1))
+                .distinct()
+                .filter(path -> !Files.exists(Path.of(path)))
+                .toList();
+
+        assertThat(broken).as("links pointing at files that are not there").isEmpty();
+    }
+
+    @Test
     void the_java_version_the_readme_requires_is_the_one_the_build_targets() throws IOException {
         String pom = read(Path.of("pom.xml"));
 

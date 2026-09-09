@@ -89,8 +89,12 @@ const coverage = JSON.parse(
 ).total;
 const claimedStatements = claimed(/(\d+)% statement coverage/);
 check(
-  `the claimed statement coverage is not above the real one (says ${claimedStatements ?? '—'}%, is ${coverage.statements.pct.toFixed(1)}%)`,
-  claimedStatements !== undefined && claimedStatements <= Math.round(coverage.statements.pct),
+  // A band, not a floor. It used to accept anything at or below the real figure, which is a
+  // deliberate understatement — and lets the number go stale downwards without complaint, as a
+  // review pointed out. One point of tolerance covers the rounding.
+  `the claimed statement coverage is current (says ${claimedStatements ?? '—'}%, is ${coverage.statements.pct.toFixed(1)}%)`,
+  claimedStatements !== undefined &&
+    Math.abs(claimedStatements - coverage.statements.pct) <= 1,
 );
 const claimsFullFunctions = /100% function coverage/.test(README);
 check(
@@ -452,6 +456,17 @@ for (const file of ['README.md', '../README.md']) {
   const sections = sectionsOf(markdown);
   for (const [, label, target] of markdown.matchAll(/\[([^\]]+)\]\(#([^)]+)\)/g)) {
     check(`${file}: the link "${label}" points at a section that exists`, sections.has(target));
+  }
+
+  /**
+   * And the links to files, which neither gate checked: twenty-eight of them, all valid at the
+   * time a review counted them, and none of them held to that by anything.
+   */
+  const directory = file.startsWith('../') ? '..' : '.';
+  const paths = [...markdown.matchAll(/\[[^\]]+\]\((\.[^)#]+)\)/g)].map((match) => match[1]);
+  check(`${file}: it links to files at all (${paths.length})`, paths.length > 0);
+  for (const path of new Set(paths)) {
+    check(`${file}: the linked file ${path} exists`, existsSync(join(directory, path)));
   }
 }
 

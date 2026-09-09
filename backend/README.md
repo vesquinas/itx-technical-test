@@ -58,7 +58,7 @@ docker run -p 5000:5000 -p 5001:5001 -e EXISTING_API_BASE_URL=http://simulado \
 ./mvnw test
 ```
 
-64 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
+65 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
 the same cases as the mock service, with its delays, its 404s and its 500s.
 
 To check that the tests are worth something — and not merely that they execute lines — nine
@@ -524,7 +524,7 @@ So the rule is now: **no claim in this README without a command that proves it.*
 
 | Claim | Proof |
 | --- | --- |
-| 64 tests pass, with no Docker needed | `./mvnw test` |
+| 65 tests pass, with no Docker needed | `./mvnw test` |
 | Only a 404 means "does not exist"; a 429 or a 403 do not | `./mvnw test` — ProductCatalogTest |
 | 25 sequential requests for a made-up product cost **one** call to the source | `./mvnw test` — the negative-caching tests |
 | Error responses repeat nothing the caller sent, and carry no exception or trace | `./mvnw test` — ErrorResponsesTest, UnexpectedErrorTest |

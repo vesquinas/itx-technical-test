@@ -36,10 +36,10 @@ place.
 | ES6; a boilerplate may be used | TypeScript in strict mode, compiled to ES2022, on Vite | `npm run typecheck` |
 | A SPA with client-side routing, no MPA and no SSR | `BrowserRouter`, no server rendering, no document navigation | `changes view without the document ever being re-requested, and keeps the search` — the round trip is made, the URL changes and jsdom reports no navigation; plus `npm run check:claims`, which asserts the build is a single HTML file with an empty root |
 | The four scripts: START, BUILD, TEST, LINT | `npm start`, `npm run build`, `npm test`, `npm run lint` | `npm run check:claims` verifies all four exist |
-| An open repository, with the code pushed in milestones | 42 commits, one per milestone | the history |
+| An open repository, with the code pushed in milestones | 45 commits, one per milestone | the history |
 | A README, preferably in the first commit | this file, in the first commit | `git show --stat $(git rev-list --max-parents=0 HEAD)` |
 | **PLP** — every element the API returns | all 100 products, no pagination | `shows the products the API returns` |
-| **PLP** — filtering by what the user types | `src/components/SearchBar.tsx` | `filters by brand`, `filters by model while typing` |
+| **PLP** — filtering by what the user types, with the input shown | `src/components/SearchBar.tsx` | `filters by brand`, `filters by model while typing`, and `offers the search field from the first moment, before the catalogue has arrived` |
 | **PLP** — selecting a product navigates to its detail | the whole card is one link | `links every product to its detail page` |
 | **PLP** — at most four per row, adaptive | 1 / 2 / 3 / 4 columns at 0 / 30rem / 48rem / 64rem | `goes up to four columns and no further` |
 | **PDP** — two columns: image, then details and actions | `ProductDetailPage.module.css` | `declares one column on a narrow screen and two from 48rem` for the two columns, and `puts the image first and then the description above the actions, as the wireframe does` for the order |
@@ -59,7 +59,13 @@ place.
 
 ### The two places where this departs from the letter of the brief
 
-Both are deliberate, and both are here rather than buried:
+Both are deliberate, and both are here rather than buried. **A third one used to be missing from
+this list, which is the argument for keeping it honest**: the search field was rendered only once
+the catalogue had loaded — defensible, since there is nothing to filter yet, but the brief says the
+input is shown, and against this API that meant it was absent for the forty seconds the free
+instance takes to wake up. A review found it. It was not added to this list; it was removed as a
+deviation, and typing during the wait now applies as soon as the data lands, which is better
+behaviour anyway. A list of declared departures is worth what its completeness is worth.
 
 1. **There is a third route.** The brief says the application has two views, and it has: the list and
    the detail. The third route answers a URL that matches neither — without it a mistyped address
@@ -588,7 +594,7 @@ API with no authentication, no sessions and no personal data. What does apply:
 
 ## Tests
 
-185 tests. 97% statement coverage and 100% function coverage.
+186 tests. 98% statement coverage and 100% function coverage.
 
 **Coverage tells you which lines run, not whether the tests would notice a break.** To check that,
 ten realistic defects were injected into the code — expiring the cache one millisecond late, no
@@ -690,7 +696,7 @@ So the rule is now: **no claim in this README without a command that proves it.*
 
 | Claim | Proof |
 | --- | --- |
-| 185 tests pass; 97% of statements, 100% of functions | `npm test`, `npm run test:coverage` |
+| 186 tests pass; 98% of statements, 100% of functions | `npm test`, `npm run test:coverage` |
 | The API's defects are handled — swapped fields, ten fields that change type, empty prices | `npm run check:api`, which walks all 100 products of the live catalogue |
 | The Content-Security-Policy covers everything the page loads and needs no `unsafe-inline` | `npm run check:csp` — 18 checks, in continuous integration |
 | Configuring `VITE_API_BASE_URL` does not break the build | continuous integration builds twice, with the default origin and with a configured one |

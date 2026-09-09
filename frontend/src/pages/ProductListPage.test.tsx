@@ -165,13 +165,38 @@ describe('ProductListPage', () => {
       );
     });
 
-    it('hides the search field while there is no catalogue to filter', async () => {
+    it('offers the search field from the first moment, before the catalogue has arrived', async () => {
+      // The brief says the input is shown, full stop. It used to appear only with the catalogue
+      // loaded, which against this API means forty seconds without it while the free instance
+      // wakes up — a departure from the letter that no one had declared.
+      let resolve: ((response: Response) => void) | undefined;
+      fetchMock.mockImplementation(
+        () =>
+          new Promise<Response>((keep) => {
+            resolve = keep;
+          }),
+      );
+
+      renderWithProviders(<ProductListPage />);
+
+      const field = await screen.findByRole('searchbox', { name: 'Buscar' });
+      expect(field).toBeEnabled();
+
+      // And what is typed during the wait is applied as soon as the data lands.
+      await userEvent.type(field, 'iconia');
+      resolve?.(jsonResponse(productListFixture));
+
+      expect(await screen.findByRole('heading', { name: 'Iconia Talk S' })).toBeInTheDocument();
+      expect(screen.queryByRole('heading', { name: 'Liquid Z6' })).not.toBeInTheDocument();
+    });
+
+    it('keeps the field on the error page, so a retry is not the only way back', async () => {
       fetchMock.mockImplementation(() => Promise.resolve(jsonResponse({}, 500)));
 
       renderWithProviders(<ProductListPage />);
       await screen.findByRole('alert');
 
-      expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
+      expect(screen.getByRole('searchbox', { name: 'Buscar' })).toBeInTheDocument();
     });
   });
 
@@ -183,7 +208,7 @@ describe('ProductListPage', () => {
       () =>
         new Promise((resolve) => {
           setTimeout(() => {
-            resolve(jsonResponse(productListFixture));
+            resolve?.(jsonResponse(productListFixture));
           }, 45_000);
         }),
     );

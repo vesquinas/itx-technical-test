@@ -96,14 +96,26 @@ export function ProductListPage() {
           </p>
         </div>
 
-        {/* The search field only makes sense once there is a catalogue to filter. */}
-        {state.status === 'ready' ? (
-          <SearchBar
-            onChange={setQuery}
-            resultsLabel={describeResults(products.length, visibleProducts.length, query)}
-            value={query}
-          />
-        ) : null}
+        {/*
+          The field is there from the first moment, and that is the brief's wording — "se mostrará
+          un input al usuario" — not a preference. It used to appear only once the catalogue had
+          loaded, which against this API means it was missing for the forty seconds the free
+          instance takes to wake up: an undeclared departure from the letter, found in review.
+
+          Showing it while loading also turns out to be the better behaviour here. Someone who
+          knows what they are looking for can type it during the wait, and the results arrive
+          already filtered. The count of results is the one part that waits, because there is
+          nothing to count yet.
+        */}
+        <SearchBar
+          onChange={setQuery}
+          resultsLabel={
+            state.status === 'ready'
+              ? describeResults(products.length, visibleProducts.length, query)
+              : ''
+          }
+          value={query}
+        />
       </div>
 
       {state.status === 'loading' ? (
