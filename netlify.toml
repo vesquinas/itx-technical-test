@@ -60,6 +60,17 @@
   to     = "/index.html"
   status = 404
 
+# A missing asset is a missing asset, not a page.
+#
+# Without this the SPA fallback below answers **200 with the application's HTML** for anything under
+# `/assets/`, which is how a request for a source map that no longer exists came back with a 200 and
+# 2.7 kB of markup. Static files still win over this rule — it has no `force` — so the real bundles
+# are served normally and only what does not exist reaches it.
+[[redirects]]
+  from   = "/assets/*"
+  to     = "/index.html"
+  status = 404
+
 # SPA fallback. Unlike the 404.html trick that static hosting forces, this answers **200**, so a
 # deep link such as /product/<id> is a proper page and not an error page that happens to render.
 [[redirects]]
