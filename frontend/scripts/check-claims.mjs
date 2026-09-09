@@ -435,11 +435,22 @@ if (shallow === 'true') {
     execFileSync('git', ['rev-list', '--count', 'HEAD'], { encoding: 'utf8' }).trim(),
   );
   for (const [label, markdown] of [['README.md', README], ['../README.md', rootReadme]]) {
-    const stated = Number(/(\d+) commits/.exec(markdown)?.[1]);
+    /**
+     * Every mention, not the first one that matches.
+     *
+     * This checked `exec`, which returns the first match — and a fresh clone showed why that is
+     * not enough: one of these files mentioned the count twice, one of them stale, and the check
+     * was satisfied by the other. It is the same fault a review found in the backend's gate, made
+     * here by the person who had just fixed it there.
+     *
+     * A historical quotation — "the commit count became 400" — is deliberately written without
+     * this shape, so that prose about the past does not have to agree with the present.
+     */
+    const stated = [...markdown.matchAll(/(\d+) commits/g)].map((match) => Number(match[1]));
     check(
-      `${label}: the stated number of commits is right (says ${stated || '—'}, there are ${commits})`,
+      `${label}: every mention of the number of commits is right (says ${[...new Set(stated)].join(', ') || '—'}, there are ${commits})`,
       // The count grows with the commit that updates it, so it is right or one behind.
-      stated === commits || stated === commits + 1,
+      stated.length > 0 && stated.every((value) => value === commits || value === commits + 1),
     );
   }
 }
