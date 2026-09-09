@@ -1,10 +1,12 @@
 package com.itx.similarproducts;
 
 import java.time.Duration;
+import java.util.Date;
 import java.util.List;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,17 +20,31 @@ import com.itx.similarproducts.service.SimilarProductsService;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Behaviour of the service against a slow or downed existing API.
  *
- * <p>The timeouts are cut down to hundreds of milliseconds so the tests run fast; in production
- * they are seconds. What is being checked is the behaviour, not the values.
+ * <p>The timeouts are cut down so the tests run fast; in production they are seconds. What is being
+ * checked is the behaviour, not the values.
+ *
+ * <p><b>They were cut down too far.</b> With a 400 ms read timeout, the very first HTTP call of the
+ * class had to fit a cold JVM, a fresh connection and WireMock's own first request into 400 ms —
+ * and on a clean clone, where everything is being compiled and warmed at once, it did not: the
+ * suite failed with the source reported as unavailable. The parallel test had the same problem from
+ * the other side, three 300 ms calls inside a 600 ms budget.
+ *
+ * <p>The read timeout is now generous, which is what that failure was about, and the budget stays
+ * small so the class stays fast. What changed in the parallel test is better than a bigger margin:
+ * it no longer infers parallelism from the total time. It measures it — the three calls to the
+ * source have to be <b>dispatched together</b>, which is what "in parallel" means and what serial
+ * execution cannot fake. A timing test with no margin does not test timing; it tests whether the
+ * machine was busy.
  */
 @SpringBootTest(properties = {
-        "existing-api.read-timeout=400ms",
+        "existing-api.read-timeout=2s",
         "existing-api.fan-out-timeout=600ms",
         "existing-api.unavailable-ttl=2s",
         "existing-api.max-similar-products=3"
@@ -67,19 +83,30 @@ class SimilarProductsResilienceTest {
 
     @Test
     void the_calls_run_in_parallel_and_not_serially() {
-        // Three details of 300 ms each. Serially that would be 900 ms and would not fit in the
-        // 600 ms budget; in parallel they finish in a little over 300.
         stubSimilarIds("p1", "[\"p2\",\"p3\",\"p4\"]");
-        stubProduct("p2", "Uno", 300);
-        stubProduct("p3", "Dos", 300);
-        stubProduct("p4", "Tres", 300);
+        stubProduct("p2", "Uno", 100);
+        stubProduct("p3", "Dos", 100);
+        stubProduct("p4", "Tres", 100);
 
-        long startedAt = System.nanoTime();
         List<ProductDetail> products = service.findSimilarProducts("p1").products();
-        Duration elapsed = Duration.ofNanos(System.nanoTime() - startedAt);
 
         assertThat(products).hasSize(3);
-        assertThat(elapsed).isLessThan(Duration.ofMillis(900));
+
+        // The direct measurement: the three requests reach the source within a few milliseconds of
+        // each other. Serially they would be a hundred apart, one per completed call, and no amount
+        // of load on the machine turns a serial dispatch into a simultaneous one.
+        List<Date> dispatched = existingApi
+                .findAll(WireMock.getRequestedFor(urlMatching("/product/p[234]")))
+                .stream()
+                .map(LoggedRequest::getLoggedDate)
+                .sorted()
+                .toList();
+
+        assertThat(dispatched).hasSize(3);
+        long spread = dispatched.getLast().getTime() - dispatched.getFirst().getTime();
+        assertThat(spread)
+                .as("milliseconds between the first and the last request being dispatched")
+                .isLessThan(100);
     }
 
     @Test
@@ -94,7 +121,9 @@ class SimilarProductsResilienceTest {
 
         // It returns the one that arrived and does not wait for the one taking five seconds.
         assertThat(products).extracting(ProductDetail::id).containsExactly("q2");
-        assertThat(elapsed).isLessThan(Duration.ofSeconds(2));
+        // The budget is 600 ms, so this bound is the budget plus a second of margin rather than
+        // the budget itself.
+        assertThat(elapsed).isLessThan(Duration.ofMillis(1_600));
     }
 
     @Test

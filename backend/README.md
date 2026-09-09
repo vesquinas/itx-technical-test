@@ -590,7 +590,7 @@ cache — the same reasoning written in three places, which is three places to u
 will quietly go stale. The class now keeps the warning not to go back to the synchronous cache, and
 the reasoning lives here, once.
 
-The density is **41% of the lines of `src/main`** and 18% of the tests. That figure went the wrong
+The density is **41% of the lines of `src/main`** and 19% of the tests. That figure went the wrong
 way first: the classes added while fixing review findings came with their own rationale, and it rose
 to 44% under a commit that claimed to be removing dead weight. What brought it down was not deleting
 the reasoning but moving the part that is *history* — how a defect was found, which review found it
