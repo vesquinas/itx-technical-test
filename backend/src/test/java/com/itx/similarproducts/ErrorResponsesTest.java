@@ -1,5 +1,6 @@
 package com.itx.similarproducts;
 
+import java.net.URI;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -34,6 +36,9 @@ class ErrorResponsesTest {
 
     @Autowired
     private TestRestTemplate restTemplate;
+
+    @LocalServerPort
+    private int port;
 
     private static Stream<Arguments> everyErrorTheServiceCanProduce() {
         return Stream.of(
@@ -74,6 +79,34 @@ class ErrorResponsesTest {
         // A fixed body cannot be used to amplify: whatever the request weighs, the answer does not
         // grow with it.
         assertThat(response.getBody()).hasSizeLessThan(300);
+    }
+
+    @Test
+    void the_one_response_that_escapes_the_format_still_gives_nothing_away() {
+        // A path with an encoded slash never reaches Spring: Tomcat rejects it first and answers
+        // its own page, which is the single response of this service that is not
+        // application/problem+json. The README says so, and says it leaks nothing — a claim that
+        // until now nothing checked. Sent as an absolute URI so the %2F survives: a path template
+        // would be encoded again and the case would not be reproduced.
+        ResponseEntity<String> response = restTemplate.exchange(
+                URI.create("http://localhost:" + port + "/product/a%2Fb/similar"),
+                HttpMethod.GET,
+                null,
+                String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getHeaders().getContentType())
+                .as("the container answers, so this one is HTML")
+                .isNotNull();
+        assertThat(response.getHeaders().getContentType().toString()).startsWith("text/html");
+
+        // What the README claims about it: small, and empty of anything worth having.
+        assertThat(response.getBody()).hasSizeLessThan(600);
+        assertThat(response.getBody())
+                .doesNotContain("a%2Fb", "a/b")
+                .doesNotContainIgnoringCase("tomcat")
+                .doesNotContainIgnoringCase("apache")
+                .doesNotContain("com.itx", "Exception");
     }
 
     @Test

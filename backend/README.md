@@ -58,7 +58,7 @@ docker run -p 5000:5000 -p 5001:5001 -e EXISTING_API_BASE_URL=http://simulado \
 ./mvnw test
 ```
 
-65 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
+66 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
 the same cases as the mock service, with its delays, its 404s and its 500s.
 
 To check that the tests are worth something — and not merely that they execute lines — nine
@@ -165,8 +165,9 @@ API and nothing else. Verified — `/actuator/metrics` on 5000 answers 404. See 
 > an encoded slash or backslash (`%2F`, `%5C`) is rejected by Tomcat before the request reaches
 > Spring, so it answers **`text/html`** with the container's own page instead of
 > `application/problem+json`. A client that parses every error as JSON chokes exactly there. It
-> leaks nothing — 435 bytes, no version, no trace, no echo of the path — so this is a consistency
-> defect and not a security one, and the fix is not in the application: it is
+> leaks nothing — under 600 bytes, no version, no trace, no echo of the path, and a test now holds
+> it to that rather than this paragraph asserting it — so this is a consistency defect and not a
+> security one, and the fix is not in the application: it is
 > `server.tomcat.relaxed-path-chars`, or the gateway normalising the path first. Left as it is, and
 > written down, rather than papered over with an error page filter that would have to reimplement
 > the format.
@@ -524,11 +525,12 @@ So the rule is now: **no claim in this README without a command that proves it.*
 
 | Claim | Proof |
 | --- | --- |
-| 65 tests pass, with no Docker needed | `./mvnw test` |
+| 66 tests pass, with no Docker needed | `./mvnw test` |
 | Only a 404 means "does not exist"; a 429 or a 403 do not | `./mvnw test` — ProductCatalogTest |
 | 25 sequential requests for a made-up product cost **one** call to the source | `./mvnw test` — the negative-caching tests |
 | Error responses repeat nothing the caller sent, and carry no exception or trace | `./mvnw test` — ErrorResponsesTest, UnexpectedErrorTest |
 | No response announces the server it runs on | `./mvnw test` — ErrorResponsesTest |
+| The one response that escapes the uniform format gives nothing away either | `./mvnw test` — `the_one_response_that_escapes_the_format_still_gives_nothing_away` |
 | An identifier of 128 characters is accepted and 129 is rejected | `./mvnw test` |
 | The ports, the three expiries, the budget and the cap are the numbers stated here | `./mvnw test` — ConfigurationTest |
 | Every endpoint the service maps is documented above | `./mvnw test` — ReadmeClaimsTest |
