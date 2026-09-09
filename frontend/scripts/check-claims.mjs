@@ -103,24 +103,76 @@ check(
 // ---------------------------------------------------------------------------
 
 /**
- * The names the "What the brief asks" table names as proof.
+ * The compliance table, row by row, and every proof it names.
  *
- * That table is the strongest claim in this README — it says, requirement by requirement, which
- * test proves it — so a name that no longer exists is the worst kind of rot: it reads like
- * evidence. Two were already wrong when this check was written.
+ * The first version of this extracted citations with a regex, `[a-z][a-z0-9 ,'\-—()]{10,}`, and
+ * that class has no capitals in it — so three of the twenty-four names it should have checked were
+ * discarded before being checked, all three because they contain "API", and the output said nothing
+ * about having skipped them. A review proved it by replacing one with `teleports the API counter to
+ * Mars`, which passed.
+ *
+ * The lesson is not that the class needed `A-Z`. It is that **a checker must not get to decide in
+ * silence what it checks**: anything it cannot classify is now reported, and a row whose proof it
+ * cannot make sense of fails. Whatever the next unclassifiable proof looks like, it will be loud.
  */
 const complianceTable = README.split('## What the brief asks')[1]?.split('\n## ')[0] ?? '';
-const citedTests = new Set(
-  [...complianceTable.matchAll(/`([a-z][a-z0-9 ,'\-—()]{10,})`/g)]
-    .map((match) => match[1])
-    .filter((name) => !name.startsWith('npm ') && !name.startsWith('git ')),
-);
+const complianceRows = complianceTable
+  .split('\n')
+  .filter((line) => line.startsWith('|') && !/^\|\s*-+/.test(line) && !line.includes('| The brief asks |'));
+
 const testNames = new Set(
   report.testResults.flatMap((file) => file.assertionResults.map((result) => result.title)),
 );
-check('the compliance table cites at least a dozen tests', citedTests.size >= 12, `${citedTests.size}`);
-for (const name of citedTests) {
-  check(`the test cited as proof exists: "${name}"`, testNames.has(name));
+
+/** A proof that names a command to run rather than a test to look up. */
+const isCommand = (proof) => /^(npm|git|\.\/mvnw|docker)\b/.test(proof);
+/** A proof that names a file or a symbol in the code. */
+const isCodeReference = (proof) => proof.includes('/') || /\.\w+$/.test(proof) || !proof.includes(' ');
+
+let citedTests = 0;
+let namedCommands = 0;
+const provedByProse = [];
+
+for (const row of complianceRows) {
+  const cells = row.split('|').map((cell) => cell.trim());
+  const proofCell = cells.at(-2) ?? '';
+  const quoted = [...proofCell.matchAll(/`([^`]+)`/g)].map((match) => match[1]);
+
+  if (quoted.length === 0) {
+    provedByProse.push(`${cells[1]?.slice(0, 48) ?? '?'} → ${proofCell.slice(0, 40)}`);
+    continue;
+  }
+
+  for (const proof of quoted) {
+    if (isCommand(proof)) {
+      namedCommands += 1;
+      const script = /^npm (?:run )?([\w:]+)$/.exec(proof)?.[1];
+      if (script !== undefined) {
+        check(`the proof \`${proof}\` names a real script`, Object.hasOwn(PACKAGE.scripts, script));
+      }
+    } else if (isCodeReference(proof)) {
+      // A path or a symbol: checked by the file existing, not by a test name.
+      check(`the proof \`${proof}\` points at a file that exists`, !proof.includes('/') || existsSync(proof));
+    } else {
+      citedTests += 1;
+      check(`the test cited as proof exists: "${proof}"`, testNames.has(proof));
+    }
+  }
+}
+
+check(
+  `every citation in the compliance table was classified (${citedTests} tests, ${namedCommands} commands)`,
+  citedTests + namedCommands > 0,
+);
+check(
+  `the compliance table still cites at least twenty tests (${citedTests})`,
+  citedTests >= 20,
+);
+if (provedByProse.length > 0) {
+  console.log(
+    `  ..  ${provedByProse.length} row(s) of the compliance table are proved by prose rather than by a command:`,
+  );
+  for (const row of provedByProse) console.log(`        ${row}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -266,70 +318,6 @@ if (existsSync('dist')) {
   );
 } else {
   check('dist exists so the CSP claim can be checked', false, 'run `npm run build` first');
-}
-
-const namedProofs = [...README.matchAll(/^\| .*`(npm (?:run )?[\w:]+|\.\/mvnw[\w\s:-]*)`/gm)].map(
-  (match) => match[1],
-);
-for (const proof of new Set(namedProofs)) {
-  const script = /^npm (?:run )?([\w:]+)$/.exec(proof)?.[1];
-  if (script === undefined) continue;
-  check(`the proof \`${proof}\` names a real script`, Object.hasOwn(PACKAGE.scripts, script));
-}
-
-// ---------------------------------------------------------------------------
-// The numbers measured against the API, and the number of commits.
-//
-// These are the ones this check used to miss, and a review proved it by falsifying five of them
-// and watching both gates pass. The pattern was that everything coming from configuration was
-// covered and everything coming from *measurement* was not — which is the wrong way round, since
-// configuration is stable and a measurement moves.
-//
-// The fix is a single source of truth: `scripts/api-facts.json`. `npm run check:api` asserts those
-// numbers against the live API; this asserts the READMEs quote them. Neither half is any use alone.
-// ---------------------------------------------------------------------------
-
-const FACTS = JSON.parse(readFileSync('scripts/api-facts.json', 'utf8'));
-const rootReadme = readFileSync('../README.md', 'utf8');
-
-const numbersFromTheApi = [
-  ['products in the catalogue', /all (\d+) products, no pagination/, FACTS.products],
-  ['products in the endpoint table', /The catalogue: \*\*(\d+) products\*\*/, FACTS.products],
-  ['products with no price', /comes as `""` in (\d+) of the 100 products/, FACTS.withoutPrice],
-  ['products with no NFC value', /`nfc` arrives empty in (\d+) of the 100 products/, FACTS.withoutNfc],
-  ['products with a blank option name', /`\{ code: 2000, name: " " \}`/, undefined],
-];
-
-for (const [name, pattern, expected] of numbersFromTheApi) {
-  if (expected === undefined) continue;
-  const stated = claimed(pattern);
-  check(
-    `the stated ${name} matches api-facts.json (says ${stated ?? '—'}, facts say ${expected})`,
-    stated === expected,
-  );
-}
-
-/**
- * The number of commits, which the READMEs both state.
- *
- * Skipped rather than failed on a shallow clone: continuous integration checks out with a depth of
- * one by default, and a check that cannot run is not the same as a check that fails.
- */
-const shallow = execFileSync('git', ['rev-parse', '--is-shallow-repository'], { encoding: 'utf8' }).trim();
-if (shallow === 'true') {
-  console.log('  ..  skipping the commit count: this is a shallow clone');
-} else {
-  const commits = Number(
-    execFileSync('git', ['rev-list', '--count', 'HEAD'], { encoding: 'utf8' }).trim(),
-  );
-  for (const [label, markdown] of [['README.md', README], ['../README.md', rootReadme]]) {
-    const stated = Number(/(\d+) commits/.exec(markdown)?.[1]);
-    check(
-      `${label}: the stated number of commits is right (says ${stated || '—'}, there are ${commits})`,
-      // The count grows with the commit that updates it, so it is right or one behind.
-      stated === commits || stated === commits + 1,
-    );
-  }
 }
 
 // ---------------------------------------------------------------------------

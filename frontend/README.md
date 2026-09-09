@@ -701,10 +701,20 @@ these: jsdom lays nothing out, so the test reads the stylesheet instead, and onl
 could close that gap. It is on the list below.
 
 No script can tell prose from a claim. `check:claims` catches a number that has rotted, a script
-that has drifted out of the table, an endpoint the code no longer calls and a link pointing at a
-section that no longer exists, but a new sentence asserting something unverified would pass it. The
-table is what closes that gap, by making the pairing explicit enough that an empty right-hand column
-is visible.
+that has drifted out of the table, an endpoint the code no longer calls, a link pointing at a section
+that no longer exists and a test cited above that no longer exists — but a new sentence asserting
+something unverified would pass it. The table is what closes that gap, by making the pairing explicit
+enough that an empty right-hand column is visible, and the two rows above with no command are named
+in the check's own output rather than left for someone to notice.
+
+**That last check was itself lying by 12%, which is the second thing worth reading here.** It pulled
+the cited test names out of the table with a pattern that had no capital letters in it, so three of
+the twenty-six names — all three containing "API" — were discarded before being checked, and nothing
+said so: a review replaced one with `teleports the API counter to Mars` and the gate passed. The fix
+was not to add the missing letters. It was that **a checker must not get to decide in silence what it
+checks**: it now walks the table row by row, anything it cannot classify fails, and anything it
+skips is printed. Adding the capitals would have left the next unclassifiable citation just as
+silent.
 
 **And the gate had this exact blind spot itself, which is the most useful thing in this section.** A
 review falsified five numbers — 100 products became 5000, 6 with no price became 90, 36 commits
