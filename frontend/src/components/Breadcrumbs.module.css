@@ -34,8 +34,8 @@
   min-width: 0;
   overflow: hidden;
   color: var(--color-ink);
-  /* El nombre del producto puede ser largo: se recorta en lugar de romper la
-     cabecera en dos lineas. */
+  /* A product name can be long: it is truncated rather than breaking the header
+     into two lines. */
   text-overflow: ellipsis;
   white-space: nowrap;
 }

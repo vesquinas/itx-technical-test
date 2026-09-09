@@ -1,19 +1,18 @@
 /*
- * Sistema de diseno.
+ * Design system.
  *
- * La propuesta visual es deliberadamente editorial y sobria: fondo claro,
- * tipografia fina, esquinas rectas, bordes de un pixel y mucho espacio en
- * blanco. Es el lenguaje visual del comercio textil al que pertenece la prueba,
- * y encaja con un catalogo donde el protagonista tiene que ser la fotografia del
- * producto y no la interfaz.
+ * The look is deliberately editorial and plain: a light ground, light type,
+ * straight corners, one-pixel rules and a lot of white space. It is the visual
+ * language of the clothing retail this test belongs to, and it suits a catalogue
+ * where the product's photograph has to be the subject, not the interface.
  *
- * Todo el color y el espaciado viven aqui como variables. Los componentes usan
- * CSS Modules y consumen estas variables, de modo que no hay ni un valor de
- * color repetido por los ficheros.
+ * Every colour and every spacing lives here as a variable. The components use
+ * CSS Modules and consume those variables, so not one colour value is repeated
+ * across the files.
  *
- * No se cargan tipografias externas: la pila del sistema evita una peticion a un
- * tercero, no bloquea el primer renderizado y no filtra la visita del usuario a
- * un dominio ajeno.
+ * No external typeface is loaded: the system stack avoids a request to a third
+ * party, does not block the first render, and does not leak the visit to
+ * somebody else's domain.
  */
 
 :root {
@@ -70,9 +69,8 @@
 }
 
 /*
- * Modo oscuro por preferencia del sistema. Se invierte la escala de grises
- * manteniendo los mismos nombres, asi que ningun componente necesita saber en
- * que modo esta.
+ * Dark mode by system preference. The greyscale is inverted under the same
+ * names, so no component needs to know which mode it is in.
  */
 @media (prefers-color-scheme: dark) {
   :root {
@@ -163,9 +161,9 @@ input {
 }
 
 /*
- * Un unico anillo de foco para toda la aplicacion, visible en ambos modos.
- * Se usa `:focus-visible` para que aparezca al navegar con teclado y no al
- * pulsar con el raton.
+ * One focus ring for the whole application, visible in both modes.
+ * `:focus-visible` is used so it appears when navigating with the keyboard and
+ * not when clicking with the mouse.
  */
 :focus-visible {
   outline: 2px solid var(--color-focus);
@@ -173,9 +171,9 @@ input {
 }
 
 /*
- * Respeta a quien ha pedido menos animacion en su sistema operativo. No es
- * cosmetico: el movimiento puede provocar mareo y migrana a personas con
- * trastornos vestibulares.
+ * Respects anyone who has asked their system for less animation. This is not
+ * cosmetic: movement can cause dizziness and migraine in people with vestibular
+ * disorders.
  */
 @media (prefers-reduced-motion: reduce) {
   *,

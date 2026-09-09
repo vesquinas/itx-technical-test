@@ -45,8 +45,8 @@
   outline-offset: 4px;
 }
 
-/* Se oculta el boton de borrado nativo de WebKit: ya hay uno propio, accesible
-   y con el mismo aspecto en todos los navegadores. */
+/* WebKit's own clear button is hidden: there is one of ours, accessible and
+   looking the same in every browser. */
 .input::-webkit-search-cancel-button {
   appearance: none;
 }

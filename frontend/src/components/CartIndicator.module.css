@@ -17,7 +17,7 @@
   color: var(--color-ink-muted);
 }
 
-/* Cuadrado en lugar de circulo, en linea con las esquinas rectas del resto. */
+/* Square rather than round, in keeping with the straight corners elsewhere. */
 .count {
   display: inline-flex;
   align-items: center;
@@ -34,7 +34,7 @@
 
 @media (max-width: 30rem) {
   .label {
-    /* En movil solo queda el icono y el contador. */
+    /* On a phone only the icon and the counter are left. */
     display: none;
   }
 }

@@ -55,7 +55,7 @@
   color: var(--color-ink);
 }
 
-/* Mientras hay una accion en curso, el grupo no responde ni lo aparenta. */
+/* While a request is in flight the group neither responds nor pretends to. */
 .group:disabled .chip {
   opacity: 0.5;
   cursor: not-allowed;

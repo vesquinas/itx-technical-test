@@ -23,14 +23,14 @@
 .image {
   width: 100%;
   height: 100%;
-  /* `contain` porque las fotos del catalogo tienen proporciones distintas y
-     recortarlas cortaria el dispositivo. */
+  /* `contain` because the catalogue's photos have different aspect ratios, and
+     cropping them would cut the device off. */
   object-fit: contain;
   mix-blend-mode: multiply;
   transition: transform var(--duration-base) ease;
 }
 
-/* En modo oscuro `multiply` apagaria las fotos, que vienen con fondo blanco. */
+/* In dark mode `multiply` would dull the photos, which come on a white background. */
 @media (prefers-color-scheme: dark) {
   .image {
     mix-blend-mode: normal;
