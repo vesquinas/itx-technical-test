@@ -413,6 +413,18 @@ if (existsSync('dist')) {
     'the application is loaded as a module script',
     /<script type="module"[^>]*src="[^"]+"/.test(html),
   );
+
+  // No source maps unless they were asked for. Serving them publishes the entire TypeScript
+  // source, which a review found this build doing without ever having decided to.
+  const maps = readdirSync(join('dist', 'assets')).filter((entry) => entry.endsWith('.map'));
+  const wanted = process.env['VITE_SOURCEMAPS'] === 'true';
+  check(
+    wanted
+      ? `source maps were asked for and are there (${maps.length})`
+      : 'the default build emits no source maps, so the source is not served',
+    wanted ? maps.length > 0 : maps.length === 0,
+    maps.slice(0, 3).join(', '),
+  );
 }
 
 // ---------------------------------------------------------------------------

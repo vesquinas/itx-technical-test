@@ -573,6 +573,14 @@ API with no authentication, no sessions and no personal data. What does apply:
   precise about what that means: **there is no external link in the application**. The only anchor
   is the internal skip link of the layout. The rule protects the day someone adds one, which is a
   guard and not a measure in place, and it was listed as the latter until a review pointed it out.
+- **A production build ships no source maps.** It used to: the deployed demo served a 1.2 MB
+  `index-*.js.map` carrying the `sourcesContent` of thirty-four files, which is the whole
+  TypeScript source. Here that leaked nothing — the brief requires a public repository, so the
+  source is public by construction — but it was **correct by accident rather than by decision**,
+  which is how a review put it, and in a deployment whose source is not public it is a finding. The
+  default is now off, with the maps opt-in for debugging a built bundle
+  (`VITE_SOURCEMAPS=true npm run build`); a real service would use `'hidden'` and upload them to
+  its error tracker instead. `npm run check:claims` asserts the default build emits none.
 - **Minimal dependencies**: react, react-dom and react-router in production. Fewer dependencies mean
   less supply-chain surface. They are audited in continuous integration.
 - Nothing sensitive is stored in the browser: only the catalogue, which is public, and the cart

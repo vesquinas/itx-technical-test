@@ -160,7 +160,25 @@ export default defineConfig(({ mode }) => {
       target: 'es2022',
       // No manual chunking is configured: the routes are loaded with `React.lazy`, so the
       // bundler already produces one chunk per view.
-      sourcemap: true,
+
+      /**
+       * **A production build ships no source maps**, and this used to be `true`.
+       *
+       * With `true`, the deployed demo served `index-*.js.map`: 1.2 MB carrying the
+       * `sourcesContent` of thirty-four files, which is the entire TypeScript source. Here that
+       * leaks nothing — the brief requires a public repository, so the source is public by
+       * construction — but it was **correct by accident rather than by decision**, which is how a
+       * review put it, and in a deployment whose source is not public it is a finding.
+       *
+       * So the default is off, and the maps are opt-in for whoever needs to debug a built bundle:
+       *
+       *     VITE_SOURCEMAPS=true npm run build
+       *
+       * The alternative a real service uses is `'hidden'` plus uploading the maps to the error
+       * tracker, so stack traces are readable there and nothing is served to the public. That needs
+       * an error tracker, which this does not have.
+       */
+      sourcemap: process.env['VITE_SOURCEMAPS'] === 'true',
     },
     test: {
       environment: 'jsdom',
