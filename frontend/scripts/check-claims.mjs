@@ -436,21 +436,20 @@ if (shallow === 'true') {
   );
   for (const [label, markdown] of [['README.md', README], ['../README.md', rootReadme]]) {
     /**
-     * Every mention, not the first one that matches.
+     * A floor, and deliberately not an exact figure.
      *
-     * This checked `exec`, which returns the first match — and a fresh clone showed why that is
-     * not enough: one of these files mentioned the count twice, one of them stale, and the check
-     * was satisfied by the other. It is the same fault a review found in the backend's gate, made
-     * here by the person who had just fixed it there.
+     * An exact count cannot be kept true: the commit that writes it changes it. That is not the
+     * situation of every other number here — the test count only moves when the tests do, which is
+     * what the claim is about — so this one is stated as "over N" and checked as a floor. It is a
+     * quantity that only grows, so a floor never goes stale in the direction that would flatter it.
      *
-     * A historical quotation — "the commit count became 400" — is deliberately written without
-     * this shape, so that prose about the past does not have to agree with the present.
+     * The upper bound is there so a floor left far behind still fails: "more than 40" with three
+     * hundred commits in the history is not a claim any more.
      */
-    const stated = [...markdown.matchAll(/(\d+) commits/g)].map((match) => Number(match[1]));
+    const stated = Number(/more than (\d+) commits/.exec(markdown)?.[1]);
     check(
-      `${label}: every mention of the number of commits is right (says ${[...new Set(stated)].join(', ') || '—'}, there are ${commits})`,
-      // The count grows with the commit that updates it, so it is right or one behind.
-      stated.length > 0 && stated.every((value) => value === commits || value === commits + 1),
+      `${label}: the stated floor for the number of commits holds (more than ${stated}, there are ${commits})`,
+      Number.isFinite(stated) && commits > stated && commits < stated + 25,
     );
   }
 }

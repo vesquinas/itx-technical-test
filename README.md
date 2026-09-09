@@ -49,7 +49,8 @@ from the letter of the brief and why:
 ## How the work is organised
 
 The commit history follows the milestones of the development, so the evolution of the project can
-be read in order — 49 commits, the first of which already carries this README, as the brief asks.
+be read in order — more than 40 commits, the first of which already carries this README, as the
+brief asks.
 
 Continuous integration has run on **every push since it was introduced**: 26 runs across the 32
 commits that followed it, checkable with `gh run list`. Two of those runs failed, and they are left
