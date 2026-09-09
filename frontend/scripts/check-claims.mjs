@@ -321,6 +321,76 @@ if (existsSync('dist')) {
 }
 
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// The numbers measured against the API, and the number of commits.
+//
+// These are the ones this check used to miss, and a review proved it by falsifying five of them
+// and watching both gates pass. The pattern was that everything coming from configuration was
+// covered and everything coming from *measurement* was not — which is the wrong way round, since
+// configuration is stable and a measurement moves.
+//
+// The fix is a single source of truth: `scripts/api-facts.json`. `npm run check:api` asserts those
+// numbers against the live API; this asserts the READMEs quote them. Neither half is any use alone.
+// ---------------------------------------------------------------------------
+
+const FACTS = JSON.parse(readFileSync('scripts/api-facts.json', 'utf8'));
+const rootReadme = readFileSync('../README.md', 'utf8');
+
+const numbersFromTheApi = [
+  ['products in the catalogue', /all (\d+) products, no pagination/, FACTS.products],
+  ['products in the endpoint table', /The catalogue: \*\*(\d+) products\*\*/, FACTS.products],
+  ['products with no price', /comes as `""` in (\d+) of the 100 products/, FACTS.withoutPrice],
+  ['products with no NFC value', /`nfc` arrives empty in (\d+) of the 100 products/, FACTS.withoutNfc],
+  ['products with a blank option name', /`\{ code: 2000, name: " " \}`/, undefined],
+];
+
+for (const [name, pattern, expected] of numbersFromTheApi) {
+  if (expected === undefined) continue;
+  const stated = claimed(pattern);
+  check(
+    `the stated ${name} matches api-facts.json (says ${stated ?? '—'}, facts say ${expected})`,
+    stated === expected,
+  );
+}
+
+/**
+ * And **every** mention of the catalogue's size, not the first one that happens to match.
+ *
+ * A review made this point against the backend's checker, where asserting that a README
+ * "contains" a string was satisfied by any one of its three occurrences while the others said
+ * something else. The same weakness was here: the size of the catalogue is written eight times and
+ * two of them were being checked. What matters is that none of them disagrees.
+ */
+const productCounts = [...README.matchAll(/(\d+) products/g)].map((match) => Number(match[1]));
+check(
+  `all ${productCounts.length} mentions of the catalogue's size agree with api-facts.json`,
+  productCounts.length > 0 && productCounts.every((count) => count === FACTS.products),
+  [...new Set(productCounts)].join(', '),
+);
+
+/**
+ * The number of commits, which the READMEs both state.
+ *
+ * Skipped rather than failed on a shallow clone: continuous integration checks out with a depth of
+ * one by default, and a check that cannot run is not the same as a check that fails.
+ */
+const shallow = execFileSync('git', ['rev-parse', '--is-shallow-repository'], { encoding: 'utf8' }).trim();
+if (shallow === 'true') {
+  console.log('  ..  skipping the commit count: this is a shallow clone');
+} else {
+  const commits = Number(
+    execFileSync('git', ['rev-list', '--count', 'HEAD'], { encoding: 'utf8' }).trim(),
+  );
+  for (const [label, markdown] of [['README.md', README], ['../README.md', rootReadme]]) {
+    const stated = Number(/(\d+) commits/.exec(markdown)?.[1]);
+    check(
+      `${label}: the stated number of commits is right (says ${stated || '—'}, there are ${commits})`,
+      // The count grows with the commit that updates it, so it is right or one behind.
+      stated === commits || stated === commits + 1,
+    );
+  }
+}
+
 // A single page, rendered in the browser: what "SPA, no MPA, no SSR" means in the artefact.
 //
 // The behavioural half — that a view change is a client-side navigation — is a test. This half

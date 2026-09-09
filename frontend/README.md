@@ -36,7 +36,7 @@ place.
 | ES6; a boilerplate may be used | TypeScript in strict mode, compiled to ES2022, on Vite | `npm run typecheck` |
 | A SPA with client-side routing, no MPA and no SSR | `BrowserRouter`, no server rendering, no document navigation | `changes view without the document ever being re-requested, and keeps the search` — the round trip is made, the URL changes and jsdom reports no navigation; plus `npm run check:claims`, which asserts the build is a single HTML file with an empty root |
 | The four scripts: START, BUILD, TEST, LINT | `npm start`, `npm run build`, `npm test`, `npm run lint` | `npm run check:claims` verifies all four exist |
-| An open repository, with the code pushed in milestones | 39 commits, one per milestone | the history |
+| An open repository, with the code pushed in milestones | 42 commits, one per milestone | the history |
 | A README, preferably in the first commit | this file, in the first commit | `git show --stat $(git rev-list --max-parents=0 HEAD)` |
 | **PLP** — every element the API returns | all 100 products, no pagination | `shows the products the API returns` |
 | **PLP** — filtering by what the user types | `src/components/SearchBar.tsx` | `filters by brand`, `filters by model while typing` |

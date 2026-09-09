@@ -55,43 +55,75 @@ class ReadmeClaimsTest {
     }
 
     @Test
-    void the_stated_number_of_tests_is_the_number_there_are() throws IOException {
-        long actual;
+    void the_stated_number_of_tests_is_exactly_the_number_there_are() throws IOException {
+        // Exact, not a window. It used to allow anything between the number of annotated methods
+        // and that plus twelve, because a @ParameterizedTest runs more than once and the README
+        // states what Maven reports — which left six of slack, enough to hide a deleted test. The
+        // expansion is countable: each parameterised method runs once per `Arguments.of` in the
+        // provider it names.
+        long total = 0;
         try (Stream<Path> files = Files.walk(TESTS)) {
-            actual = files
-                    .filter(path -> path.toString().endsWith(".java"))
-                    .mapToLong(path -> {
-                        try {
-                            // Counting the annotation rather than the methods: @ParameterizedTest
-                            // contributes several executions from one method, and what the README
-                            // states is what Maven reports.
-                            return Pattern.compile("^\\s*@(Test|ParameterizedTest)\\b", Pattern.MULTILINE)
-                                    .matcher(Files.readString(path))
-                                    .results()
-                                    .count();
-                        } catch (IOException e) {
-                            throw new AssertionError(e);
-                        }
-                    })
-                    .sum();
+            for (Path path : files.filter(p -> p.toString().endsWith(".java")).toList()) {
+                total += executionsIn(Files.readString(path));
+            }
         }
 
-        // The parameterised tests run more than once each, so the total Maven reports is higher
-        // than the number of methods. The claim has to be at least the methods and cannot be wild.
         long claimed = Long.parseLong(captured(read(README), "^(\\d+) tests\\."));
         assertThat(claimed)
-                .as("the README says %s tests and there are %s test methods", claimed, actual)
-                .isBetween(actual, actual + 12);
+                .as("the README says %s tests and the suite runs %s", claimed, total)
+                .isEqualTo(total);
+    }
+
+    /** How many test executions one source file contributes, parameterised expansion included. */
+    private static long executionsIn(String source) {
+        long plain = Pattern.compile("^\\s*@Test\\b", Pattern.MULTILINE).matcher(source).results().count();
+
+        long parameterised = 0;
+        Matcher methodSource = Pattern.compile("@ParameterizedTest[^@]*@MethodSource\\(\"([^\"]+)\"\\)")
+                .matcher(source);
+        while (methodSource.find()) {
+            String provider = methodSource.group(1);
+            Matcher body = Pattern.compile(
+                    "Stream<Arguments> " + Pattern.quote(provider) + "\\(\\)\\s*\\{(.*?)\\n    \\}",
+                    Pattern.DOTALL).matcher(source);
+            assertThat(body.find()).as("the provider %s exists", provider).isTrue();
+            long cases = Pattern.compile("Arguments\\.of\\(").matcher(body.group(1)).results().count();
+            assertThat(cases).as("the provider %s supplies cases", provider).isPositive();
+            parameterised += cases;
+        }
+        return plain + parameterised;
     }
 
     @Test
-    void the_ports_in_the_readme_are_the_ports_configured() throws IOException {
+    void no_mention_of_a_port_in_the_readme_disagrees_with_the_configuration() throws IOException {
         String configuration = read(CONFIGURATION);
         String readme = read(README);
 
-        assertThat(captured(configuration, "^  port: (\\d+)")).isEqualTo("5000");
-        assertThat(captured(configuration, "^    port: (\\d+)")).isEqualTo("5001");
-        assertThat(readme).contains("on port 5000").contains("5001");
+        String apiPort = captured(configuration, "^  port: (\\d+)");
+        String managementPort = captured(configuration, "^    port: (\\d+)");
+        assertThat(apiPort).isEqualTo("5000");
+        assertThat(managementPort).isEqualTo("5001");
+
+        // `contains` was the wrong verb here: "on port 5000" appears more than once, so a single
+        // matching occurrence satisfied it while another said something else. What matters is that
+        // **no** occurrence disagrees.
+        List<String> mentioned = Pattern.compile("on port (\\d+)")
+                .matcher(readme)
+                .results()
+                .map(result -> result.group(1))
+                .toList();
+        assertThat(mentioned).as("every 'on port N' in the README").isNotEmpty().containsOnly(apiPort);
+
+        // And the port column of the endpoint table, row by row: the management endpoints on the
+        // management port, the operation on the public one.
+        for (String row : endpointRows(readme)) {
+            String[] cells = row.split("\\|");
+            String port = cells[2].trim();
+            String expected = cells[1].contains("/actuator/") ? managementPort : apiPort;
+            assertThat(port)
+                    .as("the port column of the row %s", cells[1].trim())
+                    .isEqualTo(expected);
+        }
     }
 
     @Test
@@ -112,11 +144,18 @@ class ReadmeClaimsTest {
                 .contains("| `Found` | 5 min |")
                 .contains("| `Missing` (404) | 1 min |")
                 .contains("| `Unavailable` (failure or timeout) | 10 s |");
-        assertThat(readme).contains("600 ms budget").contains("50 by default");
+        // Again every occurrence, not merely one: "600 ms budget" is written three times.
+        List<String> budgets = Pattern.compile("(\\d+) ms budget")
+                .matcher(readme)
+                .results()
+                .map(result -> result.group(1))
+                .toList();
+        assertThat(budgets).as("every 'N ms budget' in the README").isNotEmpty().containsOnly("600");
+        assertThat(readme).contains("50 by default");
     }
 
     @Test
-    void the_readme_documents_every_endpoint_the_service_exposes() throws IOException {
+    void the_readme_and_the_service_expose_exactly_the_same_endpoints() throws IOException {
         List<String> mapped;
         try (Stream<Path> files = Files.walk(MAIN)) {
             mapped = files
@@ -133,14 +172,43 @@ class ReadmeClaimsTest {
                     })
                     .toList();
         }
-
         assertThat(mapped).isNotEmpty();
+
         String readme = read(README);
-        for (String endpoint : mapped) {
-            assertThat(readme)
-                    .as("the endpoint %s is not in the README's table", endpoint)
-                    .contains(endpoint);
+        List<String> documented = endpointRows(readme).stream()
+                .flatMap(row -> Pattern.compile("`GET (/[^`]+)`").matcher(row).results())
+                .map(result -> result.group(1))
+                .toList();
+
+        // Forwards: nothing the service maps may be missing from the table.
+        assertThat(documented).as("the endpoint table").containsAll(mapped);
+
+        // **Backwards**, which is the direction this test used not to check at all — a review added
+        // an invented `GET /product/{productId}/related` to the table and it passed. Everything
+        // documented has to be either a mapped route or an actuator endpoint the configuration
+        // actually exposes.
+        List<String> exposedActuators =
+                List.of(captured(read(CONFIGURATION), "include: (\\S+)").split(","));
+        for (String endpoint : documented) {
+            if (endpoint.startsWith("/actuator/")) {
+                assertThat(exposedActuators)
+                        .as("%s is documented, so the configuration has to expose it", endpoint)
+                        .contains(endpoint.substring("/actuator/".length()));
+            } else {
+                assertThat(mapped)
+                        .as("%s is documented, so something has to map it", endpoint)
+                        .contains(endpoint);
+            }
         }
+    }
+
+    /** The rows of the endpoint table, without its header or its rule. */
+    private static List<String> endpointRows(String readme) {
+        String table = readme.substring(readme.indexOf("## The endpoints"));
+        return table.lines()
+                .takeWhile(line -> !line.startsWith("Two responses"))
+                .filter(line -> line.startsWith("| `GET"))
+                .toList();
     }
 
     @Test

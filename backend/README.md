@@ -549,7 +549,16 @@ endpoint that has drifted and a link pointing at a section that no longer exists
 asserting something unverified would pass it. The table is what closes that gap, by making the
 pairing explicit enough that an empty right-hand column is visible.
 
-**And this table itself claimed more than it could deliver, which is worth admitting here.** It said
+**This gate used to be the weaker of the two, and the README presented them as equivalent.** A
+review showed it three ways: an invented `GET /product/{productId}/related` added to the endpoint
+table passed, because only the forward direction was checked; `contains("600 ms budget")` was
+satisfied by any one of its three occurrences while the others could say anything; and the test
+count allowed a window of six. All three are closed — the endpoint check runs both ways and
+validates the actuator rows against what the configuration actually exposes, every occurrence of a
+figure has to agree rather than one of them, and the count is exact, with the expansion of the
+parameterised tests computed rather than allowed for.
+
+**And the table itself claimed more than it could deliver, which is worth admitting here.** It said
 *every* number in this README was the current one; a review falsified the headline throughput —
 285.2/s to 985.2/s — and the suite passed. Everything derived from configuration was covered and
 everything derived from measurement was not, which is the wrong way round, since configuration is
