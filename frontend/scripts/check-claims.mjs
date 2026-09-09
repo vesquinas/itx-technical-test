@@ -61,9 +61,13 @@ console.log('  ..  running the suite to count what it actually contains');
 let exitedCleanly = true;
 try {
   execFileSync(
-    'npx',
+    // `process.execPath` and vitest's own entry point, rather than `npx vitest`. On Windows npx is
+    // a `.cmd`, and `execFileSync` without a shell cannot launch one: this gate would have failed
+    // there with `spawn npx ENOENT` and nothing to do with any claim. It also pins the runner to
+    // the very Node that is running this script.
+    process.execPath,
     [
-      'vitest',
+      join('node_modules', 'vitest', 'vitest.mjs'),
       'run',
       '--reporter=json',
       `--outputFile=${testReport}`,
@@ -359,7 +363,7 @@ function originOfTheBuild() {
 
 if (existsSync('dist')) {
   const builtFor = originOfTheBuild();
-  const cspOutput = execFileSync('node', ['scripts/check-csp.mjs'], {
+  const cspOutput = execFileSync(process.execPath, [join('scripts', 'check-csp.mjs')], {
     encoding: 'utf8',
     env: builtFor === undefined ? process.env : { ...process.env, VITE_API_BASE_URL: builtFor },
   });

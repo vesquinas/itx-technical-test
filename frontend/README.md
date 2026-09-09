@@ -125,6 +125,25 @@ npm start          # development mode, on http://localhost:5173
 | `npm run preview` | Serves the production build |
 | `npm run preview:deployed` | Builds and serves the production build from one origin that also proxies the API — the topology of a real deployment. Uses `--mode preview` rather than an inline variable, so it works in cmd and PowerShell too |
 
+### What it needs, and what it was verified on
+
+Node **^20.19 || >=22.12** — the floor Vite 8 sets, declared in `engines` — and nothing else. The
+one exception is `npm run check:api`, which runs TypeScript directly and therefore wants Node
+22.6+.
+
+It was developed and verified on **Linux (WSL2), Node 24.11**, and that is worth saying because it
+is the only environment these commands have actually been run in. What has been done about the
+others is not a promise but three concrete things: no script uses shell-specific syntax — an inline
+`VAR=value` in `preview:deployed` would have failed in cmd and PowerShell, and is gone; the
+verification scripts spawn `process.execPath` rather than `npx`, which on Windows is a `.cmd` that
+`execFileSync` cannot launch; and [`.gitattributes`](../.gitattributes) normalises line endings, so
+`mvnw` does not arrive as CRLF and fail with `bad interpreter`.
+
+Verified from a clean clone, five times, the last one on the delivered commit: `npm ci`, the four
+scripts of the brief, `typecheck`, `test:coverage`, `preview`, `preview:deployed`, `check:csp`,
+`check:claims`, `check:api`, and on the backend `./mvnw test`, `./mvnw package`, `docker build` and
+the whole path its brief prescribes.
+
 The API URL can be changed with `VITE_API_BASE_URL`; see [`.env.example`](./.env.example).
 
 **Everything origin-dependent is derived from that one value**, and it took a review to get there.
