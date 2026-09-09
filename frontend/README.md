@@ -36,7 +36,7 @@ place.
 | ES6; a boilerplate may be used | TypeScript in strict mode, compiled to ES2022, on Vite | `npm run typecheck` |
 | A SPA with client-side routing, no MPA and no SSR | `BrowserRouter`, no server rendering, no document navigation | `changes view without the document ever being re-requested, and keeps the search` — the round trip is made, the URL changes and jsdom reports no navigation; plus `npm run check:claims`, which asserts the build is a single HTML file with an empty root |
 | The four scripts: START, BUILD, TEST, LINT | `npm start`, `npm run build`, `npm test`, `npm run lint` | `npm run check:claims` verifies all four exist |
-| An open repository, with the code pushed in milestones | 45 commits, one per milestone | the history |
+| An open repository, with the code pushed in milestones | 47 commits, one per milestone | the history |
 | A README, preferably in the first commit | this file, in the first commit | `git show --stat $(git rev-list --max-parents=0 HEAD)` |
 | **PLP** — every element the API returns | all 100 products, no pagination | `shows the products the API returns` |
 | **PLP** — filtering by what the user types, with the input shown | `src/components/SearchBar.tsx` | `filters by brand`, `filters by model while typing`, and `offers the search field from the first moment, before the catalogue has arrived` |
@@ -698,7 +698,7 @@ So the rule is now: **no claim in this README without a command that proves it.*
 | --- | --- |
 | 186 tests pass; 98% of statements, 100% of functions | `npm test`, `npm run test:coverage` |
 | The API's defects are handled — swapped fields, ten fields that change type, empty prices | `npm run check:api`, which walks all 100 products of the live catalogue |
-| The Content-Security-Policy covers everything the page loads and needs no `unsafe-inline` | `npm run check:csp` — 18 checks, in continuous integration |
+| The Content-Security-Policy declares every origin the built document references, and needs no `unsafe-inline` because there is no inline script or style | `npm run check:csp` — 18 checks, in continuous integration. What it cannot see is a request built at runtime to an origin the document never mentions; there is none, and only a browser would prove it |
 | Configuring `VITE_API_BASE_URL` does not break the build | continuous integration builds twice, with the default origin and with a configured one |
 | The cart accumulates when the application is served from one origin | `npm run preview:deployed`, then four adds |
 | The catalogue grid is capped at four columns, and the skeleton matches it | `npm test` — ProductGrid.columns.test.ts |

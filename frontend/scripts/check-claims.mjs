@@ -58,19 +58,35 @@ mkdirSync(ARTEFACTS, { recursive: true });
 const testReport = join(ARTEFACTS, 'tests.json');
 
 console.log('  ..  running the suite to count what it actually contains');
-execFileSync(
-  'npx',
-  [
-    'vitest',
-    'run',
-    '--reporter=json',
-    `--outputFile=${testReport}`,
-    '--coverage',
-    '--coverage.reporter=json-summary',
-    '--coverage.reportsDirectory=' + join(ARTEFACTS, 'coverage'),
-  ],
-  { stdio: ['ignore', 'ignore', 'inherit'] },
-);
+try {
+  execFileSync(
+    'npx',
+    [
+      'vitest',
+      'run',
+      '--reporter=json',
+      `--outputFile=${testReport}`,
+      '--coverage',
+      '--coverage.reporter=json-summary',
+      '--coverage.reportsDirectory=' + join(ARTEFACTS, 'coverage'),
+    ],
+    { stdio: ['ignore', 'ignore', 'inherit'] },
+  );
+} catch {
+  // A failing suite is a result, not a crash. Without this the script died with a Node stack
+  // trace and reported nothing at all — including its own check that the suite passes, which
+  // never got the chance to run. Found while falsifying a claim on purpose and watching the
+  // checker fall over instead of answering.
+  console.error('  FAIL  the suite does not pass, so nothing it reports can be trusted');
+}
+
+const coverageSummary = join(ARTEFACTS, 'coverage', 'coverage-summary.json');
+if (!existsSync(testReport) || !existsSync(coverageSummary)) {
+  console.error(
+    '  FAIL  the suite produced no report, so no claim about it can be checked. Run `npm test` and read its output first.',
+  );
+  process.exit(1);
+}
 
 const report = JSON.parse(readFileSync(testReport, 'utf8'));
 const actualTests = report.numTotalTests;
@@ -84,9 +100,7 @@ check(
   claimedTests === actualTests,
 );
 
-const coverage = JSON.parse(
-  readFileSync(join(ARTEFACTS, 'coverage', 'coverage-summary.json'), 'utf8'),
-).total;
+const coverage = JSON.parse(readFileSync(coverageSummary, 'utf8')).total;
 const claimedStatements = claimed(/(\d+)% statement coverage/);
 check(
   // A band, not a floor. It used to accept anything at or below the real figure, which is a
@@ -394,6 +408,36 @@ if (shallow === 'true') {
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// The column ladder, which the README writes out and the stylesheet decides.
+//
+// The row above claims every number coming from the code is current, and this was one it did not
+// cover: the table states "1 / 2 / 3 / 4 columns at 0 / 30rem / 48rem / 64rem" and the only thing
+// holding it was a test *name*. Found by auditing that row's own wording after a review said it
+// oversold itself.
+// ---------------------------------------------------------------------------
+
+const gridCss = readFileSync(join('src', 'components', 'ProductGrid.module.css'), 'utf8');
+const ladder = [];
+let appliesFrom = '0';
+for (const line of gridCss.split('\n')) {
+  const breakpoint = /@media \(min-width:\s*([^)]+)\)/.exec(line);
+  if (breakpoint?.[1] !== undefined) appliesFrom = breakpoint[1].trim();
+  const columns = /grid-template-columns:\s*(?:repeat\((\d+),\s*1fr\)|(1fr))\s*;/.exec(line);
+  if (columns !== null) ladder.push([columns[1] ?? '1', appliesFrom]);
+}
+
+const statedLadder = /([\d ]+\/[\d /]+) columns at ([\dremm 0/]+)/.exec(README);
+const joined = (index) =>
+  statedLadder?.[index]?.split('/').map((part) => part.trim()).join(',');
+check(
+  `the column ladder the README states matches the stylesheet (${ladder.map(([c, w]) => `${c}@${w}`).join(' ')})`,
+  statedLadder !== null &&
+    joined(1) === ladder.map(([columns]) => columns).join(',') &&
+    joined(2) === ladder.map(([, width]) => width).join(','),
+  statedLadder === null ? 'the README states no ladder any more' : statedLadder[0],
+);
 
 // A single page, rendered in the browser: what "SPA, no MPA, no SSR" means in the artefact.
 //
