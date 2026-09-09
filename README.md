@@ -32,11 +32,24 @@ interface speaks the language of its market — and of the specification, which 
 in Spanish ("botón de Añadir"). In a real project that copy would go through an i18n layer instead
 of being embedded in the components.
 
+## Does it do what was asked?
+
+Each test's README opens with a table that takes the brief **requirement by requirement** and says
+where each one is met and which test proves it, along with the places where the solution departs
+from the letter of the brief and why:
+
+- [What the frontend brief asks, and where it is met](./frontend/README.md#what-the-brief-asks-and-where-it-is-met)
+- [What the backend brief asks, and where it is met](./backend/README.md#what-the-brief-asks-and-where-it-is-met)
+
 ## How the work is organised
 
 The commit history follows the milestones of the development, so the evolution of the project can
-be read in order. Every milestone leaves the application in a state that compiles, passes the
-linter and passes the tests.
+be read in order — 36 commits, the first of which already carries this README, as the brief asks.
+
+Continuous integration has run on **every push since it was introduced**: 26 runs across the 32
+commits that followed it, checkable with `gh run list`. Two of those runs failed, and they are left
+in the history on purpose — one of them is a flaky test whose diagnosis and fix are written up in
+the frontend README, and a green wall that hid it would be worth less than the story.
 
 ## Design decisions
 

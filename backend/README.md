@@ -58,7 +58,7 @@ docker run -p 5000:5000 -p 5001:5001 -e EXISTING_API_BASE_URL=http://simulado \
 ./mvnw test
 ```
 
-61 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
+62 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
 the same cases as the mock service, with its delays, its 404s and its 500s.
 
 To check that the tests are worth something — and not merely that they execute lines — nine
@@ -103,6 +103,44 @@ docker compose run --rm k6 run scripts/test.js
 Results on the [Grafana dashboard](http://localhost:3000/d/Le2Ku9NMk/k6-performance-test), which
 graphs request count and mean duration. Verified end to end: k6 writes into InfluxDB and the
 dashboard is provisioned at that URL.
+
+> **If k6 reports `data_received: 0 B` and every duration as zero, its container cannot reach the
+> service.** The test targets `host.docker.internal:5000`, so the service has to be listening on the
+> machine Docker calls the host. That is the case when the service runs natively on macOS or
+> Windows, and on Linux through the `host-gateway` entry the compose file already sets. It is *not*
+> the case when the service runs inside a WSL2 distribution while Docker Desktop runs on Windows:
+> `host.docker.internal` then points at Windows, and the connection is refused. Running the service
+> in a container instead fixes it, which is what [`docker-compose.app.yaml`](./docker-compose.app.yaml)
+> is for:
+>
+> ```bash
+> docker compose -f docker-compose.yaml -f docker-compose.app.yaml up -d --build app
+> docker compose run --rm k6 run scripts/test.js
+> ```
+>
+> Found by running the brief's own instructions verbatim on such a setup, which is worth doing
+> before delivering anything: the failure is silent — k6 reports a throughput and completes every
+> scenario, with every timing at zero.
+
+## What the brief asks, and where it is met
+
+| The brief asks | Answer |
+| --- | --- |
+| A **Spring Boot** application | Spring Boot 3.5.x on Java 21 |
+| Exposing **the agreed REST API** | [`similarProducts.yaml`](./similarProducts.yaml) unchanged; the 200 body is the bare array it defines, deduplicated and ordered by similarity as the schema says (`uniqueItems: true`) |
+| **On port 5000** | Yes, and asserted by a test rather than assumed — every other test runs on a random port, so nothing else exercises 5000 |
+| **Implement only `yourApp`**: the test and the mocks are given | Their files are untouched. Verifiable: `git log --oneline -- similarProducts.yaml existingApis.yaml docker-compose.yaml shared/` shows a single commit, the one that imported them. The service is added in a second compose file rather than by editing theirs |
+| Evaluated on **code clarity and maintainability** | One responsibility per class, the domain modelled as sealed types rather than nulls, and every non-obvious decision written down next to the code with the measurement that chose it |
+| Evaluated on **performance** | The three decisions that determine it are [measured, not asserted](#the-three-decisions-that-determine-the-performance): parallel fan-out, a short budget, and an asynchronous cache — the last one alone took the load test from 1 completed request to 16,400 |
+| Evaluated on **resilience** | [A circuit breaker with per-product granularity](#a-circuit-breaker-with-per-product-granularity), deduplication of identical calls, a cap on the fan-out, partial results with the completeness signalled, and separate timeouts |
+
+**Two things this adds to the contract**, both deliberate and neither breaking it: a
+`Similar-Products-Complete` header when the list is not all of it (with `Cache-Control: no-store`
+alongside), and status codes for the failures the contract does not describe — 502 when the source
+cannot be reached, 400 for an identifier long enough to be an attack. The contract declares 200 and
+404 only, and is silent about the rest; a client that ignores the header sees exactly the agreed
+contract. Both are argued in [Partial results](#partial-results-rather-than-no-results--and-saying-so)
+and in the table of failure cases above.
 
 ## The endpoints
 
@@ -446,7 +484,7 @@ So the rule is now: **no claim in this README without a command that proves it.*
 
 | Claim | Proof |
 | --- | --- |
-| 61 tests pass, with no Docker needed | `./mvnw test` |
+| 62 tests pass, with no Docker needed | `./mvnw test` |
 | Only a 404 means "does not exist"; a 429 or a 403 do not | `./mvnw test` — ProductCatalogTest |
 | 25 sequential requests for a made-up product cost **one** call to the source | `./mvnw test` — the negative-caching tests |
 | Error responses repeat nothing the caller sent, and carry no exception or trace | `./mvnw test` — ErrorResponsesTest, UnexpectedErrorTest |

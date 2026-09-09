@@ -87,4 +87,22 @@ describe('App', () => {
 
     expect(screen.getByText('Cesta')).toBeInTheDocument();
   });
+
+  it('makes the title of the application a link to the main view', async () => {
+    // A literal requirement of the brief — "el título o el icono de la aplicación actuará como
+    // enlace a la vista principal" — and it had no test, which is the same gap a review found in
+    // the other figures the brief states outright.
+    window.history.pushState({}, '', '/product/abc123');
+
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+    await screen.findByRole('heading', { level: 1, name: 'X960' });
+
+    const title = screen.getByRole('link', { name: 'Ir a la lista de productos' });
+
+    expect(title).toHaveAttribute('href', '/');
+  });
 });

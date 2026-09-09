@@ -4,8 +4,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.junit.jupiter.api.Test;
@@ -186,6 +189,37 @@ class ReadmeClaimsTest {
             }
         }
         return (100.0 * comments) / lines;
+    }
+
+    @Test
+    void every_internal_link_of_the_readme_points_at_a_section_that_exists() throws IOException {
+        String readme = read(README);
+
+        // GitHub's own slugs: lower-cased, punctuation dropped, spaces turned into hyphens. A
+        // renamed section leaves a link that silently goes nowhere, which is the same class of rot
+        // as a number that no longer matches.
+        Set<String> sections = Pattern.compile("^#{1,6}\\s+(.+)$", Pattern.MULTILINE)
+                .matcher(readme)
+                .results()
+                .map(result -> result.group(1)
+                        .toLowerCase(Locale.ROOT)
+                        .replaceAll("[`*\\[\\]()]", "")
+                        .replaceAll("[^\\w\\s-]", "")
+                        .strip()
+                        // Each space becomes a hyphen, not each run of them: GitHub leaves the
+                        // double hyphen that an em dash surrounded by spaces produces. Collapsing
+                        // them was this test's first bug.
+                        .replaceAll("\\s", "-"))
+                .collect(Collectors.toSet());
+
+        List<String> broken = Pattern.compile("\\[([^\\]]+)\\]\\(#([^)]+)\\)")
+                .matcher(readme)
+                .results()
+                .filter(result -> !sections.contains(result.group(2)))
+                .map(result -> result.group(1) + " -> #" + result.group(2))
+                .toList();
+
+        assertThat(broken).as("internal links pointing nowhere").isEmpty();
     }
 
     @Test

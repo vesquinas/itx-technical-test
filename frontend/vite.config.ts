@@ -123,14 +123,6 @@ export default defineConfig(({ mode }) => {
   );
 
   return {
-    /**
-     * Base path of the deployment.
-     *
-     * It stays at `/` unless `VITE_BASE_PATH` says otherwise, so `npm run build` behaves the same
-     * for anyone running it locally. Only the GitHub Pages workflow sets it, because there the
-     * application is served from a repository sub-path.
-     */
-    base: process.env['VITE_BASE_PATH'] ?? '/',
     plugins: [react(), contentSecurityPolicy(apiOrigin), connectionHints(apiOrigin)],
 
     /**

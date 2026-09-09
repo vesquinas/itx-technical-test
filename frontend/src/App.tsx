@@ -5,7 +5,7 @@ import { CartProvider } from './cart/CartProvider.tsx';
 import { RouteFallback } from './components/RouteFallback.tsx';
 
 /**
- * Both views are lazily loaded.
+ * Every route is lazily loaded.
  *
  * Each ends up in its own chunk, so whoever opens the list does not download the detail page's
  * code, and vice versa. That is why no manual chunking needs configuring in the bundler.
@@ -40,16 +40,21 @@ const NotFoundPage = lazy(async () => {
 export function App() {
   return (
     <CartProvider>
-      {/*
-        `basename` comes from the build's base path, so the same bundle works both at the root and
-        under a sub-path (which is how the public demo on GitHub Pages is served).
-      */}
+      {/* `basename` follows the build's base path, so a deployment under a sub-path routes
+          correctly without touching any of this. */}
       <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route element={<ProductListPage />} path="/" />
             <Route element={<ProductDetailPage />} path="/product/:productId" />
-            {/* Catch-all: prevents a blank screen on an unknown URL. */}
+
+            {/*
+              The brief describes two views, and these are the two. This third route is not a third
+              view of the application but its answer to a URL that matches neither: without it, a
+              mistyped address renders a blank page, which is the one behaviour a single-page
+              application must not have. It carries the same header, so the way back is always
+              there. See the README.
+            */}
             <Route element={<NotFoundPage />} path="*" />
           </Routes>
         </Suspense>

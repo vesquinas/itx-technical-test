@@ -27,6 +27,49 @@ origin, four consecutive add-to-cart requests on one session return 1, 2, 3, 4, 
 `/product/<id>` answers 200, and the security headers a meta-tag policy cannot express are in
 place.
 
+## What the brief asks, and where it is met
+
+| The brief asks | Where | Proved by |
+| --- | --- | --- |
+| Two views: product list and product detail | `src/pages/ProductListPage.tsx`, `src/pages/ProductDetailPage.tsx` | `renders the list at the root`, `renders the detail page on the product route` |
+| React or Preact | React 19 | — |
+| ES6; a boilerplate may be used | TypeScript in strict mode, compiled to ES2022, on Vite | `npm run typecheck` |
+| A SPA with client-side routing, no MPA and no SSR | `BrowserRouter`, no server rendering, no document navigation | `keeps the search when going back to the list` — state survives a view change |
+| The four scripts: START, BUILD, TEST, LINT | `npm start`, `npm run build`, `npm test`, `npm run lint` | `npm run check:claims` verifies all four exist |
+| An open repository, with the code pushed in milestones | 36 commits, one per milestone | the history |
+| A README, preferably in the first commit | this file, in the first commit | `git show --stat $(git rev-list --max-parents=0 HEAD)` |
+| **PLP** — every element the API returns | all 100 products, no pagination | `shows the products the API returns` |
+| **PLP** — filtering by what the user types | `src/components/SearchBar.tsx` | `filters by brand`, `filters by model while typing` |
+| **PLP** — selecting a product navigates to its detail | the whole card is one link | `links every product to its detail page` |
+| **PLP** — at most four per row, adaptive | 1 / 2 / 3 / 4 columns at 0 / 30rem / 48rem / 64rem | `goes up to four columns and no further` |
+| **PDP** — two columns: image, then details and actions | `ProductDetailPage.module.css` | `places the description above the actions, just as the wireframe does` |
+| **PDP** — a link back to the list | breadcrumbs, plus a back link | `offers a link back to the list` |
+| **Header** — the title links to the main view | `src/components/Header.tsx` | `makes the title of the application a link to the main view` |
+| **Header** — breadcrumbs with the current page and a link | `src/components/Breadcrumbs.tsx` | `shows the product name in the breadcrumbs` |
+| **Header** — the number of items in the cart, on the right | `src/components/CartIndicator.tsx` | `keeps the header with the cart on every view` |
+| **Search** — compares against brand and model, in real time | `src/domain/search.ts` | `filters by brand`, `filters by model while typing` |
+| **Item** — image, brand, model, price | `src/components/ProductCard.tsx` | `shows the brand, model and price of the product` |
+| **Description** — the eleven required attributes | `src/components/ProductSpecs.tsx` | `shows every attribute the brief requires`, and `shows the required attributes even when the API brings no value` |
+| **Actions** — selectors for storage and colour | `src/components/OptionPicker.tsx` | `requires a choice when there are several options` |
+| **Actions** — a single option is shown and preselected | same | `shows the picker even with a single option`, `preselects the option when there is only one` |
+| **Actions** — sends id, colour code and capacity code | `src/api/products.ts` | `sends the selected identifier, colour and capacity` |
+| **Actions** — the returned count is shown in the header on every view, and persisted | `src/cart/` | `carries the counter the API returns into the header`, `persists the counter, so it survives reloading the application` |
+| **Cache** — stored on every API request, expiring after one hour, revalidated after | `src/lib/cache/ttlCache.ts` | `uses one hour, meaning 3,600,000 milliseconds, as the default time to live` |
+| **Cache** — any client-side storage | `localStorage`, validated on read | `drops an entry whose payload does not pass validation` |
+
+### The two places where this departs from the letter of the brief
+
+Both are deliberate, and both are here rather than buried:
+
+1. **There is a third route.** The brief says the application has two views, and it has: the list and
+   the detail. The third route answers a URL that matches neither — without it a mistyped address
+   renders a blank page, which is the one thing a single-page application must not do. It is an error
+   state rather than a view of the shop, it carries the same header so the way back is always there,
+   and removing it is a one-line change if the letter is preferred to the behaviour.
+
+2. **The interface is in Spanish while the code is in English.** The brief names the controls in
+   Spanish, so the copy follows it; the reasoning is in [Language](#language) below.
+
 ## Language
 
 Code, comments and documentation are in English. **The user-facing copy is in Spanish**, because
@@ -112,7 +155,7 @@ src/
 ├── domain/       Domain model and search logic (no React, no network)
 ├── hooks/        Async loading and delay hooks
 ├── lib/          Expiring cache, formatting and validation helpers
-├── pages/        The two views, lazily loaded
+├── pages/        The views, lazily loaded (and the answer to an unknown URL)
 └── test/         Test helpers and fixtures holding real API responses
 ```
 
@@ -532,7 +575,7 @@ API with no authentication, no sessions and no personal data. What does apply:
 
 ## Tests
 
-177 tests. 97% statement coverage and 100% function coverage.
+178 tests. 97% statement coverage and 100% function coverage.
 
 **Coverage tells you which lines run, not whether the tests would notice a break.** To check that,
 ten realistic defects were injected into the code — expiring the cache one millisecond late, no
@@ -634,7 +677,7 @@ So the rule is now: **no claim in this README without a command that proves it.*
 
 | Claim | Proof |
 | --- | --- |
-| 177 tests pass; 97% of statements, 100% of functions | `npm test`, `npm run test:coverage` |
+| 178 tests pass; 97% of statements, 100% of functions | `npm test`, `npm run test:coverage` |
 | The API's defects are handled — swapped fields, ten fields that change type, empty prices | `npm run check:api`, which walks all 100 products of the live catalogue |
 | The Content-Security-Policy covers everything the page loads and needs no `unsafe-inline` | `npm run check:csp` — 18 checks, in continuous integration |
 | Configuring `VITE_API_BASE_URL` does not break the build | continuous integration builds twice, with the default origin and with a configured one |

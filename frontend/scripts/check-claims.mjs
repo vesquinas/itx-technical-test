@@ -99,6 +99,31 @@ check(
 );
 
 // ---------------------------------------------------------------------------
+// The compliance table: every test it cites as proof has to exist.
+// ---------------------------------------------------------------------------
+
+/**
+ * The names the "What the brief asks" table names as proof.
+ *
+ * That table is the strongest claim in this README — it says, requirement by requirement, which
+ * test proves it — so a name that no longer exists is the worst kind of rot: it reads like
+ * evidence. Two were already wrong when this check was written.
+ */
+const complianceTable = README.split('## What the brief asks')[1]?.split('\n## ')[0] ?? '';
+const citedTests = new Set(
+  [...complianceTable.matchAll(/`([a-z][a-z0-9 ,'\-—()]{10,})`/g)]
+    .map((match) => match[1])
+    .filter((name) => !name.startsWith('npm ') && !name.startsWith('git ')),
+);
+const testNames = new Set(
+  report.testResults.flatMap((file) => file.assertionResults.map((result) => result.title)),
+);
+check('the compliance table cites at least a dozen tests', citedTests.size >= 12, `${citedTests.size}`);
+for (const name of citedTests) {
+  check(`the test cited as proof exists: "${name}"`, testNames.has(name));
+}
+
+// ---------------------------------------------------------------------------
 // The scripts table: drift in either direction is a defect.
 // ---------------------------------------------------------------------------
 
@@ -250,6 +275,34 @@ for (const proof of new Set(namedProofs)) {
   const script = /^npm (?:run )?([\w:]+)$/.exec(proof)?.[1];
   if (script === undefined) continue;
   check(`the proof \`${proof}\` names a real script`, Object.hasOwn(PACKAGE.scripts, script));
+}
+
+// ---------------------------------------------------------------------------
+// Internal links: a section that was renamed leaves a link that goes nowhere.
+// ---------------------------------------------------------------------------
+
+/** GitHub's own slugs: lower-cased, punctuation dropped, spaces to hyphens. */
+function sectionsOf(markdown) {
+  return new Set(
+    [...markdown.matchAll(/^#{1,6}\s+(.+)$/gm)].map(([, heading]) =>
+      heading
+        .toLowerCase()
+        .replaceAll(/[`*[\]()]/g, '')
+        .replaceAll(/[^\w\s-]/g, '')
+        .trim()
+        // Each space becomes a hyphen, not each run of them: an em dash between spaces leaves a
+        // double hyphen in GitHub's slug, and collapsing them makes this check lie.
+        .replaceAll(/\s/g, '-'),
+    ),
+  );
+}
+
+for (const file of ['README.md', '../README.md']) {
+  const markdown = readFileSync(file, 'utf8');
+  const sections = sectionsOf(markdown);
+  for (const [, label, target] of markdown.matchAll(/\[([^\]]+)\]\(#([^)]+)\)/g)) {
+    check(`${file}: the link "${label}" points at a section that exists`, sections.has(target));
+  }
 }
 
 // ---------------------------------------------------------------------------
