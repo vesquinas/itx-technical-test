@@ -1,9 +1,13 @@
 import type { Mock } from 'vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen } from '@testing-library/react';
+import { within, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import { resetProductCacheForTests } from '../api/products.ts';
+
+/** Whether `second` comes after `first` in the document. */
+const follows = (first: Element, second: Element) =>
+  Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
 import productDetailFixture from '../test/fixtures/productDetail.json' with { type: 'json' };
 import productListFixture from '../test/fixtures/productList.json' with { type: 'json' };
 import { renderWithProviders } from '../test/render.tsx';
@@ -130,16 +134,19 @@ describe('ProductDetailPage', () => {
       expect(screen.getAllByText('No disponible')).toHaveLength(4);
     });
 
-    it('places the description above the actions, just as the wireframe does', async () => {
+    it('puts the image first and then the description above the actions, as the wireframe does', async () => {
       renderDetail();
       await screen.findByRole('heading', { level: 1, name: 'X960' });
 
+      const imagen = screen.getByRole('img', { name: /Acer X960/ });
       const descripción = screen.getByRole('heading', { name: 'Características' });
       const acciones = screen.getByRole('group', { name: 'Color' });
 
-      expect(
-        descripción.compareDocumentPosition(acciones) & Node.DOCUMENT_POSITION_FOLLOWING,
-      ).toBeTruthy();
+      // The wireframe's order: image, then the details, then the actions. That the two groups are
+      // two *columns* is asserted against the stylesheet in `layout.test.ts`, since jsdom lays
+      // nothing out; this is the half a rendering test can prove.
+      expect(follows(imagen, descripción)).toBe(true);
+      expect(follows(descripción, acciones)).toBe(true);
     });
 
     it('leaves out rows with no value instead of showing them empty', async () => {
@@ -340,12 +347,16 @@ describe('ProductDetailPage', () => {
       );
     });
 
-    it('shows the product name in the breadcrumbs', async () => {
+    it('shows the product name in the breadcrumbs, and a link to navigate back up', async () => {
       renderDetail();
 
       const migas = await screen.findByRole('navigation', { name: 'Ruta de navegación' });
 
+      // The brief asks for both halves: the page the user is on, and a link. The current page is
+      // deliberately not a link — it carries `aria-current="page"` — and the level above it is.
       expect(migas).toHaveTextContent('Acer X960');
+      expect(within(migas).getByRole('link', { name: 'Productos' })).toHaveAttribute('href', '/');
+      expect(within(migas).getByText('Acer X960')).toHaveAttribute('aria-current', 'page');
     });
   });
 

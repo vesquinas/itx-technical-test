@@ -198,3 +198,42 @@ describe('TtlCache', () => {
     });
   });
 });
+
+describe('against the browser store, not an injected one', () => {
+  /**
+   * Every other test here injects a store, which keeps them fast and isolated — and means none of
+   * them touches `localStorage`. The brief allows any client-side storage and this application
+   * chooses that one, so at least one test has to use it: an injected double would keep passing if
+   * the wiring to the browser broke. Found by a review reading the bodies of the tests the README
+   * cites as proof.
+   */
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('writes into localStorage and reads it back', () => {
+    const cache = new TtlCache({ namespace: 'itx-real-store' });
+
+    cache.set('producto', { name: 'Iconia' });
+
+    // Stored under a namespaced key, and readable by anything that can read localStorage.
+    const keys = Object.keys(localStorage).filter((key) => key.startsWith('itx-real-store'));
+    expect(keys).toHaveLength(1);
+    expect(localStorage.getItem(keys[0] ?? '')).toContain('Iconia');
+
+    // And read back through the cache, which is the round trip that matters.
+    expect(new TtlCache({ namespace: 'itx-real-store' }).get('producto', parseNamed)).toEqual({
+      name: 'Iconia',
+    });
+  });
+
+  it('survives a page reload, which is what persisting means', () => {
+    new TtlCache({ namespace: 'itx-real-store' }).set('producto', { name: 'Iconia' });
+
+    // A new instance with no memory of the first is the closest a test gets to a reload: nothing
+    // is carried over except what is in the store.
+    const afterReload = new TtlCache({ namespace: 'itx-real-store' });
+
+    expect(afterReload.get('producto', parseNamed)).toEqual({ name: 'Iconia' });
+  });
+});

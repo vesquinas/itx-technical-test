@@ -1,7 +1,7 @@
 import type { Mock } from 'vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { screen } from '@testing-library/react';
-import { render } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { render, screen, waitFor } from '@testing-library/react';
 import { StrictMode } from 'react';
 
 import { resetProductCacheForTests } from './api/products.ts';
@@ -86,6 +86,72 @@ describe('App', () => {
     await screen.findByRole('heading', { level: 1, name: 'Página no encontrada' });
 
     expect(screen.getByText('Cesta')).toBeInTheDocument();
+  });
+
+  it('changes view without the document ever being re-requested, and keeps the search', async () => {
+    // This is what "a SPA with client-side routing, no MPA and no SSR" means in behaviour, and it
+    // replaces a test that asserted a link's `href` and proved none of it: an `href` is what an
+    // MPA has too. Here the round trip is actually made — list, detail, back to the list — and two
+    // things are asserted that only client-side routing gives: the URL changes, and jsdom never
+    // reports the document navigation that a real anchor would trigger.
+    const user = userEvent.setup();
+    const jsdomErrors: unknown[] = [];
+    const consoleError = vi.spyOn(console, 'error').mockImplementation((...args) => {
+      jsdomErrors.push(args[0]);
+    });
+
+    window.history.pushState({}, '', '/');
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+
+    // Search first, so there is state to lose on the way back.
+    await user.type(await screen.findByRole('searchbox', { name: 'Buscar' }), 'iconia');
+    await waitFor(() => {
+      expect(window.location.search).toBe('?q=iconia');
+    });
+
+    await user.click(screen.getByRole('link', { name: /Iconia Talk S/ }));
+    await screen.findByRole('heading', { level: 1, name: 'X960' });
+    expect(window.location.pathname).toBe('/product/ZmGrkLRPXOTpxsU4jjAcv');
+
+    await user.click(screen.getByRole('link', { name: /Volver al listado/ }));
+    await screen.findByRole('heading', { level: 1, name: 'Teléfonos' });
+
+    expect(window.location.pathname).toBe('/');
+    expect(screen.getByRole('searchbox', { name: 'Buscar' })).toHaveValue('iconia');
+    // jsdom cannot navigate, and says so loudly when something tries. Nothing did.
+    expect(jsdomErrors.filter((error) => /Not implemented: navigation/.test(String(error)))).toEqual(
+      [],
+    );
+
+    consoleError.mockRestore();
+  });
+
+  it('keeps the number of items in the cart at the end of the header row', async () => {
+    // "In the right-hand part of the header", which is a position and not a string: the header is
+    // a flex row and the cart is its last element. The previous citation for this requirement
+    // asserted that the word "Cesta" appeared somewhere on a 404 page.
+    window.history.pushState({}, '', '/');
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+    await screen.findByRole('heading', { level: 1, name: 'Teléfonos' });
+
+    const header = screen.getByRole('banner');
+    const row = header.firstElementChild;
+    const cart = screen.getByText('Cesta').closest('p');
+
+    expect(row).not.toBeNull();
+    // Being the last child of the header's row is what "on the right" means, given that the row is
+    // a flex row — which is asserted against the stylesheet in `layout.test.ts`, because jsdom
+    // applies no CSS. And the element carries the number, not just the word.
+    expect([...(row?.children ?? [])].at(-1)).toBe(cart);
+    expect(cart).toHaveTextContent(/Cesta\s*0/);
   });
 
   it('makes the title of the application a link to the main view', async () => {

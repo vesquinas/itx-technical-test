@@ -34,7 +34,7 @@ place.
 | Two views: product list and product detail | `src/pages/ProductListPage.tsx`, `src/pages/ProductDetailPage.tsx` | `renders the list at the root`, `renders the detail page on the product route` |
 | React or Preact | React 19 | — |
 | ES6; a boilerplate may be used | TypeScript in strict mode, compiled to ES2022, on Vite | `npm run typecheck` |
-| A SPA with client-side routing, no MPA and no SSR | `BrowserRouter`, no server rendering, no document navigation | `keeps the search when going back to the list` — state survives a view change |
+| A SPA with client-side routing, no MPA and no SSR | `BrowserRouter`, no server rendering, no document navigation | `changes view without the document ever being re-requested, and keeps the search` — the round trip is made, the URL changes and jsdom reports no navigation; plus `npm run check:claims`, which asserts the build is a single HTML file with an empty root |
 | The four scripts: START, BUILD, TEST, LINT | `npm start`, `npm run build`, `npm test`, `npm run lint` | `npm run check:claims` verifies all four exist |
 | An open repository, with the code pushed in milestones | 39 commits, one per milestone | the history |
 | A README, preferably in the first commit | this file, in the first commit | `git show --stat $(git rev-list --max-parents=0 HEAD)` |
@@ -42,11 +42,11 @@ place.
 | **PLP** — filtering by what the user types | `src/components/SearchBar.tsx` | `filters by brand`, `filters by model while typing` |
 | **PLP** — selecting a product navigates to its detail | the whole card is one link | `links every product to its detail page` |
 | **PLP** — at most four per row, adaptive | 1 / 2 / 3 / 4 columns at 0 / 30rem / 48rem / 64rem | `goes up to four columns and no further` |
-| **PDP** — two columns: image, then details and actions | `ProductDetailPage.module.css` | `places the description above the actions, just as the wireframe does` |
+| **PDP** — two columns: image, then details and actions | `ProductDetailPage.module.css` | `declares one column on a narrow screen and two from 48rem` for the two columns, and `puts the image first and then the description above the actions, as the wireframe does` for the order |
 | **PDP** — a link back to the list | breadcrumbs, plus a back link | `offers a link back to the list` |
 | **Header** — the title links to the main view | `src/components/Header.tsx` | `makes the title of the application a link to the main view` |
-| **Header** — breadcrumbs with the current page and a link | `src/components/Breadcrumbs.tsx` | `shows the product name in the breadcrumbs` |
-| **Header** — the number of items in the cart, on the right | `src/components/CartIndicator.tsx` | `keeps the header with the cart on every view` |
+| **Header** — breadcrumbs with the current page and a link | `src/components/Breadcrumbs.tsx` | `shows the product name in the breadcrumbs, and a link to navigate back up` |
+| **Header** — the number of items in the cart, on the right | `src/components/CartIndicator.tsx` | `keeps the number of items in the cart at the end of the header row` with `lays the header out as a flex row`, which together are what "on the right" means; `keeps the header with the cart on every view` for every view |
 | **Search** — compares against brand and model, in real time | `src/domain/search.ts` | `filters by brand`, `filters by model while typing` |
 | **Item** — image, brand, model, price | `src/components/ProductCard.tsx` | `shows the brand, model and price of the product` |
 | **Description** — the eleven required attributes | `src/components/ProductSpecs.tsx` | `shows every attribute the brief requires`, and `shows the required attributes even when the API brings no value` |
@@ -55,7 +55,7 @@ place.
 | **Actions** — sends id, colour code and capacity code | `src/api/products.ts` | `sends the selected identifier, colour and capacity` |
 | **Actions** — the returned count is shown in the header on every view, and persisted | `src/cart/` | `carries the counter the API returns into the header`, `persists the counter, so it survives reloading the application` |
 | **Cache** — stored on every API request, expiring after one hour, revalidated after | `src/lib/cache/ttlCache.ts` | `uses one hour, meaning 3,600,000 milliseconds, as the default time to live` |
-| **Cache** — any client-side storage | `localStorage`, validated on read | `drops an entry whose payload does not pass validation` |
+| **Cache** — any client-side storage | `localStorage`, validated on read | `writes into localStorage and reads it back` and `survives a page reload, which is what persisting means`; `drops an entry whose payload does not pass validation` for the validation |
 
 ### The two places where this departs from the letter of the brief
 
@@ -580,7 +580,7 @@ API with no authentication, no sessions and no personal data. What does apply:
 
 ## Tests
 
-178 tests. 97% statement coverage and 100% function coverage.
+185 tests. 97% statement coverage and 100% function coverage.
 
 **Coverage tells you which lines run, not whether the tests would notice a break.** To check that,
 ten realistic defects were injected into the code — expiring the cache one millisecond late, no
@@ -682,7 +682,7 @@ So the rule is now: **no claim in this README without a command that proves it.*
 
 | Claim | Proof |
 | --- | --- |
-| 178 tests pass; 97% of statements, 100% of functions | `npm test`, `npm run test:coverage` |
+| 185 tests pass; 97% of statements, 100% of functions | `npm test`, `npm run test:coverage` |
 | The API's defects are handled — swapped fields, ten fields that change type, empty prices | `npm run check:api`, which walks all 100 products of the live catalogue |
 | The Content-Security-Policy covers everything the page loads and needs no `unsafe-inline` | `npm run check:csp` — 18 checks, in continuous integration |
 | Configuring `VITE_API_BASE_URL` does not break the build | continuous integration builds twice, with the default origin and with a configured one |
@@ -707,7 +707,23 @@ something unverified would pass it. The table is what closes that gap, by making
 enough that an empty right-hand column is visible, and the two rows above with no command are named
 in the check's own output rather than left for someone to notice.
 
-**That last check was itself lying by 12%, which is the second thing worth reading here.** It pulled
+**And the deepest limit of the table is that a citation can exist and still not prove its row.** A
+review read the *bodies* of the twenty-six tests cited above and found four that proved something
+adjacent: "a SPA with client-side routing" was cited to a test that asserted a link's `href`, which
+is what an MPA has too; "two columns" to a test of the order of two elements *inside* the second
+column; "the number of items in the cart, on the right" to a test that the word "Cesta" appeared on
+a 404 page; and "breadcrumbs with the current page and a link" to a test of the label only. A fifth
+cited the cache's validation against an injected store, never touching `localStorage`.
+
+No gate can catch that: existence is checkable, relevance is not. What closed it was writing the
+tests that do prove those rows — a navigation round trip that asserts jsdom never reports a document
+navigation, the stylesheet read for the two columns and for the header being a row, the breadcrumb's
+link asserted next to its `aria-current`, and the cache exercised against the browser's own store —
+and then breaking each requirement to confirm the new test fails. **The right-hand column of that
+table is only worth what the bodies behind it are worth**, which is an argument for a reader with
+time to do exactly what that review did.
+
+**The citation check was also lying by 12%, which is the second thing worth reading here.** It pulled
 the cited test names out of the table with a pattern that had no capital letters in it, so three of
 the twenty-six names — all three containing "API" — were discarded before being checked, and nothing
 said so: a review replaced one with `teleports the API counter to Mars` and the gate passed. The fix

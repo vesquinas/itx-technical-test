@@ -321,6 +321,31 @@ if (existsSync('dist')) {
 }
 
 // ---------------------------------------------------------------------------
+// A single page, rendered in the browser: what "SPA, no MPA, no SSR" means in the artefact.
+//
+// The behavioural half — that a view change is a client-side navigation — is a test. This half
+// cannot be: it is a property of what the build produces, and the review that read the test bodies
+// was right that an `href` assertion proved neither.
+// ---------------------------------------------------------------------------
+
+if (existsSync('dist')) {
+  const pages = readdirSync('dist').filter((entry) => entry.endsWith('.html'));
+  check(`the build is a single HTML page, not several (${pages.join(', ')})`, pages.length === 1);
+
+  const html = readFileSync(join('dist', pages[0] ?? 'index.html'), 'utf8');
+  const root = /<div id="root">([\s\S]*?)<\/div>/.exec(html)?.[1] ?? 'missing';
+  check(
+    'the served HTML carries no pre-rendered markup, so nothing is server-rendered',
+    root.trim() === '',
+    `#root contains ${root.trim().slice(0, 40)}`,
+  );
+  check(
+    'the application is loaded as a module script',
+    /<script type="module"[^>]*src="[^"]+"/.test(html),
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Internal links: a section that was renamed leaves a link that goes nowhere.
 // ---------------------------------------------------------------------------
 
