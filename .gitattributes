@@ -1,0 +1,18 @@
+# Line endings, which decide whether this repository works on a machine that is not mine.
+#
+# Everything is normalised to LF in the repository. Without this, a clone on Windows with
+# `core.autocrlf=true` — the default of Git for Windows — rewrites text files with CRLF, and
+# `backend/mvnw` is a POSIX shell script: run from Git Bash or WSL it fails with a confusing
+# `bad interpreter` rather than anything that points at the cause. Windows users get `mvnw.cmd`,
+# which is committed too, but the shell script has to survive the checkout either way.
+* text=auto eol=lf
+
+# Scripts that are executed as scripts, spelled out rather than relying on the rule above.
+backend/mvnw text eol=lf
+frontend/scripts/*.mjs text eol=lf
+
+# Windows batch files are the exception: they need CRLF.
+*.cmd text eol=crlf
+
+# The raw output of the load test is evidence: kept byte for byte.
+backend/measurements/*.txt -text
