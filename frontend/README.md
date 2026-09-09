@@ -81,6 +81,11 @@ One consequence of that is visible in the spec sheet, where Spanish labels sit n
 values that come straight from the API. It is deliberate and the reasoning is spelled out in
 [its own section](#spanish-labels-english-values-a-deliberate-mix).
 
+The **commit history** is the one exception, and it is left as it happened: its first thirteen
+commits are in Spanish, because the decision to write everything in English was taken partway
+through — `9b1b039` is the commit that carries it out. Rewriting them would make the history look
+as though the decision had always been there.
+
 ## How to run it
 
 Requires **Node `^20.19.0` or `>=22.12.0`**, which is what Vite 8 demands. Node 20.0–20.18 and the

@@ -32,6 +32,11 @@ interface speaks the language of its market — and of the specification, which 
 in Spanish ("botón de Añadir"). In a real project that copy would go through an i18n layer instead
 of being embedded in the components.
 
+The **commit history**, on the other hand, is not in English for its first thirteen commits. The
+decision to write everything in English was taken partway through the project — `9b1b039` is the
+commit that carries it out — and the history is left as it happened rather than rewritten to look
+as though the decision had always been there. `git log --oneline` shows the seam.
+
 ## Does it do what was asked?
 
 Each test's README opens with a table that takes the brief **requirement by requirement** and says
