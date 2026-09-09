@@ -184,6 +184,24 @@ export default defineConfig(({ mode }) => {
       environment: 'jsdom',
       setupFiles: ['./src/test/setup.ts'],
       css: false,
+
+      /**
+       * Deadlines, and why they are not the defaults.
+       *
+       * Seventeen files run in parallel, each with its own jsdom, and some of what they wait for is
+       * genuinely slow under load: a route behind `React.lazy` resolving a dynamic import, or axe
+       * walking the whole rendered tree. With the default five seconds, loading every core made
+       * three runs out of four fail — never the same test twice, never in isolation, and never for
+       * a reason other than the clock.
+       *
+       * They also have to be ordered. Raising Testing Library's wait to five seconds first was no
+       * fix at all: it ran straight into *this* ceiling, and the failure came back as
+       * `Test timed out in 5000ms`, which says nothing about what was being waited for. The waiting
+       * budget stays strictly below the test's, so a real failure is reported by the library that
+       * knows what it wanted — with the element it could not find and the DOM it searched.
+       */
+      testTimeout: 20_000,
+      hookTimeout: 20_000,
       coverage: {
         provider: 'v8',
         reporter: ['text', 'html'],

@@ -594,7 +594,7 @@ API with no authentication, no sessions and no personal data. What does apply:
 
 ## Tests
 
-186 tests. 98% statement coverage and 100% function coverage.
+187 tests. 98% statement coverage and 100% function coverage.
 
 **Coverage tells you which lines run, not whether the tests would notice a break.** To check that,
 ten realistic defects were injected into the code — expiring the cache one millisecond late, no
@@ -617,6 +617,51 @@ as the default time to live" that takes the hour from the same place as the code
 hour — it verifies that the code agrees with itself, which it always will. The hour and the columns
 now have tests that write the numbers out in full, and each was confirmed to fail when the number is
 changed.
+
+#### A flaky test was hiding a real bug, which is the best argument against tolerating one
+
+A review found that the suite failed about once in four — always the same test, the one written to
+close that review's *previous* finding, and never in isolation. Its verdict was the important part:
+**an intermittent gate is worse than a weak one, because it teaches you to re-run until it goes
+green**, which is exactly how a real regression gets through. It was not theoretical: one of that
+review's own attacks came back "caught" when the failure had in fact been the flake.
+
+Reproducing it took loading every core of the machine and running the suite: **three runs out of
+four failed**. What the instrumentation then showed was not slowness. The click on a product
+produced *no navigation at all* — right `href`, same URL before and after, the catalogue's heading
+still on screen. No amount of waiting could have fixed that.
+
+The cause is a defect in the application. The effect that writes the search into the URL depended on
+`setSearchParams`, which react-router returns **as a new function on every location** — so the
+effect ran again as a result of its own write, and one search produced two `replaceState` calls.
+The second one is a `replace`, so when it lands after the user has clicked into a product **it
+replaces the product's history entry with the list's**: the tap is silently undone. On a slow phone,
+typing and tapping straight away is exactly the sequence that produces it.
+
+Three things came out of it, and the order matters:
+
+1. **The bug.** The write is now skipped when the URL already says that, so the effect is
+   idempotent. `writes the search into the URL once, not twice` fails with two writes if the guard
+   is removed.
+2. **The waits.** Every `findBy` had a one-second budget, which is not a budget for a machine under
+   load: a route behind `React.lazy` has a dynamic import to resolve first. Raising Testing
+   Library's wait alone was no fix — it ran into vitest's own five-second ceiling and the failure
+   came back as `Test timed out in 5000ms`, which says nothing about what was awaited. Both were
+   raised, in order, so a genuine failure is reported by the library that knows what it wanted.
+3. **The precondition.** The test waited for the URL to carry the search and then clicked a card —
+   but it is the *card's* `href` that decides where the click goes, and the cards re-render after
+   the URL is written. It waits for the card now. Same lesson as the scroll flake below: wait for
+   what you depend on, not for a proxy of it.
+
+Measured after all three, under the same load that produced three failures in four: **ten runs of
+the suite and eight of `npm run check:claims`, no failures**.
+
+And the gate itself was part of the problem. When the suite went red it said "the suite produced no
+report… run `npm test` and read its output first" — advice that misleads, because `npm test` on its
+own usually passed. It discarded stdout, and a bare `catch` could not tell "tests are red" from "the
+runner never started". It now reads the report vitest writes even on failure, names the failing
+tests with their first line of failure, and says out loud that re-running until it passes is how a
+regression gets through.
 
 #### What these tests cannot cover
 
@@ -696,7 +741,7 @@ So the rule is now: **no claim in this README without a command that proves it.*
 
 | Claim | Proof |
 | --- | --- |
-| 186 tests pass; 98% of statements, 100% of functions | `npm test`, `npm run test:coverage` |
+| 187 tests pass; 98% of statements, 100% of functions | `npm test`, `npm run test:coverage` |
 | The API's defects are handled — swapped fields, ten fields that change type, empty prices | `npm run check:api`, which walks all 100 products of the live catalogue |
 | The Content-Security-Policy declares every origin the built document references, and needs no `unsafe-inline` because there is no inline script or style | `npm run check:csp` — 18 checks, in continuous integration. What it cannot see is a request built at runtime to an origin the document never mentions; there is none, and only a browser would prove it |
 | Configuring `VITE_API_BASE_URL` does not break the build | continuous integration builds twice, with the default origin and with a configured one |

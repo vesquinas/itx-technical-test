@@ -62,8 +62,27 @@ export function ProductListPage() {
   const load = useCallback(() => fetchProductList(), []);
   const { state, isSlow, reload } = useAsyncResource('product-list', load);
 
+  /** What the URL says right now, which is what decides whether there is anything to write. */
+  const queryInUrl = searchParams.get('q') ?? '';
+
   useEffect(() => {
     const trimmed = debouncedQuery.trim();
+
+    /**
+     * Nothing to write when the URL already says this, and that guard is not an optimisation.
+     *
+     * `setSearchParams` is a **new function on every location**, so it is a dependency that changes
+     * as a result of the very write this effect performs: without the guard the effect wrote the
+     * same value again after its own navigation. Measured, one search produced two `replaceState`
+     * calls for the same term.
+     *
+     * The second one is the problem. It is a `replace`, so if it lands after the user has clicked
+     * into a product it **replaces the product's history entry with the list's** — the tap is
+     * silently undone and they are back on the catalogue. That is what a flaky test turned out to
+     * be hiding: under enough load the second write reliably landed after the click, and no amount
+     * of waiting could make the detail page appear, because the application had navigated back.
+     */
+    if (trimmed === queryInUrl) return;
 
     setSearchParams(
       (previous) => {
@@ -76,7 +95,7 @@ export function ProductListPage() {
       // leave the list, not undo it letter by letter.
       { replace: true },
     );
-  }, [debouncedQuery, setSearchParams]);
+  }, [debouncedQuery, queryInUrl, setSearchParams]);
 
   // Coming back from a product returns the user to where they were in the catalogue. Without it,
   // taking the detail page's "back to the list" link — which is a new navigation and not a browser

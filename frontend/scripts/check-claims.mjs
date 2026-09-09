@@ -58,6 +58,7 @@ mkdirSync(ARTEFACTS, { recursive: true });
 const testReport = join(ARTEFACTS, 'tests.json');
 
 console.log('  ..  running the suite to count what it actually contains');
+let exitedCleanly = true;
 try {
   execFileSync(
     'npx',
@@ -73,26 +74,60 @@ try {
     { stdio: ['ignore', 'ignore', 'inherit'] },
   );
 } catch {
-  // A failing suite is a result, not a crash. Without this the script died with a Node stack
-  // trace and reported nothing at all — including its own check that the suite passes, which
-  // never got the chance to run. Found while falsifying a claim on purpose and watching the
-  // checker fall over instead of answering.
-  console.error('  FAIL  the suite does not pass, so nothing it reports can be trusted');
+  exitedCleanly = false;
 }
 
-const coverageSummary = join(ARTEFACTS, 'coverage', 'coverage-summary.json');
-if (!existsSync(testReport) || !existsSync(coverageSummary)) {
+/**
+ * What to say when the suite does not pass, which used to be the worst part of this script.
+ *
+ * It said "the suite produced no report… run `npm test` and read its output first" — advice that
+ * misleads, because `npm test` on its own usually passes: the failure that brought us here was a
+ * timing-fragile test under the contention of the parallel suite. And the diagnosis was thrown
+ * away: stdout is discarded, and a bare `catch` cannot tell "tests are red" from "the runner never
+ * started".
+ *
+ * The report itself is the better source, and vitest writes it even when tests fail. So the two
+ * cases are separated, and the failing tests are named with their first line of failure.
+ */
+if (!existsSync(testReport)) {
   console.error(
-    '  FAIL  the suite produced no report, so no claim about it can be checked. Run `npm test` and read its output first.',
+    '  FAIL  vitest wrote no report at all: it did not get as far as running the tests.\n' +
+      '        Run `npx vitest run` directly — this is a problem with the runner, not with a claim.',
   );
   process.exit(1);
 }
 
-const report = JSON.parse(readFileSync(testReport, 'utf8'));
-const actualTests = report.numTotalTests;
-const actualFailures = report.numFailedTests;
+const suite = JSON.parse(readFileSync(testReport, 'utf8'));
+const failures = (suite.testResults ?? []).flatMap((file) =>
+  (file.assertionResults ?? [])
+    .filter((result) => result.status === 'failed')
+    .map((result) => ({
+      title: result.title,
+      why: (result.failureMessages ?? [])[0]?.split('\n')[0] ?? 'no message',
+    })),
+);
 
-check('the suite passes', actualFailures === 0, `${actualFailures} failing`);
+if (failures.length > 0 || !exitedCleanly) {
+  console.error(
+    `  FAIL  ${String(failures.length)} test(s) failed, so nothing the suite reports can be trusted:`,
+  );
+  for (const failure of failures) {
+    console.error(`          ${failure.title}\n            ${failure.why}`);
+  }
+  console.error(
+    '        Read the failure rather than re-running until it passes: a gate that goes green on\n' +
+      '        the second try is how a real regression gets through.',
+  );
+  process.exit(1);
+}
+
+const coverageSummary = join(ARTEFACTS, 'coverage', 'coverage-summary.json');
+if (!existsSync(coverageSummary)) {
+  console.error('  FAIL  the suite passed but wrote no coverage report, so its coverage claims cannot be checked.');
+  process.exit(1);
+}
+
+const actualTests = suite.numTotalTests;
 
 const claimedTests = claimed(/^(\d+) tests\./m);
 check(
@@ -139,7 +174,7 @@ const complianceRows = complianceTable
   .filter((line) => line.startsWith('|') && !/^\|\s*-+/.test(line) && !line.includes('| The brief asks |'));
 
 const testNames = new Set(
-  report.testResults.flatMap((file) => file.assertionResults.map((result) => result.title)),
+  suite.testResults.flatMap((file) => file.assertionResults.map((result) => result.title)),
 );
 
 /** A proof that names a command to run rather than a test to look up. */

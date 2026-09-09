@@ -109,11 +109,23 @@ describe('App', () => {
 
     // Search first, so there is state to lose on the way back.
     await user.type(await screen.findByRole('searchbox', { name: 'Buscar' }), 'iconia');
-    await waitFor(() => {
-      expect(window.location.search).toBe('?q=iconia');
-    });
 
-    await user.click(screen.getByRole('link', { name: /Iconia Talk S/ }));
+    /**
+     * Wait for the card's own link to carry the search, not merely for the URL to.
+     *
+     * The URL is written first and the cards re-render after it, and it is the card's `href` that
+     * decides where the click goes — so waiting on the URL is waiting on a proxy for the state this
+     * test needs. Under load the click landed in between: the product opened at a URL without the
+     * search, its back link pointed at the bare list, and the field came back empty. Which is the
+     * same lesson as elsewhere in this suite: wait for the thing you depend on.
+     */
+    const card = await screen.findByRole('link', { name: /Iconia Talk S/ });
+    await waitFor(() => {
+      expect(card).toHaveAttribute('href', expect.stringContaining('q=iconia'));
+    });
+    expect(window.location.search).toBe('?q=iconia');
+
+    await user.click(card);
     await screen.findByRole('heading', { level: 1, name: 'X960' });
     expect(window.location.pathname).toBe('/product/ZmGrkLRPXOTpxsU4jjAcv');
 
@@ -128,6 +140,35 @@ describe('App', () => {
     );
 
     consoleError.mockRestore();
+  });
+
+  it('writes the search into the URL once, not twice', async () => {
+    // The second write is the bug this pins, and it needs the real router: `setSearchParams` is a
+    // new function on every location, so an effect depending on it writes again after its own
+    // navigation. That write is a `replace`, so a late duplicate lands after the user has clicked
+    // into a product and replaces the product's history entry with the list's — the tap is undone.
+    //
+    // It surfaced as a test that failed once in four under load, waiting for a detail page that
+    // never arrived because the application had navigated back to the list.
+    const user = userEvent.setup();
+    const replaceState = vi.spyOn(window.history, 'replaceState');
+
+    window.history.pushState({}, '', '/');
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+    await screen.findByRole('heading', { level: 1, name: 'Teléfonos' });
+
+    await user.type(await screen.findByRole('searchbox', { name: 'Buscar' }), 'iconia');
+    await waitFor(() => {
+      expect(window.location.search).toBe('?q=iconia');
+    });
+
+    const writes = replaceState.mock.calls.filter(([, , url]) => String(url).includes('q=iconia'));
+
+    expect(writes).toHaveLength(1);
   });
 
   it('keeps the number of items in the cart at the end of the header row', async () => {
