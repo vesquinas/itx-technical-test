@@ -1,6 +1,8 @@
 package com.itx.similarproducts;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -47,7 +49,7 @@ class ReadmeClaimsTest {
     private static String captured(String text, String pattern) {
         Matcher matcher = Pattern.compile(pattern, Pattern.MULTILINE).matcher(text);
         assertThat(matcher.find())
-                .as("the README no longer states: %s", pattern)
+                .as("nothing matches this pattern any more: %s", pattern)
                 .isTrue();
         return matcher.group(1);
     }
@@ -189,6 +191,75 @@ class ReadmeClaimsTest {
             }
         }
         return (100.0 * comments) / lines;
+    }
+
+    @Test
+    void the_performance_table_is_transcribed_from_the_committed_measurements() throws IOException {
+        String readme = read(README);
+
+        // The strongest thing that *can* be guarded about a measurement: not that it is recent —
+        // no test knows that — but that the prose has not drifted from the artefact the tool
+        // produced. The two files hold the raw k6 output of the two runs the table compares.
+        for (String artefact : List.of("k6-600ms-budget.txt", "k6-1500ms-budget.txt")) {
+            String output = read(Path.of("measurements", artefact));
+
+            String requests = captured(output, "http_reqs\\.+: (\\d+)");
+            // Two spaces separate the count from the rate in k6's output, hence `\\s+`. It is
+            // rounded rather than truncated, because that is what the table does: k6 prints
+            // 269.257828/s and rounding to two places gives 269.26, not 269.25.
+            String rate = new BigDecimal(captured(output, "http_reqs\\.+: \\d+\\s+(\\d+\\.\\d+)"))
+                    .setScale(2, RoundingMode.HALF_UP)
+                    .toPlainString();
+            // Anchored to the duration line: k6 prints `avg=` on half a dozen metrics, and reading
+            // the first one gave the connection-blocking time. That was this test's second bug.
+            String durations = captured(output, "http_req_duration\\.+: (.+)");
+            String mean = captured(durations, "avg=(\\S+?)(?=\\s|$)");
+            String median = captured(durations, "med=(\\S+?)(?=\\s|$)");
+            String ninetieth = captured(durations, "p\\(90\\)=(\\S+?)(?=\\s|$)");
+            String ninetyFifth = captured(durations, "p\\(95\\)=(\\S+?)(?=\\s|$)");
+            String worst = captured(durations, "max=(\\S+?)(?=\\s|$)");
+
+            assertThat(readme)
+                    .as("%s: every figure of this run has to appear in the table", artefact)
+                    .contains(requests, rate, mean, median, ninetieth, ninetyFifth, worst);
+        }
+    }
+
+    @Test
+    void the_performance_figures_say_where_they_came_from() throws IOException {
+        String readme = read(README);
+
+        // These are the only numbers here that no test can gate: a throughput asserted in
+        // continuous integration would fail on a smaller runner and would say nothing about the
+        // code. A review made the point by falsifying 285.2/s to 985.2/s and watching this suite
+        // pass. What can be required is that they never appear without saying how they were
+        // produced — the command, and the day.
+        assertThat(readme)
+                .as("the command that reproduces the measurements")
+                .contains("docker compose run --rm k6 run scripts/test.js");
+        assertThat(readme)
+                .as("the day they were measured, so a reader can tell how old they are")
+                .containsPattern("Measured on \\*\\*\\d{4}-\\d{2}-\\d{2}\\*\\*");
+        assertThat(readme)
+                .as("and that they are not presented as a property of the code")
+                .contains("a measurement, not a property");
+
+        // The tables themselves: every throughput figure has to live in the section that carries
+        // that provenance, so a new one cannot be added somewhere it is unexplained.
+        String provenanceSection = readme.substring(readme.indexOf("Where these numbers come from"));
+        // The negative lookahead matters: without it this matched the "1/s" of
+        // `/product/1/similar`, which was this test's own first bug.
+        List<String> throughputs = Pattern.compile("\\d+(?:[.,]\\d+)?/s(?![a-zA-Z])")
+                .matcher(readme)
+                .results()
+                .map(MatchResult -> MatchResult.group())
+                .toList();
+        assertThat(throughputs).as("there are throughput figures to check").isNotEmpty();
+        for (String figure : throughputs) {
+            assertThat(provenanceSection)
+                    .as("the figure %s appears before the paragraph that explains where it came from", figure)
+                    .contains(figure);
+        }
     }
 
     @Test

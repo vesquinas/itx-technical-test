@@ -278,6 +278,61 @@ for (const proof of new Set(namedProofs)) {
 }
 
 // ---------------------------------------------------------------------------
+// The numbers measured against the API, and the number of commits.
+//
+// These are the ones this check used to miss, and a review proved it by falsifying five of them
+// and watching both gates pass. The pattern was that everything coming from configuration was
+// covered and everything coming from *measurement* was not — which is the wrong way round, since
+// configuration is stable and a measurement moves.
+//
+// The fix is a single source of truth: `scripts/api-facts.json`. `npm run check:api` asserts those
+// numbers against the live API; this asserts the READMEs quote them. Neither half is any use alone.
+// ---------------------------------------------------------------------------
+
+const FACTS = JSON.parse(readFileSync('scripts/api-facts.json', 'utf8'));
+const rootReadme = readFileSync('../README.md', 'utf8');
+
+const numbersFromTheApi = [
+  ['products in the catalogue', /all (\d+) products, no pagination/, FACTS.products],
+  ['products in the endpoint table', /The catalogue: \*\*(\d+) products\*\*/, FACTS.products],
+  ['products with no price', /comes as `""` in (\d+) of the 100 products/, FACTS.withoutPrice],
+  ['products with no NFC value', /`nfc` arrives empty in (\d+) of the 100 products/, FACTS.withoutNfc],
+  ['products with a blank option name', /`\{ code: 2000, name: " " \}`/, undefined],
+];
+
+for (const [name, pattern, expected] of numbersFromTheApi) {
+  if (expected === undefined) continue;
+  const stated = claimed(pattern);
+  check(
+    `the stated ${name} matches api-facts.json (says ${stated ?? '—'}, facts say ${expected})`,
+    stated === expected,
+  );
+}
+
+/**
+ * The number of commits, which the READMEs both state.
+ *
+ * Skipped rather than failed on a shallow clone: continuous integration checks out with a depth of
+ * one by default, and a check that cannot run is not the same as a check that fails.
+ */
+const shallow = execFileSync('git', ['rev-parse', '--is-shallow-repository'], { encoding: 'utf8' }).trim();
+if (shallow === 'true') {
+  console.log('  ..  skipping the commit count: this is a shallow clone');
+} else {
+  const commits = Number(
+    execFileSync('git', ['rev-list', '--count', 'HEAD'], { encoding: 'utf8' }).trim(),
+  );
+  for (const [label, markdown] of [['README.md', README], ['../README.md', rootReadme]]) {
+    const stated = Number(/(\d+) commits/.exec(markdown)?.[1]);
+    check(
+      `${label}: the stated number of commits is right (says ${stated || '—'}, there are ${commits})`,
+      // The count grows with the commit that updates it, so it is right or one behind.
+      stated === commits || stated === commits + 1,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Internal links: a section that was renamed leaves a link that goes nowhere.
 // ---------------------------------------------------------------------------
 

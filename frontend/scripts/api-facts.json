@@ -1,0 +1,9 @@
+{
+  "_comment": "The numbers this project states about the test API, in one place. `npm run check:api` asserts them against the live API; `npm run check:claims` asserts that the READMEs quote these and not something else. Before this file, a measured number in a README was checked by nothing: an external review falsified five of them and both gates passed.",
+  "_measuredOn": "2026-09-09",
+  "products": 100,
+  "withoutPrice": 6,
+  "withAnyRequiredAttributeEmpty": 21,
+  "withoutNfc": 94,
+  "withBlankOptionName": 2
+}

@@ -38,8 +38,8 @@ function optional(entries: readonly (readonly [string, string])[]): Row[] {
  * Builds the rows of the spec sheet.
  *
  * The first eleven are the ones the brief requires. The rest extend the sheet with everything else
- * the API offers, and those are dropped when empty: `nfc`, for instance, arrives empty across all
- * 100 products of the catalogue, and a label with nothing next to it informs no one.
+ * the API offers, and those are dropped when empty: `nfc`, for instance, arrives empty in 94 of the
+ * 100 products, and a label with nothing next to it informs no one.
  */
 function buildRows(product: ProductDetail): Row[] {
   const { specs } = product;

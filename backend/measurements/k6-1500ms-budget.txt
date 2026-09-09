@@ -1,0 +1,349 @@
+# k6 run — 1.5 s fan-out budget, cold cache (the alternative that was rejected)
+# Command:  docker compose run --rm k6 run scripts/test.js
+# Date:     2026-09-09
+# Machine:  8 cores, 15 GB RAM, running the service, the mocks, the load generator and InfluxDB at once
+# Config:   existing-api.fan-out-timeout = 1500ms
+
+time="2026-09-09T09:57:51+02:00" level=warning msg="/home/vesquinas/victor/itx-technical-test/backend/docker-compose.yaml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+time="2026-09-09T09:57:51+02:00" level=warning msg="Found orphan containers (backend-app-1) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container backend-k6-run-0532451ac0f2 Creating 
+ Container backend-k6-run-0532451ac0f2 Created 
+          /\      |‾‾| /‾‾/   /‾‾/   
+     /\  /  \     |  |/  /   /  /    
+    /  \/    \    |     (   /   ‾‾\  
+   /          \   |  |\  \ |  (‾)  | 
+  / __________ \  |__| \__\ \_____/ .io
+  execution: local
+     script: scripts/test.js
+     output: influxdb=http://influxdb:8086/k6 (http://influxdb:8086)
+  scenarios: (100.00%) 5 scenarios, 200 max VUs, 1m30s max duration (incl. graceful stop):
+           * normal: 200 looping VUs for 10s (exec: normal)
+           * notFound: 200 looping VUs for 10s (exec: notFound, startTime: 10s)
+           * error: 200 looping VUs for 10s (exec: error, startTime: 20s)
+           * slow: 200 looping VUs for 10s (exec: slow, startTime: 30s, gracefulStop: 10s)
+           * verySlow: 200 looping VUs for 10s (exec: verySlow, startTime: 50s, gracefulStop: 30s)
+Init       [  65% ] 130/200 VUs initialized
+normal     [   0% ]
+notFound   [   0% ]
+error      [   0% ]
+slow       [   0% ]
+verySlow   [   0% ]
+normal     [   5% ] 200 VUs  00.5s/10s
+notFound • [   0% ] waiting  09.5s
+error    • [   0% ] waiting  19.5s
+slow     • [   0% ] waiting  29.5s
+verySlow • [   0% ] waiting  49.5s
+normal     [  15% ] 200 VUs  01.5s/10s
+notFound • [   0% ] waiting  08.5s
+error    • [   0% ] waiting  18.5s
+slow     • [   0% ] waiting  28.5s
+verySlow • [   0% ] waiting  48.5s
+normal     [  25% ] 200 VUs  02.5s/10s
+notFound • [   0% ] waiting  07.5s
+error    • [   0% ] waiting  17.5s
+slow     • [   0% ] waiting  27.5s
+verySlow • [   0% ] waiting  47.5s
+normal     [  35% ] 200 VUs  03.5s/10s
+notFound • [   0% ] waiting  06.5s
+error    • [   0% ] waiting  16.5s
+slow     • [   0% ] waiting  26.5s
+verySlow • [   0% ] waiting  46.5s
+normal     [  45% ] 200 VUs  04.5s/10s
+notFound • [   0% ] waiting  05.5s
+error    • [   0% ] waiting  15.5s
+slow     • [   0% ] waiting  25.5s
+verySlow • [   0% ] waiting  45.5s
+normal     [  55% ] 200 VUs  05.5s/10s
+notFound • [   0% ] waiting  04.5s
+error    • [   0% ] waiting  14.5s
+slow     • [   0% ] waiting  24.5s
+verySlow • [   0% ] waiting  44.5s
+normal     [  65% ] 200 VUs  06.5s/10s
+notFound • [   0% ] waiting  03.5s
+error    • [   0% ] waiting  13.5s
+slow     • [   0% ] waiting  23.5s
+verySlow • [   0% ] waiting  43.5s
+normal     [  75% ] 200 VUs  07.5s/10s
+notFound • [   0% ] waiting  02.5s
+error    • [   0% ] waiting  12.5s
+slow     • [   0% ] waiting  22.5s
+verySlow • [   0% ] waiting  42.5s
+normal     [  85% ] 200 VUs  08.5s/10s
+notFound • [   0% ] waiting  01.5s
+error    • [   0% ] waiting  11.5s
+slow     • [   0% ] waiting  21.5s
+verySlow • [   0% ] waiting  41.5s
+normal     [  95% ] 200 VUs  09.5s/10s
+notFound • [   0% ] waiting  00.5s
+error    • [   0% ] waiting  10.5s
+slow     • [   0% ] waiting  20.5s
+verySlow • [   0% ] waiting  40.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound   [   5% ] 200 VUs  00.5s/10s
+error    • [   0% ] waiting  09.5s
+slow     • [   0% ] waiting  19.5s
+verySlow • [   0% ] waiting  39.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound   [  15% ] 200 VUs  01.5s/10s
+error    • [   0% ] waiting  08.5s
+slow     • [   0% ] waiting  18.5s
+verySlow • [   0% ] waiting  38.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound   [  25% ] 200 VUs  02.5s/10s
+error    • [   0% ] waiting  07.5s
+slow     • [   0% ] waiting  17.5s
+verySlow • [   0% ] waiting  37.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound   [  35% ] 200 VUs  03.5s/10s
+error    • [   0% ] waiting  06.5s
+slow     • [   0% ] waiting  16.5s
+verySlow • [   0% ] waiting  36.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound   [  45% ] 200 VUs  04.5s/10s
+error    • [   0% ] waiting  05.5s
+slow     • [   0% ] waiting  15.5s
+verySlow • [   0% ] waiting  35.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound   [  55% ] 200 VUs  05.5s/10s
+error    • [   0% ] waiting  04.5s
+slow     • [   0% ] waiting  14.5s
+verySlow • [   0% ] waiting  34.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound   [  65% ] 200 VUs  06.5s/10s
+error    • [   0% ] waiting  03.5s
+slow     • [   0% ] waiting  13.5s
+verySlow • [   0% ] waiting  33.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound   [  75% ] 200 VUs  07.5s/10s
+error    • [   0% ] waiting  02.5s
+slow     • [   0% ] waiting  12.5s
+verySlow • [   0% ] waiting  32.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound   [  85% ] 200 VUs  08.5s/10s
+error    • [   0% ] waiting  01.5s
+slow     • [   0% ] waiting  11.5s
+verySlow • [   0% ] waiting  31.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound   [  95% ] 200 VUs  09.5s/10s
+error    • [   0% ] waiting  00.5s
+slow     • [   0% ] waiting  10.5s
+verySlow • [   0% ] waiting  30.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error      [   5% ] 200 VUs  00.5s/10s
+slow     • [   0% ] waiting  09.5s
+verySlow • [   0% ] waiting  29.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error      [  15% ] 200 VUs  01.5s/10s
+slow     • [   0% ] waiting  08.5s
+verySlow • [   0% ] waiting  28.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error      [  25% ] 200 VUs  02.5s/10s
+slow     • [   0% ] waiting  07.5s
+verySlow • [   0% ] waiting  27.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error      [  35% ] 200 VUs  03.5s/10s
+slow     • [   0% ] waiting  06.5s
+verySlow • [   0% ] waiting  26.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error      [  45% ] 200 VUs  04.5s/10s
+slow     • [   0% ] waiting  05.5s
+verySlow • [   0% ] waiting  25.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error      [  55% ] 200 VUs  05.5s/10s
+slow     • [   0% ] waiting  04.5s
+verySlow • [   0% ] waiting  24.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error      [  65% ] 200 VUs  06.5s/10s
+slow     • [   0% ] waiting  03.5s
+verySlow • [   0% ] waiting  23.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error      [  75% ] 200 VUs  07.5s/10s
+slow     • [   0% ] waiting  02.5s
+verySlow • [   0% ] waiting  22.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error      [  85% ] 200 VUs  08.5s/10s
+slow     • [   0% ] waiting  01.5s
+verySlow • [   0% ] waiting  21.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error      [  95% ] 200 VUs  09.5s/10s
+slow     • [   0% ] waiting  00.5s
+verySlow • [   0% ] waiting  20.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow       [   5% ] 200 VUs  00.5s/10s
+verySlow • [   0% ] waiting  19.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow       [  15% ] 200 VUs  01.5s/10s
+verySlow • [   0% ] waiting  18.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow       [  25% ] 200 VUs  02.5s/10s
+verySlow • [   0% ] waiting  17.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow       [  35% ] 200 VUs  03.5s/10s
+verySlow • [   0% ] waiting  16.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow       [  45% ] 200 VUs  04.5s/10s
+verySlow • [   0% ] waiting  15.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow       [  55% ] 200 VUs  05.5s/10s
+verySlow • [   0% ] waiting  14.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow       [  65% ] 200 VUs  06.5s/10s
+verySlow • [   0% ] waiting  13.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow       [  75% ] 200 VUs  07.5s/10s
+verySlow • [   0% ] waiting  12.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow       [  85% ] 200 VUs  08.5s/10s
+verySlow • [   0% ] waiting  11.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow       [  95% ] 200 VUs  09.5s/10s
+verySlow • [   0% ] waiting  10.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow • [   0% ] waiting  09.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow • [   0% ] waiting  08.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow • [   0% ] waiting  07.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow • [   0% ] waiting  06.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow • [   0% ] waiting  05.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow • [   0% ] waiting  04.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow • [   0% ] waiting  03.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow • [   0% ] waiting  02.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow • [   0% ] waiting  01.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow • [   0% ] waiting  00.5s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow   [   5% ] 200 VUs  00.5s/10s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow   [  15% ] 200 VUs  01.5s/10s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow   [  25% ] 200 VUs  02.5s/10s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow   [  35% ] 200 VUs  03.5s/10s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow   [  45% ] 200 VUs  04.5s/10s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow   [  55% ] 200 VUs  05.5s/10s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow   [  65% ] 200 VUs  06.5s/10s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow   [  75% ] 200 VUs  07.5s/10s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow   [  85% ] 200 VUs  08.5s/10s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow   [  95% ] 200 VUs  09.5s/10s
+normal   ✓ [ 100% ] 200 VUs  10s
+notFound ✓ [ 100% ] 200 VUs  10s
+error    ✓ [ 100% ] 200 VUs  10s
+slow     ✓ [ 100% ] 200 VUs  10s
+verySlow ✓ [ 100% ] 200 VUs  10s
+    data_received..............: 5.1 MB 84 kB/s
+    data_sent..................: 1.8 MB 29 kB/s
+    http_req_blocked...........: avg=696.68µs min=1.69µs   med=4.98µs   max=139.99ms p(90)=8.23µs   p(95)=11.6µs 
+    http_req_connecting........: avg=584.02µs min=0s       med=0s       max=124.41ms p(90)=0s       p(95)=0s     
+    http_req_duration..........: avg=125.51ms min=1.67ms   med=5.91ms   max=1.55s    p(90)=101.9ms  p(95)=1.51s  
+    http_req_receiving.........: avg=432.3µs  min=16.24µs  med=69.5µs   max=80.52ms  p(90)=799.76µs p(95)=1.88ms 
+    http_req_sending...........: avg=47.4µs   min=7.3µs    med=18.57µs  max=16.12ms  p(90)=60.08µs  p(95)=114.5µs
+    http_req_tls_handshaking...: avg=0s       min=0s       med=0s       max=0s       p(90)=0s       p(95)=0s     
+    http_req_waiting...........: avg=125.03ms min=1.55ms   med=5.57ms   max=1.55s    p(90)=100.47ms p(95)=1.51s  
+    http_reqs..................: 16259  269.257828/s
+    iteration_duration.........: avg=632.25ms min=501.85ms med=506.67ms max=2.05s    p(90)=615.29ms p(95)=2.01s  
+    iterations.................: 15659  259.321503/s
+    vus........................: 200    min=0   max=200
+    vus_max....................: 200    min=200 max=200

@@ -36,7 +36,7 @@ place.
 | ES6; a boilerplate may be used | TypeScript in strict mode, compiled to ES2022, on Vite | `npm run typecheck` |
 | A SPA with client-side routing, no MPA and no SSR | `BrowserRouter`, no server rendering, no document navigation | `keeps the search when going back to the list` — state survives a view change |
 | The four scripts: START, BUILD, TEST, LINT | `npm start`, `npm run build`, `npm test`, `npm run lint` | `npm run check:claims` verifies all four exist |
-| An open repository, with the code pushed in milestones | 36 commits, one per milestone | the history |
+| An open repository, with the code pushed in milestones | 39 commits, one per milestone | the history |
 | A README, preferably in the first commit | this file, in the first commit | `git show --stat $(git rev-list --max-parents=0 HEAD)` |
 | **PLP** — every element the API returns | all 100 products, no pagination | `shows the products the API returns` |
 | **PLP** — filtering by what the user types | `src/components/SearchBar.tsx` | `filters by brand`, `filters by model while typing` |
@@ -249,7 +249,7 @@ than scattering those workarounds across the components:
 | Misspelled names at the source | `dimentions` and `secondaryCmera` | Read under their real names and exposed spelled correctly |
 | Ten fields change type per product | `cpu`, `os`, `sim`, `primaryCamera`, `wlan`, `sensors`… arrive as text or as a list | Always normalised to `string[]` |
 | Empty price | `price` is text and comes as `""` in 6 of the 100 products | Translated to `null`, and the interface shows "Precio no disponible" |
-| Empty fields | `nfc` arrives empty in every product of the catalogue | Rows with no value are dropped from the optional part of the spec sheet |
+| Empty fields | `nfc` arrives empty in 94 of the 100 products | Rows with no value are dropped from the optional part of the spec sheet |
 | Options with no name | `M900` and `DX650` deliver their only storage as `{ code: 2000, name: " " }` | The option is kept, because the code is valid and the code is all that is sent to the cart; the interface labels it "Estándar" |
 | A product that does not exist answers **500**, not 404 | `GET /api/product/<made-up-id>` returns `{"message":"An Unexpected Error Occurred","code":0}` with status 500 | The catalogue already in the cache is used as evidence to tell the two apart; see below |
 
@@ -372,7 +372,7 @@ Measured against the deployed site itself, not inferred:
 | Checked | Result |
 | --- | --- |
 | The application is served | 200 |
-| The API answers through the same origin | 200, 16.6 kB |
+| The API answers through the same origin | 200, with the catalogue in the body |
 | Four consecutive add-to-cart requests on one session | **1, 2, 3, 4** |
 | A deep link such as `/product/<id>` | 200 — on static hosting the same build answered 404 |
 | The bundle | contains no absolute API URL: it calls its own origin, which is what routes it through the proxy |
@@ -691,15 +691,30 @@ So the rule is now: **no claim in this README without a command that proves it.*
 | The cache expires at one hour, to the millisecond | `npm test` — ttlCache.test.ts |
 | No accessibility violations on either view | `npm test` — accessibility.test.tsx, which runs axe |
 | The types are strict and the linter passes with no warnings | `npm run typecheck`, `npm run lint` |
-| Every number in this README is the current one | `npm run check:claims` |
+| Every number that comes from the code, its configuration or the suite is the current one | `npm run check:claims` |
+| Every number measured against the API — how many products, how many with no price, how many with no NFC value — is the current one | `npm run check:api`, which asserts them against the live API rather than printing them |
 
-**Two limits of this, stated rather than papered over.** The layout itself — that a wide screen
-really shows four cards per row — is not proved by any of these: jsdom lays nothing out, so the test
-reads the stylesheet instead, and only a real browser could close that gap. It is on the list below.
-And no script can tell prose from a claim: `check:claims` catches a number that has rotted, a script
-that has drifted out of the table and an endpoint the code no longer calls, but a new sentence
-asserting something unverified would pass it. The table is what closes that gap, by making the
-pairing explicit enough that an empty right-hand column is visible.
+**Three limits of this, stated rather than papered over.**
+
+The layout itself — that a wide screen really shows four cards per row — is not proved by any of
+these: jsdom lays nothing out, so the test reads the stylesheet instead, and only a real browser
+could close that gap. It is on the list below.
+
+No script can tell prose from a claim. `check:claims` catches a number that has rotted, a script
+that has drifted out of the table, an endpoint the code no longer calls and a link pointing at a
+section that no longer exists, but a new sentence asserting something unverified would pass it. The
+table is what closes that gap, by making the pairing explicit enough that an empty right-hand column
+is visible.
+
+**And the gate had this exact blind spot itself, which is the most useful thing in this section.** A
+review falsified five numbers — 100 products became 5000, 6 with no price became 90, 36 commits
+became 400 — and every one of them passed. The pattern was that everything coming from
+*configuration* was covered and everything coming from *measurement* was not, which is the wrong way
+round: configuration is stable and a measurement moves. The fix was to give the measured numbers a
+single source of truth ([`scripts/api-facts.json`](./scripts/api-facts.json)), asserted against the
+live API by `check:api` and against these pages by `check:claims`. Writing that check found two more
+false numbers nobody had reported: `nfc` was documented as empty in *every* product and it is empty
+in 94 of them.
 
 ## What I would do with more time
 

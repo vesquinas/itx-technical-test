@@ -58,7 +58,7 @@ docker run -p 5000:5000 -p 5001:5001 -e EXISTING_API_BASE_URL=http://simulado \
 ./mvnw test
 ```
 
-62 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
+64 tests. They do not need Docker: the existing API is replaced by a WireMock double that reproduces
 the same cases as the mock service, with its delays, its 404s and its 500s.
 
 To check that the tests are worth something — and not merely that they execute lines — nine
@@ -228,16 +228,47 @@ identifier.
 
 #### How the value was chosen, and a counter-intuitive reading
 
+> **Where these numbers come from, and what they are not.** Every figure in this section and in
+> [the one on the asynchronous cache](#3-the-cache-is-asynchronous-and-that-detail-changes-everything)
+> was produced by the exercise's own load test:
+>
+> ```bash
+> docker compose run --rm k6 run scripts/test.js
+> ```
+>
+> Measured on **2026-09-09**, on a six-core laptop running the service, the mocks, the load
+> generator and the database it writes to at the same time. **They are a measurement, not a property
+> of the code**, and unlike every other number in this README they are not a build gate: a
+> throughput asserted in continuous integration would fail on a smaller runner and say nothing about
+> the code. What is reproducible is the *comparison* between the two columns, which is what each
+> table is for — and an independent reproduction of the last one landed within 5% on every figure
+> except the worst case, which is discussed below.
+>
+> This paragraph exists because a review falsified 285.2/s to 985.2/s and the test suite passed. The
+> numbers that come from configuration are checked by `ReadmeClaimsTest`; these cannot be, so what
+> guards them is the command above and the date.
+
 Two budgets were measured with the load test:
 
 | Metric | 1.5 s budget | 600 ms budget |
 | --- | --- | --- |
-| Requests | 16,322 (270.8/s) | **17,200 (285.2/s)** |
-| Mean latency | 123 ms | **92 ms** |
-| Median latency | **6.1 ms** | 7.7 ms |
-| 90th percentile | **65 ms** | 602 ms |
-| 95th percentile | 1.51 s | **609 ms** |
-| Worst case | 1.53 s | **649 ms** (see the note below) |
+| Requests | 16259 (269.26/s) | **17145 (283.98/s)** |
+| Mean latency | 125.51ms | **94.49ms** |
+| Median latency | **5.91ms** | 6.75ms |
+| 90th percentile | **101.9ms** | 603.85ms |
+| 95th percentile | 1.51s | **620.9ms** |
+| Worst case | 1.55s | **781.02ms** (see the note below) |
+
+Those are transcribed, to the digit, from two files committed next to this README:
+[`measurements/k6-1500ms-budget.txt`](./measurements/k6-1500ms-budget.txt) and
+[`measurements/k6-600ms-budget.txt`](./measurements/k6-600ms-budget.txt) — the raw output of the two
+runs, each with the command, the date and the machine at the top. `ReadmeClaimsTest` reads those
+files and fails if a single figure in this table stops matching them, which is the part that can be
+guarded: **the prose cannot drift from the evidence**, even though no test can tell whether the
+evidence itself is recent.
+
+An earlier pair of runs, and an independent reproduction of the second column, landed within a few
+per cent of every figure here.
 
 The 95th percentile improves and the 90th gets worse. That is not a contradiction, and the
 explanation matters:
@@ -258,16 +289,16 @@ completeness does not suffer, because the abandoned call keeps running and leave
 cache: once it is warm, responses carry every reachable similar product again. This was verified
 product by product.
 
-> **A note on that worst case, because a reproduction of these numbers exceeded it.** An independent
-> run of the same load test measured a maximum of **822 ms** against a 600 ms budget — everything
-> else matching within 5%. That is not a broken budget: the budget bounds **how long the service
-> waits for the source**, not how long a response takes end to end. On top of it sit the queueing
-> and scheduling of 200 concurrent users on a machine that is also running the load generator, the
-> mock and the database it writes to. Across the runs measured so far the maximum has landed between
-> **630 ms and 822 ms** for the same 600 ms budget, and the figure moves with the machine. What holds
-> across all of them is the comparison — one budget produces a worst case near the budget, the other
-> near 1.5 s — and that is what the table is for. The single-figure claim was tighter than the
-> evidence supported.
+> **A note on that worst case, because it is the figure that moves.** Across the runs measured so
+> far it has landed anywhere between **630 ms and 822 ms** against the same 600 ms budget: 781 ms in
+> the committed run above, and 822 ms in an independent reproduction that matched every other figure
+> within 5%. That is not a broken budget. The budget bounds **how long the service waits for the
+> source**, not how long a response takes end to end, and on top of it sit the queueing and
+> scheduling of 200 concurrent users on a machine that is also running the load generator, the mock
+> and the database it writes to. What holds across every run is the comparison — one budget produces
+> a worst case near the budget, the other near a second and a half — and that is what the table is
+> for. This README used to state a single figure, 649 ms, which was tighter than the evidence
+> supported.
 
 ### 3. The cache is asynchronous, and that detail changes everything
 
@@ -294,6 +325,15 @@ Measured with the exercise's own load test, 200 virtual users and a cold cache:
 Fifteen times the throughput, and a 90th percentile that drops from six and a half seconds to sixty
 milliseconds. (Both columns were measured with the 1.5 s budget, to compare a single variable; the
 budget was tuned afterwards.)
+
+> **This is the one table with no artefact committed next to it**, and it is worth saying why rather
+> than leaving it to be noticed. The two runs above are from **2026-09-08**, and reproducing the
+> first column means putting the synchronous cache back: swapping `buildAsync()` for `build()` in
+> [`ProductCatalog`](./src/main/java/com/itx/similarproducts/catalog/ProductCatalog.java) and
+> adapting `load` to return a value instead of a future. That is a code change, so unlike the budget
+> comparison it cannot be re-derived from the repository as it stands. Anyone who wants to see it can
+> make that change and run the same command; the figure to watch is the throughput, and the effect
+> is not subtle — the first column barely completes a request.
 
 **And it does not accumulate resources.** Since the abandoned call is not cancelled, there was a
 question of whether threads or memory piled up. Measured over two consecutive runs of the load test:
@@ -484,7 +524,7 @@ So the rule is now: **no claim in this README without a command that proves it.*
 
 | Claim | Proof |
 | --- | --- |
-| 62 tests pass, with no Docker needed | `./mvnw test` |
+| 64 tests pass, with no Docker needed | `./mvnw test` |
 | Only a 404 means "does not exist"; a 429 or a 403 do not | `./mvnw test` — ProductCatalogTest |
 | 25 sequential requests for a made-up product cost **one** call to the source | `./mvnw test` — the negative-caching tests |
 | Error responses repeat nothing the caller sent, and carry no exception or trace | `./mvnw test` — ErrorResponsesTest, UnexpectedErrorTest |
@@ -492,17 +532,28 @@ So the rule is now: **no claim in this README without a command that proves it.*
 | An identifier of 128 characters is accepted and 129 is rejected | `./mvnw test` |
 | The ports, the three expiries, the budget and the cap are the numbers stated here | `./mvnw test` — ConfigurationTest |
 | Every endpoint the service maps is documented above | `./mvnw test` — ReadmeClaimsTest |
-| Every number in this README is the current one | `./mvnw test` — ReadmeClaimsTest |
+| Every number that comes from the code or its configuration — ports, expiries, budget, cap, test count, comment density, Java version — is the current one | `./mvnw test` — ReadmeClaimsTest |
+| The performance figures are reproducible, and dated | `docker compose run --rm k6 run scripts/test.js` — they are a measurement on a named machine and day, not a property of the code, and [the section says so](#how-the-value-was-chosen-and-a-counter-intuitive-reading) |
 | The five scenarios of the mock behave as the table says | `docker compose up -d simulado`, then the five `curl`s |
 | The asynchronous cache is what the throughput figures say | `docker compose run --rm k6 run scripts/test.js` |
 
-**Two limits of this, stated rather than papered over.** The last row is a *measurement* and not a
-test, because what separates the asynchronous cache from the synchronous one only appears under load
-— that is [explained above](#what-these-tests-cannot-cover-and-what-covers-it-instead) and it is why
-the numbers are published with the command that reproduces them. And no script can tell prose from a
-claim: `ReadmeClaimsTest` catches a number that has rotted and an endpoint that has drifted, but a
-new sentence asserting something unverified would pass it. The table is what closes that gap, by
-making the pairing explicit enough that an empty right-hand column is visible.
+**Three limits of this, stated rather than papered over.**
+
+The performance rows are a *measurement* and not a test, because what separates the asynchronous
+cache from the synchronous one only appears under load — that is
+[explained above](#what-these-tests-cannot-cover-and-what-covers-it-instead), and it is why those
+numbers are published with the command and the date that produced them.
+
+No script can tell prose from a claim. `ReadmeClaimsTest` catches a number that has rotted, an
+endpoint that has drifted and a link pointing at a section that no longer exists, but a new sentence
+asserting something unverified would pass it. The table is what closes that gap, by making the
+pairing explicit enough that an empty right-hand column is visible.
+
+**And this table itself claimed more than it could deliver, which is worth admitting here.** It said
+*every* number in this README was the current one; a review falsified the headline throughput —
+285.2/s to 985.2/s — and the suite passed. Everything derived from configuration was covered and
+everything derived from measurement was not, which is the wrong way round, since configuration is
+stable and a measurement moves with the machine. The rows above now say which is which.
 
 ## Third-party files
 

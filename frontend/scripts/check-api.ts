@@ -16,8 +16,25 @@
  * up. Run it by hand with `npm run check:api`.
  */
 
+import { readFileSync } from 'node:fs';
+
 import { parseProductDetail, parseProductList } from '../src/api/schema.ts';
 import type { ProductDetail } from '../src/domain/product.ts';
+
+/**
+ * The numbers this project states about the API.
+ *
+ * They live in a file rather than in prose because a number in a README is checked by nothing:
+ * `npm run check:claims` asserts the READMEs quote these, and this script asserts these match the
+ * live API. Neither half is any use without the other.
+ */
+const FACTS = JSON.parse(readFileSync(new URL('api-facts.json', import.meta.url), 'utf8')) as {
+  products: number;
+  withoutPrice: number;
+  withAnyRequiredAttributeEmpty: number;
+  withoutNfc: number;
+  withBlankOptionName: number;
+};
 
 const BASE_URL = process.env['VITE_API_BASE_URL'] ?? 'https://itx-frontend-test.onrender.com';
 const CONCURRENCY = 8;
@@ -123,6 +140,45 @@ for (const { summary, detail, raw } of details) {
 }
 
 console.log(`\nProducts queried: ${String(details.length)}`);
+
+// ---------------------------------------------------------------------------
+// The stated numbers, asserted rather than printed.
+// ---------------------------------------------------------------------------
+
+/** Fails loudly: a number the READMEs state has stopped being true. */
+function assertFact(name: string, stated: number, actual: number): void {
+  if (stated !== actual) {
+    errors.push(
+      `the stated ${name} is ${String(stated)} and the API says ${String(actual)} — ` +
+        'update scripts/api-facts.json and every README that quotes it',
+    );
+  }
+}
+
+const withAnyEmpty = details.filter(
+  ({ detail }) => detail !== undefined && REQUIRED.some(([, read]) => read(detail).length === 0),
+).length;
+const withoutNfc = details.filter(({ detail }) => detail?.specs.nfc === '').length;
+const withBlankOptionName = details.filter(({ detail }) =>
+  [...(detail?.options.colors ?? []), ...(detail?.options.storages ?? [])].some(
+    (option) => option.name.trim().length === 0,
+  ),
+).length;
+
+assertFact('number of products', FACTS.products, rawCount);
+assertFact('number of products with no price', FACTS.withoutPrice, missingAttribute.get('Price')?.length ?? 0);
+assertFact(
+  'number of products missing a required attribute',
+  FACTS.withAnyRequiredAttributeEmpty,
+  withAnyEmpty,
+);
+assertFact('number of products with no NFC value', FACTS.withoutNfc, withoutNfc);
+assertFact('number of products with a blank option name', FACTS.withBlankOptionName, withBlankOptionName);
+
+console.log(
+  `Stated numbers: ${String(rawCount)} products, ${String(withAnyEmpty)} missing a required ` +
+    `attribute, ${String(withoutNfc)} with no NFC, ${String(withBlankOptionName)} with a blank option name`,
+);
 console.log('\nRequired attributes with no value in the API (shown as "No disponible"):');
 if (missingAttribute.size === 0) {
   console.log('  none');
