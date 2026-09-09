@@ -120,10 +120,10 @@ npm start          # development mode, on http://localhost:5173
 | `npm run test:coverage` | Tests with a coverage report |
 | `npm run typecheck` | Type checking only |
 | `npm run check:csp` | Verifies the Content-Security-Policy of the built HTML |
-| `npm run check:api` | Validates the parsers against the real API, all 100 products (needs network) |
+| `npm run check:api` | Validates the parsers against the real API, all 100 products (needs network, and Node 22.6+ — it runs TypeScript directly) |
 | `npm run check:claims` | Verifies that what this README claims is true — see [below](#every-claim-here-has-a-command-that-proves-it) |
 | `npm run preview` | Serves the production build |
-| `npm run preview:deployed` | Builds and serves the production build from one origin that also proxies the API — the topology of a real deployment |
+| `npm run preview:deployed` | Builds and serves the production build from one origin that also proxies the API — the topology of a real deployment. Uses `--mode preview` rather than an inline variable, so it works in cmd and PowerShell too |
 
 The API URL can be changed with `VITE_API_BASE_URL`; see [`.env.example`](./.env.example).
 

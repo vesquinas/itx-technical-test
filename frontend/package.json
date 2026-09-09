@@ -19,7 +19,7 @@
     "check:claims": "node scripts/check-claims.mjs",
     "check:api": "node --experimental-strip-types scripts/check-api.ts",
     "preview": "vite preview",
-    "preview:deployed": "VITE_API_BASE_URL=/ vite build && vite preview"
+    "preview:deployed": "vite build --mode preview && vite preview"
   },
   "dependencies": {
     "react": "^19.2.8",

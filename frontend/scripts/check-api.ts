@@ -14,6 +14,11 @@
  *
  * It is not in continuous integration: it needs network and the API takes about 40 seconds to wake
  * up. Run it by hand with `npm run check:api`.
+ *
+ * It also needs **Node 22.6 or newer**, because it runs TypeScript directly with
+ * `--experimental-strip-types`. The application itself runs on anything from Node 20.19, which is
+ * what `engines` declares; this one script is stricter, and that is worth knowing before running it
+ * on the older branch and reading the error as a defect.
  */
 
 import { readFileSync } from 'node:fs';
