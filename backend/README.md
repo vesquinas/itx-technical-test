@@ -290,10 +290,11 @@ completeness does not suffer, because the abandoned call keeps running and leave
 cache: once it is warm, responses carry every reachable similar product again. This was verified
 product by product.
 
-> **A note on that worst case, because it is the figure that moves.** Across the runs measured so
-> far it has landed anywhere between **630 ms and 822 ms** against the same 600 ms budget: 781 ms in
-> the committed run above, and 822 ms in an independent reproduction that matched every other figure
-> within 5%. That is not a broken budget. The budget bounds **how long the service waits for the
+> **A note on that worst case, because it is the figure that moves.** In every run measured it has
+> landed a few hundred milliseconds above the budget — between **0.6 s and 0.9 s** for the same
+> 600 ms budget: 781 ms in the committed run above, 822 ms in an independent reproduction that
+> matched every other figure within 5%, and 833 ms in a run from a fresh clone. Stating a tighter
+> range was tighter than the evidence: each new run moved it. That is not a broken budget. The budget bounds **how long the service waits for the
 > source**, not how long a response takes end to end, and on top of it sit the queueing and
 > scheduling of 200 concurrent users on a machine that is also running the load generator, the mock
 > and the database it writes to. What holds across every run is the comparison — one budget produces
